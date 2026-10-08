@@ -14,6 +14,12 @@ namespace TerraLoom.Rivers
         public IReadOnlyList<CrossingCandidate> Crossings { get; }
         public IReadOnlyList<AreaReservation> Reservations { get; }
 
+        /// <summary>Exports this river instance through Core without depending on other modules.</summary>
+        public PlanContribution ToContribution(string moduleInstanceId)
+        {
+            return new PlanContribution(moduleInstanceId, Identity, Reservations, new[] { Corridor }, Crossings);
+        }
+
         public RiverOffer(PlanIdentity identity, WaterCorridor corridor,
             IEnumerable<CrossingCandidate> crossings, IEnumerable<AreaReservation> reservations)
         {

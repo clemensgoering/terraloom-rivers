@@ -63,6 +63,10 @@ def run():
                 if not core.exists():
                     core.parent.mkdir(parents=True, exist_ok=True)
                     subprocess.run(['git', 'clone', '--quiet', '--no-checkout', cfg['coreRepository'], str(core)], check=True)
+                available = subprocess.run(['git', '-C', str(core), 'cat-file', '-e', cfg['coreCommit'] + '^{commit}'],
+                                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                if available.returncode != 0:
+                    subprocess.run(['git', '-C', str(core), 'fetch', '--quiet', 'origin', cfg['coreCommit']], check=True)
                 subprocess.run(['git', '-C', str(core), 'checkout', '--quiet', '--detach', cfg['coreCommit']], check=True)
             output = root / '.artifacts/core-build'
             core_obj = root / '.artifacts/core-obj'
