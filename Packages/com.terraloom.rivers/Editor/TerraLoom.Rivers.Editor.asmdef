@@ -1,0 +1,13 @@
+{
+  "name": "TerraLoom.Rivers.Editor",
+  "rootNamespace": "TerraLoom.Rivers",
+  "references": [
+    "TerraLoom.Core.Runtime",
+    "TerraLoom.Rivers.Runtime"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "autoReferenced": true,
+  "noEngineReferences": false
+}

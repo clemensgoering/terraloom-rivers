@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>TerraLoom.Rivers.Runtime</AssemblyName>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <LangVersion>9.0</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Packages/com.terraloom.rivers/Runtime/**/*.cs" />
+    <Reference Include="TerraLoom.Core.Runtime"><HintPath>$(CoreRuntimeAssembly)</HintPath></Reference>
+  </ItemGroup>
+</Project>

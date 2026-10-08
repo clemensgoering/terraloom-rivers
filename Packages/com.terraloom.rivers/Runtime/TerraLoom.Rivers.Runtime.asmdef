@@ -1,0 +1,10 @@
+{
+  "name": "TerraLoom.Rivers.Runtime",
+  "rootNamespace": "TerraLoom.Rivers",
+  "references": [
+    "TerraLoom.Core.Runtime"
+  ],
+  "includePlatforms": [],
+  "autoReferenced": true,
+  "noEngineReferences": true
+}

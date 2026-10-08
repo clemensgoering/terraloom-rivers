@@ -1,0 +1,10 @@
+{
+  "name": "com.terraloom.rivers",
+  "version": "0.1.0",
+  "displayName": "TerraLoom Rivers",
+  "description": "Initial development skeleton; generation algorithms are not implemented.",
+  "unity": "6000.3",
+  "dependencies": {
+    "com.terraloom.core": "0.1.0"
+  }
+}
