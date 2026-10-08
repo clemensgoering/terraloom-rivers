@@ -4,7 +4,7 @@ Unity 6000.3.9f1 / URP 17.3.0. Initiales Entwicklungsgeruest, Stand 08.10.2026.
 
 ## Einstieg
 1. Dieses Repository als Unity-Projekt oeffnen: Assets, Packages und ProjectSettings liegen im Root.
-2. [Cloud-Uebergabe](Docs/CLOUD-HANDOFF.md) und [Konzept](https://github.com/clemensgoering/terraloom-core/blob/aca74cb191b67f0958e622a82cad648e440b65db/Docs/CONCEPT.md) lesen.
+2. [Cloud-Uebergabe](Docs/CLOUD-HANDOFF.md) und [Konzept](https://github.com/clemensgoering/terraloom-core/blob/987abb096961c2d2b39fdae951e02898c439a697/Docs/CONCEPT.md) lesen.
 3. `python Tools/verify.py` prueft Struktur; `python Tools/verify.py --compile` auch reines C# (.NET SDK).
 4. Unity: Tools > TerraLoom > Validate Project Settings oder Batch-ExecuteMethod aus der Uebergabe.
 

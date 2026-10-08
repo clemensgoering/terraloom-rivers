@@ -8,7 +8,9 @@ from pathlib import Path
 def run():
     parser = argparse.ArgumentParser()
     parser.add_argument('--compile', action='store_true')
-    parser.add_argument('--core-root', type=Path)
+    core_options = parser.add_mutually_exclusive_group()
+    core_options.add_argument('--core-root', type=Path, help='Core checkout matching the published pin')
+    core_options.add_argument('--development-core', type=Path, help='Explicit working-tree override; leaves the published Core pin unchanged')
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     cfg = json.loads((root / 'Tools/bootstrap.json').read_text())
@@ -38,6 +40,8 @@ def run():
         core_dep = manifest['dependencies']['com.terraloom.core']
         assert core_dep == cfg['corePackageUrl'], 'Core pin mismatch'
         assert re.search(r'#[a-f0-9]{40}$', core_dep), 'Core must be pinned to a commit'
+        locked_core = json.loads((root / 'Packages/packages-lock.json').read_text())['dependencies']['com.terraloom.core']
+        assert locked_core['hash'] == cfg['coreCommit'] and locked_core['version'] == core_dep, 'Core lockfile pin mismatch'
         assert 'TerraLoom.Core.Runtime' in assembly['references']
         assert 'com.terraloom.paths' not in manifest['dependencies']
         assert 'com.terraloom.rivers' not in manifest['dependencies']
@@ -47,7 +51,11 @@ def run():
     if args.compile:
         command = ['dotnet', 'build', str(root / 'Tools/RuntimeCompile.csproj'), '--nologo', '-v', 'minimal']
         if module != 'Core':
-            if args.core_root:
+            if args.development_core:
+                core = args.development_core.resolve()
+                assert (core / 'Packages/com.terraloom.core/package.json').is_file(), 'Development Core package missing'
+                print('Development Core override; published pin remains ' + cfg['coreCommit'], flush=True)
+            elif args.core_root:
                 core = args.core_root.resolve()
                 assert subprocess.check_output(['git', '-C', str(core), 'rev-parse', 'HEAD'], text=True).strip() == cfg['coreCommit'], 'Core checkout must match pin'
             else:
