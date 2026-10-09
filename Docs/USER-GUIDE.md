@@ -15,6 +15,12 @@ Unmoegliche Kurven werden diagnostiziert statt als rohe Rasterkette publiziert.
 Gerade Taeler erhalten keine kuenstlichen Maeander. Inspector/Workbench zeigt
 Laenge, Punktzahl, Steigung und Richtungswechsel der finalen Wasserlinie.
 
+Zusaetzlich zeigt der Inspector den kleinsten abgetasteten XZ-Kurvenradius mit
+festen 1-m-Messarmen entlang der finalen Wasserlinie. Messpunktzahl und Skala
+sind sichtbar; Endbereiche ohne volle Arme bleiben ausgeschlossen. Dies ist
+eine reine Diagnose ohne Terrainaufnahme/Neuplanung und keine kontinuierliche
+Kruemmungs- oder Uferfreigabe. Die Runtime-Messung liegt gemeinsam in Core.
+
 Ein `TerraLoomWorld` mit zugewiesenem Unity Terrain und zwei unterschiedlichen Zielen genÃ¼gt. Der Core-Terraingenerator ist optional; fremdes Terrain und Landschaftsbereiche ohne Biome sind zulÃ¤ssig. Terrain benÃ¶tigt EinheitsmaÃŸstab und unverÃ¤nderte Weltrotation. Im `TerraLoomRivers`-Inspector World sowie eigene Water-, Bed- und Bank-Materialien zuweisen. Automatische Quell-/MÃ¼ndungswahl nutzt Core-Ziele; alternativ `Automatic Source And Mouth` ausschalten und Verbindungen Ã¼ber stabile Ziel-IDs eintragen.
 
 `Generate` verwendet den Runtime-Planer. `Carve Terrain Copy` erzeugt eine TerrainData-Kopie und verbindet Terrain und TerrainCollider damit; das Originalasset bleibt unverÃ¤ndert. Wasser liegt bei GelÃ¤nde + 0,02 m, das Bett bei Wasser âˆ’ Depth. `Clear` entfernt die erzeugte Geometrie und stellt das Original wieder her. Ohne Copy-Carving bleibt das GelÃ¤nde unverÃ¤ndert: die Geometrie ist ein Overlay und kann vom GelÃ¤nde verdeckt werden. Wasser ist eine sichtbare OberflÃ¤che, keine StrÃ¶mungssimulation.
