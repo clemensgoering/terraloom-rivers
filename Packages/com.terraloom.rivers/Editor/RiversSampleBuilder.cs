@@ -189,6 +189,8 @@ namespace TerraLoom.Rivers.Editor
         {
             if (!rivers || !rivers.GeneratedRoot || !rivers.World || !rivers.World.Terrain)
                 throw new ArgumentException("Generate Rivers on an assigned terrain before baking.");
+            if(!rivers.WaterMaterial||(!rivers.TerrainBrush&&(!rivers.BedMaterial||!rivers.BankMaterial)))
+                throw new InvalidOperationException("Bind water material; mesh rivers also require bed and bank materials before baking.");
             EnsureFolder(directory);
             var persistence = new Persistence(directory, sample);
             // Save the original too: Clear after reload must never restore a missing transient reference.
@@ -228,8 +230,8 @@ namespace TerraLoom.Rivers.Editor
                 EditorUtility.SetDirty(filter); EditorUtility.SetDirty(marker); EditorUtility.SetDirty(renderer); index++;
             }
             rivers.WaterMaterial = persistence.Material(rivers.WaterMaterial);
-            rivers.BedMaterial = persistence.Material(rivers.BedMaterial);
-            rivers.BankMaterial = persistence.Material(rivers.BankMaterial);
+            if(rivers.BedMaterial)rivers.BedMaterial = persistence.Material(rivers.BedMaterial);
+            if(rivers.BankMaterial)rivers.BankMaterial = persistence.Material(rivers.BankMaterial);
             EditorUtility.SetDirty(terrain); MarkDirty(rivers); AssetDatabase.SaveAssets();
         }
 

@@ -17,6 +17,58 @@ namespace TerraLoom.Integration.Editor
     public static class IntegrationSampleBuilder
     {
         public const string Root="Assets/TerraLoom/Integration/Generated";
+        [MenuItem("Tools/TerraLoom/Integration/Build Terrain Brush Crossing Scene (Experimental)")]
+        public static void BuildBrushInteractive() { if(EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())BuildBrushBatch(); }
+        /// <summary>Straight brush river with one negotiated road crossing. This fixture is separate
+        /// from the legacy gallery and does not promise arbitrary seeded crossing acceptance.</summary>
+        public static void BuildBrushBatch()
+        {
+            RiversSampleBuilder.BuildInsetBatch();
+            Directory.CreateDirectory(Root);AssetDatabase.Refresh();
+            var rivers=UnityEngine.Object.FindFirstObjectByType<TerraLoomRivers>();var world=rivers.World;
+            rivers.Clear();
+            // Own the source asset as well: rebuilding the standalone/legacy gallery must not
+            // rewrite the source that Clear and freshness use in this independent fixture.
+            var brushSource=SeasonalSampleBuilder.Save(TerrainAssetClone.Create(world.Terrain.terrainData),Root+"/BrushSourceTerrain.asset");
+            world.Terrain.terrainData=brushSource;world.Terrain.GetComponent<TerrainCollider>().terrainData=brushSource;
+            // A dedicated straight acceptance case; the standalone curved/protected sample remains
+            // separate. Curved adjacent crossing windows still need a joint corridor contract.
+            rivers.ProtectedAreas.Clear();world.ManualAnchors[0].Position=new Vector3(48,0,4);
+            world.ManualAnchors[1].Position=new Vector3(48,0,92);
+            world.ManualAnchors=world.ManualAnchors.Concat(new[] {
+                new ManualWorldAnchor { Id="west",Position=new Vector3(12,0,48) },
+                new ManualWorldAnchor { Id="east",Position=new Vector3(84,0,48) } }).ToArray();
+            // Terrain supplies the visible channel; these materials must be unnecessary.
+            rivers.BedMaterial=null;rivers.BankMaterial=null;
+            var pathHost=new GameObject("Paths (optional module)");pathHost.transform.SetParent(world.transform,false);
+            TerraLoomEditorIcons.Apply(pathHost,"Paths");
+            var paths=pathHost.AddComponent<TerraLoomPaths>();paths.World=world;paths.AutomaticNetwork=false;
+            paths.Connections.Add(new PathConnectionSettings { Id="brush-crossing",StartId="west",EndId="east" });
+            paths.GroundMaterial=MakeMaterial("BrushGravel",new Color(.55f,.42f,.26f),false);
+            paths.BridgeMaterial=MakeMaterial("BrushBridge",new Color(.29f,.16f,.065f),true);
+            paths.GroundMaterial.SetFloat("_UseWorldRegions",0);paths.BridgeMaterial.SetFloat("_UseWorldRegions",0);
+            paths.BridgeClearance=1.2f;paths.MaximumSlope=.35f;
+            var composition=world.gameObject.AddComponent<TerraLoomIntegration>();composition.World=world;composition.Paths=paths;composition.Rivers=rivers;
+            if(!composition.Generate())throw new InvalidOperationException(composition.Diagnostics);
+            if(!paths.LastPlan.Routes.Any(r=>r.Surfaces.Contains(TerraLoom.Paths.PathSurface.Bridge)))
+                throw new InvalidOperationException("Brush fixture must cross the river on a negotiated bridge.");
+            // Composition clears stale vegetation. Refresh the fixture's exclusions from both
+            // final offers and path envelopes before placing against the carved terrain.
+            var exclusions=rivers.LastPlan.Routes.SelectMany(r=>r.Offers).SelectMany(o=>o.Reservations).Select(a=>new Rect((float)a.Bounds.MinX-2,(float)a.Bounds.MinZ-2,(float)(a.Bounds.MaxX-a.Bounds.MinX)+4,(float)(a.Bounds.MaxZ-a.Bounds.MinZ)+4)).ToList();
+            float margin=paths.Width*.5f+2;
+            foreach(var route in paths.LastPlan.Routes)for(int i=1;i<route.Waypoints.Count;i++)
+            {
+                var a=route.Waypoints[i-1];var b=route.Waypoints[i];
+                exclusions.Add(Rect.MinMaxRect((float)Math.Min(a.X,b.X)-margin,(float)Math.Min(a.Z,b.Z)-margin,(float)Math.Max(a.X,b.X)+margin,(float)Math.Max(a.Z,b.Z)+margin));
+            }
+            foreach(var decoration in world.GetComponentsInChildren<RegionDecoration>())
+            {decoration.Exclusions=exclusions.ToArray();decoration.Generate();}
+            RiversSampleBuilder.Bake(rivers,Root+"/BrushRiver");PathsSampleBuilder.Bake(paths,Root+"/BrushPaths");
+            var camera=UnityEngine.Object.FindFirstObjectByType<Camera>();camera.transform.position=new Vector3(104,66,-22);camera.transform.LookAt(new Vector3(48,4,42));
+            var driver=world.gameObject.AddComponent<IntegrationTestDriver>();driver.Composition=composition;driver.View=camera;
+            AssetDatabase.SaveAssets();EditorSceneManager.SaveScene(world.gameObject.scene,Root+"/TerraLoomBrushCrossing.unity");
+            Debug.Log("Experimental straight brush crossing saved. "+composition.Diagnostics);
+        }
         [MenuItem("Tools/TerraLoom/Integration/Build Test Scene")]
         public static void BuildInteractive() { if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) BuildBatch(); }
         public static void BuildBatch()
@@ -63,6 +115,8 @@ namespace TerraLoom.Integration.Editor
             Debug.Log(integration.Diagnostics);
             BuildRuntimeScene();
             BuildLandscapeScene();
+            BuildBrushBatch();
+            EditorSceneManager.OpenScene(Root+"/TerraLoomLandscape.unity");
         }
         /// <summary>Configuration-only scene: contains no terrain or generated mesh. Start builds everything.</summary>
         public static void BuildRuntimeScene()

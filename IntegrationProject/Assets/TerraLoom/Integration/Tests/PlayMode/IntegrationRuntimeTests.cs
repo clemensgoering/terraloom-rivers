@@ -15,6 +15,12 @@ namespace TerraLoom.Tests
     public sealed class IntegrationRuntimeTests
     {
         [UnityTest] public IEnumerator RiverBridgeGroundAndRampsWorkTogetherWithoutChangingTheSourceTerrain()
+            => RunCrossing(false);
+
+        [UnityTest] public IEnumerator TerrainBrushBridgeAndRampsWorkWithoutBedOrBankMeshes()
+            => RunCrossing(true);
+
+        private IEnumerator RunCrossing(bool terrainBrush)
         {
             var original=new TerrainData { heightmapResolution=129,size=new Vector3(96,16,96) };
             var heights=new float[129,129];for(int z=0;z<129;z++)for(int x=0;x<129;x++)heights[z,x]=(6-.03f*(96f*z/128))/16;
@@ -30,10 +36,35 @@ namespace TerraLoom.Tests
                 paths.Connections.Add(new PathConnectionSettings { Id="road",StartId="west",EndId="east" });paths.MaximumSlope=.35f;paths.BridgeClearance=1.2f;
                 var rivers=host.AddComponent<TerraLoomRivers>();rivers.World=world;rivers.WaterMaterial=water;rivers.BedMaterial=ground;rivers.BankMaterial=ground;rivers.AutomaticSourceAndMouth=false;
                 rivers.Connections.Add(new RiverConnectionSettings { Id="river",SourceId="source",MouthId="mouth" });
+                rivers.TerrainBrush=terrainBrush;rivers.WaterInset=terrainBrush?.6f:0;
+                if(terrainBrush){rivers.BedMaterial=null;rivers.BankMaterial=null;}
                 var integration=host.AddComponent<TerraLoom.Integration.TerraLoomIntegration>();integration.World=world;integration.Paths=paths;integration.Rivers=rivers;
                 Assert.That(integration.Generate(),Is.True,integration.Diagnostics);
                 Assert.That(integration.GenerationState,Is.EqualTo(TerraLoom.Core.GenerationRunState.Ready));
                 Assert.That(integration.ValidateCurrent(out var fresh),Is.True,fresh);
+                if(terrainBrush)
+                {
+                    rivers.SedimentExposureDepth*=2;
+                    Assert.That(integration.ValidateCurrent(out _),Is.False,"Changed paint exposure invalidates composition even though geometric JSON is unchanged.");
+                    rivers.SedimentExposureDepth/=2;
+                    Assert.That(integration.ValidateCurrent(out fresh),Is.True,fresh);
+                    rivers.SedimentTerrainLayer=0;
+                    Assert.That(integration.ValidateCurrent(out _),Is.False,"Changed sediment selection invalidates composition.");
+                    rivers.SedimentTerrainLayer=-1;
+                    Assert.That(integration.ValidateCurrent(out fresh),Is.True,fresh);
+                    Assert.That(rivers.GeneratedRoot.GetComponentsInChildren<MeshRenderer>().Length,Is.EqualTo(1),"Brush publishes water only, with terrain providing the banks and bed.");
+                }
+                // A new protected source must invalidate freshness and stop both plans before any
+                // publication. The last good river, path and owned terrain stay available.
+                var protectedRiver=rivers.GeneratedRoot;var protectedPath=paths.GeneratedRoot;var protectedTerrain=world.Terrain.terrainData;
+                rivers.ProtectedAreas.Add(new RiverProtectionSettings { Id="source-foundation",Center=new Vector2(48,4),Size=new Vector2(8,8) });
+                Assert.That(integration.ValidateCurrent(out _),Is.False,"River inspector protection belongs to the shared input.");
+                Assert.That(integration.Generate(),Is.False,"A protected source cannot be excavated by composition.");
+                Assert.That(rivers.GeneratedRoot,Is.SameAs(protectedRiver));Assert.That(paths.GeneratedRoot,Is.SameAs(protectedPath));
+                Assert.That(world.Terrain.terrainData,Is.SameAs(protectedTerrain));
+                rivers.ProtectedAreas.Clear();
+                Assert.That(integration.Generate(),Is.True,integration.Diagnostics);
+                Assert.That(integration.ValidateCurrent(out fresh),Is.True,fresh);
                 Assert.That(integration.GenerationTrace.IndexOf("02-plan-water"),Is.LessThan(integration.GenerationTrace.IndexOf("03-plan-routes")));
                 world.ManualAnchors[2].Position+=Vector3.forward;
                 Assert.That(integration.ValidateCurrent(out _),Is.False,"Changed targets invalidate dependent results.");

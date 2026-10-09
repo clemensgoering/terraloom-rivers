@@ -26,6 +26,8 @@ namespace TerraLoom.Integration
         [SerializeField, HideInInspector] private string builtInput, builtRiverProfile, builtTerrain, builtPathsJson, builtRiversJson;
         [SerializeField, HideInInspector] private bool builtCarve;
         [SerializeField, HideInInspector] private float builtSpacing;
+        [SerializeField, HideInInspector] private int builtSedimentLayer;
+        [SerializeField, HideInInspector] private float builtSedimentExposure;
         [SerializeField, HideInInspector] private Material[] builtMaterials;
         [SerializeField, HideInInspector] private Matrix4x4 builtPathsTransform, builtRiversTransform;
         public string Diagnostics => diagnostics;
@@ -61,8 +63,9 @@ namespace TerraLoom.Integration
             {
                 if (!World || !Paths || !Rivers || Paths.World != World || Rivers.World != World) throw new InvalidOperationException("All modules must share this Core world.");
                 cancellation.ThrowIfCancellationRequested();
-                if (!Paths.GroundMaterial || !Paths.BridgeMaterial || !Rivers.WaterMaterial || !Rivers.BedMaterial || !Rivers.BankMaterial)
-                    throw new InvalidOperationException("Bind all path and river materials before rebuilding.");
+                if (!Paths.GroundMaterial || !Paths.BridgeMaterial || !Rivers.WaterMaterial
+                    || (!Rivers.TerrainBrush && (!Rivers.BedMaterial || !Rivers.BankMaterial)))
+                    throw new InvalidOperationException("Bind path and water materials; mesh rivers also require bed and bank materials.");
                 if(float.IsNaN(Paths.MeshSpacing)||float.IsInfinity(Paths.MeshSpacing)||Paths.MeshSpacing<.05f||Paths.MeshSpacing>2
                     ||Paths.MaximumGeometryVertices<128||Paths.MaximumGeometryVertices>8000000
                     ||Rivers.MaximumGeometryVertices<4||Rivers.MaximumGeometryVertices>8000000)
@@ -97,6 +100,7 @@ namespace TerraLoom.Integration
                 builtInput=input.Identity.InputFingerprint;builtRiverProfile=RiverPlanner.ProfileVersion(Rivers.CaptureProfile(),bounds,requests);
                 builtTerrain=World.TerrainContentFingerprint;builtPathsJson=Digest(Paths.PlanJson);builtRiversJson=Digest(Rivers.PlanJson);activeStep="";
                 builtCarve=Rivers.CarveTerrainCopy;builtSpacing=Paths.MeshSpacing;builtMaterials=Materials();
+                builtSedimentLayer=Rivers.SedimentTerrainLayer;builtSedimentExposure=Rivers.SedimentExposureDepth;
                 builtPathsTransform=Paths.transform.localToWorldMatrix;builtRiversTransform=Rivers.transform.localToWorldMatrix;
                 diagnostics="Core + Rivers + Paths: "+riverPlan.Routes.Count+" river, "+pathPlan.Routes.Count+" path; "+pathPlan.Routes.Sum(r=>r.Surfaces.Count(s=>s==PathSurface.Bridge))+" negotiated bridge deck(s).";
                 return true;
@@ -111,6 +115,9 @@ namespace TerraLoom.Integration
         private PlanSnapshot CaptureSource(out WorldBounds bounds,out System.Collections.Generic.IReadOnlyList<PathConnection> graph)
         {
             if(!World||!World.Terrain||!World.Terrain.terrainData)throw new InvalidOperationException("Generate/assign terrain before composition.");
+            // Let the river adapter capture its source and raster-expanded authored protections.
+            // Calling before the temporary Paths source swap also preserves its ownership checks.
+            var riverInput=Rivers.CaptureInput(out _,out _);
             var selected=World.Terrain;var current=selected.terrainData;
             try
             {
@@ -119,7 +126,19 @@ namespace TerraLoom.Integration
                     if(current!=Rivers.CarvedTerrainData||!Rivers.OriginalTerrainData)throw new InvalidOperationException("Selected terrain changed. Clear the composition first.");
                     selected.terrainData=Rivers.OriginalTerrainData;
                 }
-                return Paths.CaptureInput(Paths.CaptureProfile(),out bounds,out graph);
+                var pathInput=Paths.CaptureInput(Paths.CaptureProfile(),out bounds,out graph);
+                double guard=Rivers.CaptureProfile().TerrainCellGuard;
+                var protectedPaths=pathInput.Reservations.Select(area=>{
+                    if(!Rivers.TerrainBrush||area.Strength!=ReservationStrength.Hard)return area;
+                    var b=area.Bounds;
+                    return new AreaReservation(area.Id,area.OwnerId,new WorldBounds(b.MinX-guard,b.MinZ-guard,b.MaxX+guard,b.MaxZ+guard),area.Strength,area.Purpose,area.TransitionCost);
+                });
+                // Re-fingerprint the combined protections: changing either inspector invalidates
+                // downstream publication. Duplicate reservation IDs are rejected by Core.
+                return new PlanningInput(pathInput.Identity.Seed,pathInput.Identity.Revision,
+                    pathInput.Identity.AlgorithmVersion,pathInput.Identity.ProfileVersion,pathInput.Terrain,
+                    World.TerrainContentFingerprint,new AnchorSnapshot(pathInput.AnchorSourceId,pathInput.AnchorSourceRevision,pathInput.Anchors),
+                    pathInput.Landscape,protectedPaths.Concat(riverInput.Reservations)).BaseSnapshot;
             }
             finally{selected.terrainData=current;}
         }
@@ -134,6 +153,7 @@ namespace TerraLoom.Integration
             {
                 if(generationState!=GenerationRunState.Ready||!Paths||!Rivers||!Paths.GeneratedRoot||!Rivers.GeneratedRoot)throw new InvalidOperationException("Composition is not ready.");
                 if(Paths.World!=World||Rivers.World!=World||builtCarve!=Rivers.CarveTerrainCopy||builtSpacing!=Paths.MeshSpacing
+                    ||(Rivers.TerrainBrush&&(builtSedimentLayer!=Rivers.SedimentTerrainLayer||builtSedimentExposure!=Rivers.SedimentExposureDepth))
                     ||builtMaterials==null||!builtMaterials.SequenceEqual(Materials())||builtPathsTransform!=Paths.transform.localToWorldMatrix||builtRiversTransform!=Rivers.transform.localToWorldMatrix)
                     throw new InvalidOperationException("Module bindings, geometry settings or transforms changed; rebuild composition.");
                 var input=CaptureSource(out var bounds,out var graph);

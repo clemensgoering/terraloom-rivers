@@ -14,6 +14,13 @@ namespace TerraLoom.Integration.Editor
             => Build("TerraLoomDynamic", "Player");
         public static void BuildLandscapeBatch()
             => Build("TerraLoomLandscape", "PlayerLandscape");
+        public static void BuildBrushCrossingBatch()
+        {
+            IntegrationSampleBuilder.BuildBrushBatch();
+            new GameObject("Brush crossing evidence").AddComponent<BrushCrossingEvidence>();
+            UnityEditor.SceneManagement.EditorSceneManager.SaveScene(UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene(),IntegrationSampleBuilder.Root+"/TerraLoomBrushCrossing.unity");
+            Build("TerraLoomBrushCrossing","PlayerBrushCrossing");
+        }
         public static void BuildTerrainBrushEvidenceBatch()
         {
             TerraLoom.Rivers.Editor.RiversSampleBuilder.BuildInsetBatch();

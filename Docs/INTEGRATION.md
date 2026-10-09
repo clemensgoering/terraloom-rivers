@@ -105,3 +105,49 @@ RuntimePlayerValidation.BuildRiverEvidenceBatch builds the standalone renderer.
 -terraloomSmoke -terraloomWaterInset <metres> selects the transient comparison;
 -terraloomScreenshot <absolute PNG path> writes overview, section and player images.
 TERRALOOM_RIVER_EVIDENCE_SUCCESS means the runner completed, not visual acceptance.
+
+## Terrain brush crossing fixture (2026-10-10)
+
+`Tools > TerraLoom > Integration > Build Terrain Brush Crossing Scene (Experimental)`
+creates `Generated/TerraLoomBrushCrossing.unity`: relief, habitat decoration and one
+straight inset terrain channel with a negotiated road bridge. Its source terrain is
+saved separately so rebuilding the legacy gallery cannot overwrite that source.
+Bed/Bank materials and meshes are unnecessary; terrain supplies the physical channel.
+The Rivers bake accepts absent optional materials in brush mode as well.
+
+Composition captures both Paths reservations and Rivers authored protections into
+one re-fingerprinted input. Hard Paths reservations receive the river raster support
+guard in brush mode; Rivers protections already receive that guard in their adapter.
+Reservation IDs must be unique across both inspectors. A protected source rejects
+planning before terrain or geometry publication. Sediment layer/exposure edits now
+invalidate composition freshness even when geometric plan JSON is unchanged.
+
+The PlayMode crossing regression runs both legacy and brush cases, including collider
+coverage, actual CharacterController traversal, protected-source rejection preserving
+prior outputs, cancellation, regeneration and reverse Clear. A saved-scene regression
+checks water-only meshes, persistent terrain ownership and original collider restoration.
+Build `RuntimePlayerValidation.BuildBrushCrossingBatch`, then launch the Windows player
+with `-terraloomSmoke -terraloomScreenshot <absolute PNG path>` for five rendered views.
+
+**Still open:** the curved protected standalone river fails combined route planning
+with `OutsideCandidate`: adjacent wet rectangles overlap a bridge footprint without
+each local candidate containing the full deck. The straight fixture deliberately
+isolates the supported case; it does not fix curved crossings or prove arbitrary seeds.
+Do not shrink water/protection envelopes to force acceptance. Decoration in this fixture
+uses conservative river exclusions and final path-segment envelopes; it is an example,
+not a general runtime exclusion updater or shoreline vegetation model.
+
+Validation for this block: 3/3 Integration EditMode and 4/4 PlayMode passed;
+29 portable Core/Paths contracts plus 18 river planner checks passed, with all pure
+assemblies compiled. Windows build and smoke succeeded. Five final
+`brush-crossing-verified*.png` views were inspected: inset terrain channel and walkable
+crossing are visible; vegetation is excluded along actual detours. Long height envelopes
+currently favour a crossing near the source. Coarse repeating materials, primitive
+assets and a thin horizon-line artifact in the river player view remain visual issues;
+this is no finished-art approval. Discrete water probes: 6318 vertices minimum +5.0039mm,
+2106 triangle centres minimum +80.2946mm. No continuous-clearance guarantee.
+
+`IntegrationSampleBuilder.BuildBatch` also builds the separate brush fixture before
+returning to the landscape scene, so a fresh generated test project has all three
+saved-scene regression inputs. The added shared protection checks apply equally to
+manual and seeded input capture; no all-seed curved-brush acceptance is claimed.

@@ -14,6 +14,27 @@ namespace TerraLoom.Tests
 {
     public sealed class SavedCompositionTests
     {
+        [Test] public void SavedBrushCrossingNeedsOnlyWaterAndRetainsTerrainOwnership()
+        {
+            var setup=EditorSceneManager.GetSceneManagerSetup();
+            try
+            {
+                EditorSceneManager.OpenScene("Assets/TerraLoom/Integration/Generated/TerraLoomBrushCrossing.unity");
+                var instance=Object.FindFirstObjectByType<TerraLoomIntegration>();Assert.That(instance,Is.Not.Null);
+                Assert.That(instance.Rivers.TerrainBrush,Is.True);
+                Assert.That(instance.Rivers.BedMaterial,Is.Null);Assert.That(instance.Rivers.BankMaterial,Is.Null);
+                Assert.That(instance.ValidateCurrent(out var reason),Is.True,reason);
+                Assert.That(AssetDatabase.Contains(instance.Rivers.OriginalTerrainData),Is.True);
+                Assert.That(AssetDatabase.Contains(instance.Rivers.CarvedTerrainData),Is.True);
+                var riverMeshes=instance.Rivers.GeneratedRoot.GetComponentsInChildren<MeshFilter>();
+                Assert.That(riverMeshes.Length,Is.EqualTo(1));Assert.That(AssetDatabase.Contains(riverMeshes[0].sharedMesh),Is.True);
+                Assert.That(instance.Paths.GeneratedRoot.GetComponentsInChildren<PathGeneratedGeometry>().Any(p=>p.Role==PathGeometryRole.BridgeDeck),Is.True);
+                var original=instance.Rivers.OriginalTerrainData;instance.Clear();
+                Assert.That(instance.World.Terrain.terrainData,Is.SameAs(original));
+                Assert.That(instance.World.Terrain.GetComponent<TerrainCollider>().terrainData,Is.SameAs(original));
+            }
+            finally{if(setup.Any(s=>s.isLoaded&&s.isActive&&!string.IsNullOrEmpty(s.path)))EditorSceneManager.RestoreSceneManagerSetup(setup);else EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);}
+        }
         [Test] public void SavedCompositionRestoresMeshesMaterialsUvsAndOriginalTerrainOwnership()
         {
             var setup=EditorSceneManager.GetSceneManagerSetup();
