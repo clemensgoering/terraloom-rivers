@@ -1,6 +1,6 @@
 {
   "name":"TerraLoom.Rivers.Tests",
-  "references":["TerraLoom.Core.Runtime","TerraLoom.Core.Unity","TerraLoom.Rivers.Runtime","TerraLoom.Rivers.Unity","TerraLoom.Rivers.Editor"],
+  "references":["TerraLoom.Core.Runtime","TerraLoom.Core.Unity","TerraLoom.Core.Editor","TerraLoom.Rivers.Runtime","TerraLoom.Rivers.Unity","TerraLoom.Rivers.Editor"],
   "includePlatforms":["Editor"],
   "optionalUnityReferences":["TestAssemblies"],
   "autoReferenced":false

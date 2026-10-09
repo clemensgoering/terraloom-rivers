@@ -1,5 +1,14 @@
 # Rivers: Editor und Sample
 
+Lokale Uferplanung (`rivers-local-banks-v3`): sichtbare Bankpunkte folgen dem
+erfassten Terrain, waehrend Querungen eine separate konservative Hoehenhuelle
+verwenden. Wasser/Bett fallen stromabwaerts; lokale Ufer duerfen steigen.
+Mesh und Terraincarver teilen exakt geplante Querschnitte und Dreiecksdiagonalen.
+Carving senkt nur abgedeckte Rasterpunkte, maximal 2*Depth+2cm, ohne neue Endkappen
+oder Aufschuettung. JSON Format2 speichert die lokalen Ufer fuer die Scene-Vorschau;
+alte Rezepte explizit neu generieren. Braune Footprint-Linien zeigen die echten
+Bankseams. Details und offene Raster-/Dichtungsgrenzen: Core/Docs/BANK-EARTHWORK.md.
+
 Der Planer rundet die Suchroute vor Bett-/Ufer-/Wasserplanung tangential und
 validiert den ganzen finalen Korridor erneut, einschliesslich Abflussgefaelle.
 Unmoegliche Kurven werden diagnostiziert statt als rohe Rasterkette publiziert.

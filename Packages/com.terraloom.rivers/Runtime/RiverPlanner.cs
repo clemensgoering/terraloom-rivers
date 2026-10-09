@@ -12,7 +12,7 @@ namespace TerraLoom.Rivers
     /// a read-only point sampler cannot prove the absence of arbitrarily narrow unsampled terrain features.</summary>
     public static class RiverPlanner
     {
-        public const string AlgorithmVersion = "rivers-rounded-v2";
+        public const string AlgorithmVersion = "rivers-local-banks-v3";
         private const int MaximumCurvePoints = 16384;
 
         /// <summary>Selects one main river from manual or seeded Core anchors. Highest bed to lowest bed;
@@ -270,9 +270,18 @@ namespace TerraLoom.Rivers
                 bed[i] = new WorldPoint(point.X, level - p.Depth, point.Z); water[i] = new WorldPoint(point.X, level, point.Z);
                 var a = terrain[Math.Max(0, i - 1)]; var b = terrain[Math.Min(count - 1, i + 1)];
                 double distance = Distance(a, b), dx = (b.X - a.X) / distance, dz = (b.Z - a.Z) / distance;
-                left[i] = new WorldPoint(point.X - dz * radius, Math.Max(bank[i], level), point.Z + dx * radius);
-                right[i] = new WorldPoint(point.X + dz * radius, Math.Max(bank[i], level), point.Z - dx * radius);
+                // Visible seams follow captured local terrain; bank[] remains the conservative
+                // downhill clearance envelope for crossing negotiation, not visible geometry.
+                if (!field.TryPoint(point.X - dz * radius, point.Z + dx * radius, out var localLeft)
+                    || !field.TryPoint(point.X + dz * radius, point.Z - dx * radius, out var localRight))
+                { field.Reject("missing final bank seam terrain"); return null; }
+                left[i] = new WorldPoint(localLeft.X, Math.Max(localLeft.Y, level), localLeft.Z);
+                right[i] = new WorldPoint(localRight.X, Math.Max(localRight.Y, level), localRight.Z);
+                bank[i] = Math.Max(bank[i], Math.Max(left[i].Y, right[i].Y));
             }
+            // Include the exact final side samples as well as the rectangular footprint samples.
+            // Downstream maxima propagate upstream only in the independent clearance envelope.
+            for (int i = bank.Count - 2; i >= 0; --i) bank[i] = Math.Max(bank[i], bank[i + 1]);
             try
             {
                 if (!RiverFootprint.IsValid(water, left, right, work.Cancellation))
@@ -297,7 +306,7 @@ namespace TerraLoom.Rivers
                 double bedHeight = bed[last].Y - dropPerMetre * p.Width / 2 * projection;
                 if (!RiverHash.Finite(waterHeight) || !RiverHash.Finite(bedHeight))
                     throw new Stop(RiverOutcome.NoRoute, "Exported height envelope exceeds numeric range.");
-                double bankHeight = Math.Max(waterHeight, Math.Max(left[first].Y, right[first].Y));
+                double bankHeight = Math.Max(waterHeight, bank[first]);
                 var corridor = new WaterCorridor(id, footprint, banks, bedHeight, waterHeight, bankHeight);
                 var crossing = new CrossingCandidate(id + ":crossing", id, banks, CrossingKind.Bridge, p.BridgeClearance);
                 var reservations = new[]

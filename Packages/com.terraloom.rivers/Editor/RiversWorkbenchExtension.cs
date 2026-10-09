@@ -74,8 +74,10 @@ namespace TerraLoom.Rivers.Editor
                         foreach (var route in rivers.LastPlan.Routes)
                         {
                             if (remaining <= 0) break;
-                            DrawRoute(route.WaterPolyline.Count, i => Point(route.WaterPolyline[i]), rivers.Width, rivers.BankWidth,
+                            DrawRoute(route.WaterPolyline.Count, i => Point(route.WaterPolyline[i]), rivers.Width, 0,
                                 route.Request.SourceId, route.Request.MouthId, ref remaining);
+                            DrawBanks(route.LeftBankPolyline.Count, i=>Point(route.LeftBankPolyline[i]),
+                                i=>Point(route.RightBankPolyline[i]), ref remaining);
                         }
                     }
                     else
@@ -86,8 +88,9 @@ namespace TerraLoom.Rivers.Editor
                             foreach (var route in preview.Routes)
                             {
                                 if (remaining <= 0) break;
-                                DrawRoute(route.Points.Length, i => route.Points[i], rivers.Width, rivers.BankWidth,
+                                DrawRoute(route.Points.Length, i => route.Points[i], rivers.Width, 0,
                                     route.Id + " source (saved)", route.Id + " mouth (saved)", ref remaining);
+                                DrawBanks(route.Points.Length, i=>route.Left[i], i=>route.Right[i], ref remaining);
                             }
                         }
                         else DrawBounds(rivers, ref remaining);
@@ -158,6 +161,14 @@ namespace TerraLoom.Rivers.Editor
                 }
             }
         }
+        private static void DrawBanks(int count, Func<int,Vector3> left, Func<int,Vector3> right, ref int remaining)
+        {
+            if (!TerraLoomSceneSettings.Footprints || count<2) return;
+            Handles.color = new Color(.72f,.5f,.27f);
+            for (int i=1;i<count && remaining>0;i++)
+            { Line(left(i-1),left(i),ref remaining); Line(right(i-1),right(i),ref remaining); }
+            Label(left(0),"Local bank seam (captured terrain)");
+        }
         private Preview GetPreview(TerraLoomRivers owner)
         {
             int key = owner.GetInstanceID();
@@ -167,19 +178,26 @@ namespace TerraLoom.Rivers.Editor
             try
             {
                 var document = JsonUtility.FromJson<Document>(preview.Json);
-                if (document == null || document.format != 1 || document.routes == null || document.routes.Length > 1024) return preview;
+                if (document == null || document.format != 2 || document.routes == null || document.routes.Length > 1024) return preview;
                 var routes = new List<PreviewRoute>(); int points = 0;
                 foreach (var route in document.routes)
                 {
-                    if (route == null || route.water == null || route.water.Length < 2) return preview;
-                    points += route.water.Length; if (points > 200000) return preview;
+                    if (route == null || route.water == null || route.water.Length < 2
+                        || route.leftBank == null || route.rightBank == null
+                        || route.leftBank.Length != route.water.Length || route.rightBank.Length != route.water.Length) return preview;
+                    points += route.water.Length*3; if (points > 200000) return preview;
                     var positions = new Vector3[route.water.Length];
+                    var left = new Vector3[positions.Length]; var right = new Vector3[positions.Length];
                     for (int i = 0; i < positions.Length; i++)
                     {
                         var p = route.water[i]; if (p == null) return preview;
                         positions[i] = new Vector3((float)p.x, (float)p.y, (float)p.z); if (!Finite(positions[i])) return preview;
+                        var l=route.leftBank[i];var r=route.rightBank[i];if(l==null||r==null)return preview;
+                        left[i]=new Vector3((float)l.x,(float)l.y,(float)l.z);
+                        right[i]=new Vector3((float)r.x,(float)r.y,(float)r.z);
+                        if(!Finite(left[i])||!Finite(right[i]))return preview;
                     }
-                    routes.Add(new PreviewRoute { Points = positions, Id = route.id });
+                    routes.Add(new PreviewRoute { Points = positions, Left = left, Right = right, Id = route.id });
                 }
                 preview.Routes = routes.ToArray();
             }
@@ -187,9 +205,9 @@ namespace TerraLoom.Rivers.Editor
             return preview;
         }
         private sealed class Preview { public TerraLoomRivers Owner; public string Json; public PreviewRoute[] Routes; }
-        private sealed class PreviewRoute { public Vector3[] Points; public string Id; }
+        private sealed class PreviewRoute { public Vector3[] Points, Left, Right; public string Id; }
         [Serializable] private sealed class Document { public int format; public SavedRoute[] routes; }
-        [Serializable] private sealed class SavedRoute { public string id; public SavedPoint[] water; }
+        [Serializable] private sealed class SavedRoute { public string id; public SavedPoint[] water, leftBank, rightBank; }
         [Serializable] private sealed class SavedPoint { public double x, y, z; }
         private static Vector3 Point(TerraLoom.Core.WorldPoint point) => new Vector3((float)point.X, (float)point.Y, (float)point.Z);
         private static bool Finite(float n) => !float.IsNaN(n) && !float.IsInfinity(n);

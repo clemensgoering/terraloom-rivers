@@ -107,7 +107,9 @@ namespace TerraLoom.Rivers
         }
     }
 
-    /// <summary>Aligned continuous geometry; Core offers are conservative constant-height envelopes, not seam vertices.</summary>
+    /// <summary>Aligned geometry. Visible bank seams follow captured local terrain (at least water height)
+    /// and may rise downstream. Water and bed must descend. Core offers retain independent conservative
+    /// clearance envelopes; these are not visible seam vertices.</summary>
     public sealed class RiverRoute
     {
         public RiverRequest Request { get; }

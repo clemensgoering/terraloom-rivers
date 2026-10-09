@@ -31,6 +31,7 @@ namespace TerraLoom.Rivers.Editor
             WorldInspectorSections.Draw(serializedObject, "rivers.budgets", "Budgets", false, "CellSize", "SampleSpacing", "MaximumNodes", "TotalSearchBudget", "TotalSampleBudget", "MaximumGeometryVertices");
             serializedObject.ApplyModifiedProperties();
             EditorGUILayout.HelpBox("Assign a Core world and Terrain (foreign Terrain supported). Generate carves a copy when enabled; Clear restores the original. Bake before saving generated content.", MessageType.Info);
+            EditorGUILayout.HelpBox("Visible bank seams follow local captured terrain; crossing offers keep a separate conservative clearance envelope. Excavation follows the final channel triangles, never fills terrain, and is capped at twice Depth plus 2 cm clearance. Brown live scene lines show the actual planned bank seams.", MessageType.Info);
             using (new EditorGUI.DisabledScope(EditorApplication.isPlayingOrWillChangePlaymode))
             {
                 if (GUILayout.Button("Generate")) Run(() =>

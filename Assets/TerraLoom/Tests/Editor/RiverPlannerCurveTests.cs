@@ -38,14 +38,15 @@ namespace TerraLoom.Tests
                 Assert.That(points[i].Y - route.BedPolyline[i].Y, Is.EqualTo(profile.Depth).Within(1e-12));
                 Assert.That(route.LeftBankPolyline[i].Y, Is.GreaterThanOrEqualTo(points[i].Y));
                 Assert.That(route.RightBankPolyline[i].Y, Is.GreaterThanOrEqualTo(points[i].Y));
+                var localLeft=route.LeftBankPolyline[i]; var localRight=route.RightBankPolyline[i];
+                Assert.That(localLeft.Y, Is.EqualTo(Math.Max(points[i].Y,Terrain(localLeft.X,localLeft.Z))).Within(1e-12));
+                Assert.That(localRight.Y, Is.EqualTo(Math.Max(points[i].Y,Terrain(localRight.X,localRight.Z))).Within(1e-12));
                 if (i > 0)
                 {
                     double run = Distance(points[i - 1], points[i]);
                     Assert.That(run, Is.GreaterThan(0).And.LessThanOrEqualTo(.500001));
                     Assert.That(points[i].Y, Is.LessThanOrEqualTo(points[i - 1].Y));
                     Assert.That(route.BedPolyline[i].Y, Is.LessThanOrEqualTo(route.BedPolyline[i - 1].Y));
-                    Assert.That(route.LeftBankPolyline[i].Y, Is.LessThanOrEqualTo(route.LeftBankPolyline[i - 1].Y));
-                    Assert.That(route.RightBankPolyline[i].Y, Is.LessThanOrEqualTo(route.RightBankPolyline[i - 1].Y));
                     Assert.That((points[i - 1].Y - points[i].Y) / run, Is.LessThanOrEqualTo(profile.MaximumSlope));
                     Assert.That(route.Offers.Any(o => o.Corridor.Bed.Contains(points[i - 1]) && o.Corridor.Bed.Contains(points[i])), Is.True);
                 }
@@ -127,6 +128,23 @@ namespace TerraLoom.Tests
             Assert.That(plan.Routes, Is.Empty);
             Assert.That(plan.Reports.Single().Outcome, Is.EqualTo(RiverOutcome.NoRoute));
             Assert.That(Detail(plan), Does.Contain("five radius attempts").And.Contain("no sharp-corner fallback").And.Contain("uphill"));
+        }
+
+        [Test] public void LocalBanksMayRiseWhileWaterDescendsAndOffersRemainConservative()
+        {
+            double Ground(double x,double z)=>2-.01*x+Math.Abs(z)*(.1+.02*x);
+            var profile=new RiverProfile(allowExcavation:true);
+            var plan=RiverPlanner.Plan(Input(new Height(Ground),false).BaseSnapshot,profile,Bounds,Requests);
+            Assert.That(plan.Complete,Is.True,Detail(plan));var route=plan.Routes.Single();
+            Assert.That(route.LeftBankPolyline.Last().Y,Is.GreaterThan(route.LeftBankPolyline.First().Y));
+            for(int i=0;i<route.WaterPolyline.Count;i++)
+            {
+                var left=route.LeftBankPolyline[i]; var right=route.RightBankPolyline[i];
+                Assert.That(left.Y,Is.EqualTo(Math.Max(route.WaterPolyline[i].Y,Ground(left.X,left.Z))).Within(1e-12));
+                Assert.That(right.Y,Is.EqualTo(Math.Max(route.WaterPolyline[i].Y,Ground(right.X,right.Z))).Within(1e-12));
+                Assert.That(route.Offers.Any(o=>o.Corridor.Banks.Contains(left)&&o.Corridor.BankHeight>=left.Y),Is.True);
+                if(i>0)Assert.That(route.WaterPolyline[i].Y,Is.LessThanOrEqualTo(route.WaterPolyline[i-1].Y));
+            }
         }
 
         private static double Terrain(double x, double z) => 2 - .02 * x - .0005 * x * x;

@@ -45,6 +45,73 @@ namespace TerraLoom.Tests
             Assert.That(rivers.World.Terrain.terrainData,Is.SameAs(original));
             Assert.That(terrainObject.GetComponent<TerrainCollider>().terrainData,Is.SameAs(original));
         }
+        [Test] public void ExcavationFollowsFinalMeshFacesAndDoesNotCutBeyondRouteEndCaps()
+        {
+            var before=original.GetHeights(0,0,65,65);
+            Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics);
+            Physics.SyncTransforms();
+            var colliders=rivers.GeneratedRoot.GetComponentsInChildren<RiverGeneratedGeometry>()
+                .Where(m=>m.Role!=RiverGeometryRole.Water).Select(m=>m.GetComponent<MeshCollider>()).ToArray();
+            int checkedSamples=0;
+            for(int z=9;z<56;z++)for(int x=29;x<36;x++)
+            {
+                double surface=double.PositiveInfinity;
+                foreach(var collider in colliders)
+                    if(collider.Raycast(new Ray(new Vector3(x,20,z),Vector3.down),out var hit,40))surface=Math.Min(surface,hit.point.y);
+                if(double.IsInfinity(surface))continue;
+                double expected=Math.Min(before[z,x]*16,surface-.02);
+                // Unity's native height storage quantizes normalized heights. Bound by one
+                // terrain-height quantum, not by an arbitrary visual acceptance margin.
+                Assert.That(rivers.CarvedTerrainData.GetHeight(x,z),Is.EqualTo(expected).Within(16.0/32767+.000001),$"grid {x},{z}");
+                Assert.That(rivers.CarvedTerrainData.GetHeight(x,z),Is.LessThan(surface-.019));
+                checkedSamples++;
+            }
+            Assert.That(checkedSamples,Is.GreaterThan(200));
+            Assert.That(rivers.CarvedTerrainData.GetHeight(32,7),Is.EqualTo(original.GetHeight(32,7)),"No invented round source cap.");
+            Assert.That(rivers.CarvedTerrainData.GetHeight(32,57),Is.EqualTo(original.GetHeight(32,57)),"No invented round mouth cap.");
+            Assert.That(original.GetHeights(0,0,65,65),Is.EqualTo(before));
+        }
+
+        [Test] public void ActualTerrainEarthworkLimitRejectsTransactionWithoutModifyingItsSource()
+        {
+            Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics);
+            var previousRoot=rivers.GeneratedRoot;var previousTerrain=rivers.CarvedTerrainData;
+            var mismatched=Object.Instantiate(original);
+            try
+            {
+                var heights=mismatched.GetHeights(0,0,65,65);heights[32,32]=.95f;mismatched.SetHeights(0,0,heights);
+                var before=mismatched.GetHeights(0,0,65,65);
+                Assert.That(Assert.Throws<InvalidOperationException>(()=>RiverTerrainCarver.Build(mismatched,Vector3.zero,
+                    rivers.LastPlan,rivers.CaptureProfile(),CancellationToken.None)).Message,Does.Contain("excavation exceeds"));
+                Assert.That(mismatched.GetHeights(0,0,65,65),Is.EqualTo(before));
+                Assert.That(rivers.GeneratedRoot,Is.SameAs(previousRoot));Assert.That(rivers.CarvedTerrainData,Is.SameAs(previousTerrain));
+            }
+            finally {Object.DestroyImmediate(mismatched);}
+        }
+
+        [Test] public void SavedPreviewUsesCapturedBanksAndRejectsLegacyRecipeWithoutReplacingWorld()
+        {
+            Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics);
+            string json=rivers.PlanJson;var root=rivers.GeneratedRoot;var plan=rivers.LastPlan;
+            Assert.That(json,Does.Contain("\"format\": 2").And.Contain("\"leftBank\"").And.Contain("\"rightBank\""));
+            var extension=new TerraLoom.Rivers.Editor.RiversWorkbenchExtension();
+            var method=extension.GetType().GetMethod("GetPreview",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic);
+            var preview=method.Invoke(extension,new object[]{rivers});
+            var routes=(Array)preview.GetType().GetField("Routes").GetValue(preview);
+            Assert.That(routes.Length,Is.EqualTo(1));var route=routes.GetValue(0);
+            var left=(Vector3[])route.GetType().GetField("Left").GetValue(route);
+            var right=(Vector3[])route.GetType().GetField("Right").GetValue(route);
+            for(int i=0;i<left.Length;i++)
+            {
+                var l=plan.Routes.Single().LeftBankPolyline[i];var r=plan.Routes.Single().RightBankPolyline[i];
+                Assert.That(left[i],Is.EqualTo(new Vector3((float)l.X,(float)l.Y,(float)l.Z)));
+                Assert.That(right[i],Is.EqualTo(new Vector3((float)r.X,(float)r.Y,(float)r.Z)));
+            }
+            Assert.That(method.Invoke(extension,new object[]{rivers}),Is.SameAs(preview));
+            Assert.That(rivers.LoadPlanJson(json.Replace("\"format\": 2","\"format\": 1")),Is.False);
+            Assert.That(rivers.GeneratedRoot,Is.SameAs(root));Assert.That(rivers.LastPlan,Is.SameAs(plan));
+        }
+
         [Test] public void CancelFailureAndBadJsonRetainPreviousResult()
         {
             Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics); var root=rivers.GeneratedRoot; var data=rivers.CarvedTerrainData;

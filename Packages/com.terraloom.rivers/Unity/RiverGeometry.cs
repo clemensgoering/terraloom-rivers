@@ -28,14 +28,13 @@ namespace TerraLoom.Rivers.Unity
             int columns = role == RiverGeometryRole.Banks ? 4 : 2;
             if ((long)water.Count * columns > vertexBudget || vertexBudget > 8000000)
                 throw new ArgumentException("River geometry exceeds its vertex budget.");
-            double half = (double)width / 2, outer = half + bankWidth, ratio = half / outer, along = 0;
+            double half = (double)width / 2, outer = half + bankWidth, along = 0;
             var vertices = new List<Vector3>(); var uv = new List<Vector2>(); var indices = new List<int>();
             for (int i = 0; i < water.Count; i++)
             {
                 cancellation.ThrowIfCancellationRequested();
-                if (left[i].Y < water[i].Y || right[i].Y < water[i].Y
-                    || (i > 0 && (left[i].Y > left[i - 1].Y || right[i].Y > right[i - 1].Y)))
-                    throw new ArgumentException("Planned banks must stay above water and cannot rise downstream.");
+                if (left[i].Y < water[i].Y || right[i].Y < water[i].Y)
+                    throw new ArgumentException("Planned banks must stay above water.");
                 if (i > 0)
                 {
                     double dx = water[i].X - water[i - 1].X, dz = water[i].Z - water[i - 1].Z;
@@ -47,11 +46,10 @@ namespace TerraLoom.Rivers.Unity
                 for (int c = 0; c < columns; c++)
                 {
                     bool outerBank = role == RiverGeometryRole.Banks && (c == 0 || c == 3);
-                    var bank = c < columns / 2 ? right[i] : left[i];
-                    var point = outerBank ? bank : new WorldPoint(
-                        water[i].X + (bank.X - water[i].X) * ratio,
-                        role == RiverGeometryRole.Water ? water[i].Y : bed[i].Y,
-                        water[i].Z + (bank.Z - water[i].Z) * ratio);
+                    int channelColumn = role == RiverGeometryRole.Banks ? c : c + 1;
+                    var channelPoint = RiverChannelSurface.Point(route, i, channelColumn, width, bankWidth);
+                    var point = role == RiverGeometryRole.Water
+                        ? new WorldPoint(channelPoint.X, water[i].Y, channelPoint.Z) : channelPoint;
                     var vertex = V(point);
                     if (!Finite(vertex.x) || !Finite(vertex.y) || !Finite(vertex.z) || !Finite((float)along))
                         throw new ArgumentException("Planned river exceeds mesh numeric range.");
