@@ -11,10 +11,13 @@ Zusaetzlich `Generated/TerraLoomLandscape.unity` testen: gerichtetes Talrelief v
 vier verbundene Wegabschnitte mit Abzweig und separate Habitatprofile. Kein
 gebackenes Terrain; Play baut alles. Finale Kurvenplanung samt geprueften
 Bruecken-Bodenanschluessen und versetzter Flussquelle ist aktiv.
-Native Teststand: Core94+2, Paths42+2, Rivers17+1, Integration2+3 =163.
+Native Teststand: Core94+2, Paths47+2, Rivers17+1, Integration2+3 =168.
+Core/Paths/Integration frisch fuer das Paths-v6-Radiusgate, Rivers aus dem
+vorherigen Block (offener Editor). Windows-Belege: Core/Docs/LOCAL-VALIDATION.md.
 Gemeinsame Radiusdiagnose zeigt jetzt auch innere Punkte in Endzonen mit
 symmetrisch verkuerzten Messarmen; Messabdeckung/Skala stehen im Inspector.
-Kein neues Planungsgate oder Zertifikat fuer externe Endpunktanschluesse.
+Paths-v6 erzwingt jetzt ein abgetastetes Radiusgate; Rivers weiterhin Diagnose.
+Kein Zertifikat fuer externe Endpunktanschluesse oder kontinuierliche Kruemmung.
 Begrenzte Paths-Kurvenreparatur und rote Suchspuren: Core/Docs/CURVE-REPAIR.md.
 Lokale Ufer und gemeinsame Mesh-/Carverquerschnitte: Core/Docs/BANK-EARTHWORK.md.
 Paths prueft vor Publish finale Deck-/Landungsmeshes unterschiedlicher Assemblies
