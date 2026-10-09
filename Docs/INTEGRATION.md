@@ -11,7 +11,9 @@ Zusaetzlich `Generated/TerraLoomLandscape.unity` testen: gerichtetes Talrelief v
 vier verbundene Wegabschnitte mit Abzweig und separate Habitatprofile. Kein
 gebackenes Terrain; Play baut alles. Finale Kurvenplanung samt geprueften
 Bruecken-Bodenanschluessen und versetzter Flussquelle ist aktiv.
-Native Teststand: Core74+2, Paths27+2, Rivers13+1, Integration2+3 =124.
+Native Teststand: Core82+2, Paths32+2, Rivers13+1, Integration2+3 =137.
+Paths prueft vor Publish finale Deck-/Landungsmeshes unterschiedlicher Assemblies
+auf widerspruchsfreie Ueberlappungen (1 cm); Details in Core/Docs/CROSSING-COMPATIBILITY.md.
 Windows-Kurvenplayer prueft drei Seeds
 mit je Fern-/Nah-/Spielerbild. Technischer Nachweis, Bildgestaltung weiterhin offen.
 
