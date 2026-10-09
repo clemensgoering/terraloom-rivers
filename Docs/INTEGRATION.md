@@ -11,7 +11,10 @@ Zusaetzlich `Generated/TerraLoomLandscape.unity` testen: gerichtetes Talrelief v
 vier verbundene Wegabschnitte mit Abzweig und separate Habitatprofile. Kein
 gebackenes Terrain; Play baut alles. Finale Kurvenplanung samt geprueften
 Bruecken-Bodenanschluessen und versetzter Flussquelle ist aktiv.
-Native Teststand: Core89+2, Paths42+2, Rivers17+1, Integration2+3 =158.
+Native Teststand: Core94+2, Paths42+2, Rivers17+1, Integration2+3 =163.
+Gemeinsame Radiusdiagnose zeigt jetzt auch innere Punkte in Endzonen mit
+symmetrisch verkuerzten Messarmen; Messabdeckung/Skala stehen im Inspector.
+Kein neues Planungsgate oder Zertifikat fuer externe Endpunktanschluesse.
 Begrenzte Paths-Kurvenreparatur und rote Suchspuren: Core/Docs/CURVE-REPAIR.md.
 Lokale Ufer und gemeinsame Mesh-/Carverquerschnitte: Core/Docs/BANK-EARTHWORK.md.
 Paths prueft vor Publish finale Deck-/Landungsmeshes unterschiedlicher Assemblies
