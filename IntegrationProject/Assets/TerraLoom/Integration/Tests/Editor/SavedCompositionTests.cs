@@ -25,6 +25,12 @@ namespace TerraLoom.Tests
                 Assert.That(AssetDatabase.Contains(instance.Rivers.OriginalTerrainData),Is.True);
                 Assert.That(AssetDatabase.Contains(instance.Rivers.CarvedTerrainData),Is.True);
                 Assert.That(instance.World.Terrain.terrainData==instance.Rivers.CarvedTerrainData,Is.True);
+                Assert.That(instance.Rivers.OriginalTerrainData.GetAlphamaps(64,100,1,1)[0,0,1],Is.GreaterThan(.95f),"Original regional snow paint persisted.");
+                Assert.That(instance.Rivers.CarvedTerrainData.GetAlphamaps(64,100,1,1)[0,0,1],Is.GreaterThan(.95f),"Carved terrain snow paint persisted.");
+                Assert.That(instance.Paths.GroundMaterial.GetColor("_BaseColor").r,Is.EqualTo(.55f).Within(.001));
+                var gravel=(Texture2D)instance.Paths.GroundMaterial.GetTexture("_BaseMap");var pixel=gravel.GetPixel(12,12);
+                Assert.That(pixel.r,Is.EqualTo(pixel.g).Within(.005),"Gravel texture remains grayscale.");
+                Assert.That(pixel.r,Is.EqualTo(pixel.b).Within(.005),"Gravel texture remains grayscale.");
                 var decoration=instance.World.GetComponent<RegionDecoration>();Assert.That(decoration,Is.Not.Null);
                 Assert.That(decoration.PlacedCount,Is.GreaterThan(250));Assert.That(decoration.Profiles.Length,Is.EqualTo(4));
                 Assert.That(WorldEditorExtensions.All.Any(e=>e.Id=="paths"),Is.True);Assert.That(WorldEditorExtensions.All.Any(e=>e.Id=="rivers"),Is.True);

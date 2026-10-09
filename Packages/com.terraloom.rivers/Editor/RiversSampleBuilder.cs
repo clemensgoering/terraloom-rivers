@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using TerraLoom.Core.Unity;
+using TerraLoom.Core.Editor;
 using TerraLoom.Rivers.Unity;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -167,7 +168,12 @@ namespace TerraLoom.Rivers.Editor
             }
             public TerrainData Terrain(TerrainData source, string name)
             {
-                var copy = Copy(source, name);
+                if(saved.TryGetValue(source,out var known))return (TerrainData)known;
+                var copy = Save(TerrainAssetClone.Create(source),directory+"/"+name+".asset",sample);
+                // Terrain native maps must be populated on the persistent destination:
+                // creating/importing the asset may replace transient alpha textures.
+                TerrainAssetClone.CopyInto(source,copy);
+                saved.Add(source,copy);
                 copy.terrainLayers = copy.terrainLayers.Select(layer =>
                 {
                     if (!layer || AssetDatabase.Contains(layer)) return layer;
@@ -220,10 +226,15 @@ namespace TerraLoom.Rivers.Editor
                 RequireOwned(path);
                 var existing = AssetDatabase.LoadAssetAtPath<T>(path);
                 if (!existing) throw new IOException("Sample asset has incompatible type: " + path);
-                EditorUtility.CopySerialized(asset, existing); UnityEngine.Object.DestroyImmediate(asset);
+                if(asset is TerrainData terrainSource && existing is TerrainData terrainTarget)TerrainAssetClone.CopyInto(terrainSource,terrainTarget);
+                else EditorUtility.CopySerialized(asset, existing);
+                UnityEngine.Object.DestroyImmediate(asset);
                 EditorUtility.SetDirty(existing); return existing;
             }
             AssetDatabase.CreateAsset(asset, path);
+            // Native TerrainData maps must be flushed before importer reload; otherwise
+            // a newly attached alpha texture can be replaced by the initial default map.
+            AssetDatabase.SaveAssets();
             if (sample) Stamp(path);
             else { var importer = AssetImporter.GetAtPath(path); importer.userData = "TerraLoom.Rivers editor bake; generated copy; source assets preserved"; importer.SaveAndReimport(); }
             return asset;
