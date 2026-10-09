@@ -1,0 +1,5 @@
+{
+  "name":"TerraLoom.Integration.EditorTests",
+  "references":["TerraLoom.Integration","TerraLoom.Core.Runtime","TerraLoom.Core.Unity","TerraLoom.Paths.Runtime","TerraLoom.Paths.Unity","TerraLoom.Rivers.Runtime","TerraLoom.Rivers.Unity"],
+  "includePlatforms":["Editor"],"optionalUnityReferences":["TestAssemblies"],"autoReferenced":false
+}

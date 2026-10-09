@@ -1,0 +1,1191 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!29 &1
+OcclusionCullingSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_OcclusionBakeSettings:
+    smallestOccluder: 5
+    smallestHole: 0.25
+    backfaceThreshold: 100
+  m_SceneGUID: 00000000000000000000000000000000
+  m_OcclusionCullingData: {fileID: 0}
+--- !u!104 &2
+RenderSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 10
+  m_Fog: 0
+  m_FogColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  m_FogMode: 3
+  m_FogDensity: 0.01
+  m_LinearFogStart: 0
+  m_LinearFogEnd: 300
+  m_AmbientSkyColor: {r: 0.6, g: 0.66, b: 0.72, a: 1}
+  m_AmbientEquatorColor: {r: 0.114, g: 0.125, b: 0.133, a: 1}
+  m_AmbientGroundColor: {r: 0.047, g: 0.043, b: 0.035, a: 1}
+  m_AmbientIntensity: 1
+  m_AmbientMode: 0
+  m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
+  m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
+  m_HaloStrength: 0.5
+  m_FlareStrength: 1
+  m_FlareFadeSpeed: 3
+  m_HaloTexture: {fileID: 0}
+  m_SpotCookie: {fileID: 10001, guid: 0000000000000000e000000000000000, type: 0}
+  m_DefaultReflectionMode: 0
+  m_DefaultReflectionResolution: 128
+  m_ReflectionBounces: 1
+  m_ReflectionIntensity: 1
+  m_CustomReflection: {fileID: 0}
+  m_Sun: {fileID: 1502574272}
+  m_UseRadianceAmbientProbe: 0
+--- !u!157 &3
+LightmapSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 13
+  m_BakeOnSceneLoad: 0
+  m_GISettings:
+    serializedVersion: 2
+    m_BounceScale: 1
+    m_IndirectOutputScale: 1
+    m_AlbedoBoost: 1
+    m_EnvironmentLightingMode: 0
+    m_EnableBakedLightmaps: 1
+    m_EnableRealtimeLightmaps: 0
+  m_LightmapEditorSettings:
+    serializedVersion: 12
+    m_Resolution: 2
+    m_BakeResolution: 40
+    m_AtlasSize: 1024
+    m_AO: 0
+    m_AOMaxDistance: 1
+    m_CompAOExponent: 1
+    m_CompAOExponentDirect: 0
+    m_ExtractAmbientOcclusion: 0
+    m_Padding: 2
+    m_LightmapParameters: {fileID: 0}
+    m_LightmapsBakeMode: 1
+    m_TextureCompression: 1
+    m_ReflectionCompression: 2
+    m_MixedBakeMode: 2
+    m_BakeBackend: 2
+    m_PVRSampling: 1
+    m_PVRDirectSampleCount: 32
+    m_PVRSampleCount: 512
+    m_PVRBounces: 2
+    m_PVREnvironmentSampleCount: 256
+    m_PVREnvironmentReferencePointCount: 2048
+    m_PVRFilteringMode: 1
+    m_PVRDenoiserTypeDirect: 1
+    m_PVRDenoiserTypeIndirect: 1
+    m_PVRDenoiserTypeAO: 1
+    m_PVRFilterTypeDirect: 0
+    m_PVRFilterTypeIndirect: 0
+    m_PVRFilterTypeAO: 0
+    m_PVREnvironmentMIS: 1
+    m_PVRCulling: 1
+    m_PVRFilteringGaussRadiusDirect: 1
+    m_PVRFilteringGaussRadiusIndirect: 1
+    m_PVRFilteringGaussRadiusAO: 1
+    m_PVRFilteringAtrousPositionSigmaDirect: 0.5
+    m_PVRFilteringAtrousPositionSigmaIndirect: 2
+    m_PVRFilteringAtrousPositionSigmaAO: 1
+    m_ExportTrainingData: 0
+    m_TrainingDataDestination: TrainingData
+    m_LightProbeSampleCountMultiplier: 4
+  m_LightingDataAsset: {fileID: 20201, guid: 0000000000000000f000000000000000, type: 0}
+  m_LightingSettings: {fileID: 0}
+--- !u!196 &4
+NavMeshSettings:
+  serializedVersion: 2
+  m_ObjectHideFlags: 0
+  m_BuildSettings:
+    serializedVersion: 3
+    agentTypeID: 0
+    agentRadius: 0.5
+    agentHeight: 2
+    agentSlope: 45
+    agentClimb: 0.4
+    ledgeDropHeight: 0
+    maxJumpAcrossDistance: 0
+    minRegionArea: 2
+    manualCellSize: 0
+    cellSize: 0.16666667
+    manualTileSize: 0
+    tileSize: 256
+    buildHeightMesh: 0
+    maxJobWorkers: 0
+    preserveTilesOutsideBounds: 0
+    debug:
+      m_Flags: 0
+  m_NavMeshData: {fileID: 0}
+--- !u!1 &254140838
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 254140839}
+  - component: {fileID: 254140843}
+  - component: {fileID: 254140842}
+  - component: {fileID: 254140841}
+  - component: {fileID: 254140840}
+  m_Layer: 0
+  m_Name: sample-river Banks
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &254140839
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 254140838}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1067322126}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!64 &254140840
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 254140838}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: 3e27b2b127e39ad499396494ac8f74f0, type: 2}
+--- !u!23 &254140841
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 254140838}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 4b131ad94018b7449acbec68b7e12d7b, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &254140842
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 254140838}
+  m_Mesh: {fileID: 4300000, guid: 3e27b2b127e39ad499396494ac8f74f0, type: 2}
+--- !u!114 &254140843
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 254140838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fa2314a8fd8434e82383288b6502e32, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: TerraLoom.Rivers.Unity::TerraLoom.Rivers.Unity.RiverGeneratedGeometry
+  role: 2
+  ownsMesh: 0
+--- !u!1 &767378547
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 767378548}
+  - component: {fileID: 767378552}
+  - component: {fileID: 767378551}
+  - component: {fileID: 767378550}
+  - component: {fileID: 767378549}
+  m_Layer: 0
+  m_Name: sample-river Bed
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &767378548
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 767378547}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1067322126}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!64 &767378549
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 767378547}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: 163e6df22c144084fb11c8e9aae403d8, type: 2}
+--- !u!23 &767378550
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 767378547}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 0f3378185f2635f4dae03e159dfcb619, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &767378551
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 767378547}
+  m_Mesh: {fileID: 4300000, guid: 163e6df22c144084fb11c8e9aae403d8, type: 2}
+--- !u!114 &767378552
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 767378547}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fa2314a8fd8434e82383288b6502e32, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: TerraLoom.Rivers.Unity::TerraLoom.Rivers.Unity.RiverGeneratedGeometry
+  role: 1
+  ownsMesh: 0
+--- !u!1 &781562124
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 781562125}
+  - component: {fileID: 781562128}
+  - component: {fileID: 781562127}
+  - component: {fileID: 781562126}
+  m_Layer: 0
+  m_Name: sample-river Water
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &781562125
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 781562124}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1067322126}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!23 &781562126
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 781562124}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 0
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 7c27e231183ce8645b15ced99302109d, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &781562127
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 781562124}
+  m_Mesh: {fileID: 4300000, guid: cacda4fc0ef28a04ca26eee8a85424f2, type: 2}
+--- !u!114 &781562128
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 781562124}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fa2314a8fd8434e82383288b6502e32, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: TerraLoom.Rivers.Unity::TerraLoom.Rivers.Unity.RiverGeneratedGeometry
+  role: 0
+  ownsMesh: 0
+--- !u!1 &1035453331
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1035453334}
+  - component: {fileID: 1035453333}
+  - component: {fileID: 1035453332}
+  m_Layer: 0
+  m_Name: Rivers Sample World
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1035453332
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1035453331}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0fa9b4e778d0410284f8cc81ea4c98a4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: TerraLoom.Rivers.Unity::TerraLoom.Rivers.Unity.TerraLoomRivers
+  World: {fileID: 1035453333}
+  GenerateOnStart: 0
+  AutomaticSourceAndMouth: 0
+  Connections:
+  - Id: sample-river
+    SourceId: source
+    MouthId: mouth
+  Width: 4
+  Depth: 0.6
+  BankWidth: 2
+  CellSize: 2
+  MaximumSlope: 0.3
+  BridgeClearance: 1
+  SampleSpacing: 0.5
+  MaximumNodes: 65536
+  TotalSearchBudget: 250000
+  TotalSampleBudget: 4000000
+  RegionCosts: []
+  ProtectedAreas: []
+  WaterMaterial: {fileID: 2100000, guid: 7c27e231183ce8645b15ced99302109d, type: 2}
+  BedMaterial: {fileID: 2100000, guid: 0f3378185f2635f4dae03e159dfcb619, type: 2}
+  BankMaterial: {fileID: 2100000, guid: 4b131ad94018b7449acbec68b7e12d7b, type: 2}
+  CarveTerrainCopy: 1
+  MaximumGeometryVertices: 1000000
+  diagnostics: "sample-river: Connected \u2014 Connected source to mouth; sampled
+    full bed footprint, downhill water/bed and hard exclusions validated. Terrain
+    unchanged."
+  planJson: "{\n    \"format\": 1,\n    \"seed\": 42,\n    \"revision\": 0,\n   
+    \"algorithm\": \"rivers-grid-v1\",\n    \"domain\": \"sha256:aa633efe032a25ab2aad8c4a7aa0489b1a78a164489fe29ad0d8137d12af747b\",\n   
+    \"input\": \"sha256:5e97478f3dae6d1c1322ca1dbc5fa70b2aa9cca8f2bbe5c7386b2c96c549c1ef\",\n   
+    \"routes\": [\n        {\n            \"id\": \"sample-river\",\n           
+    \"water\": [\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 5.779791533152261,\n                    \"z\": 8.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 5.764816621144612,\n                   
+    \"z\": 8.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 5.7498417091369629,\n                    \"z\":
+    9.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 5.734866797129313,\n                    \"z\": 9.5\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 5.719892044067382,\n                   
+    \"z\": 10.0\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 5.7049174499511718,\n                    \"z\":
+    10.5\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 5.689942537943521,\n                    \"z\": 11.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 5.674967625935872,\n                   
+    \"z\": 11.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 5.659992713928222,\n                    \"z\":
+    12.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 5.645017801920573,\n                    \"z\": 12.5\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 5.630042889912923,\n                   
+    \"z\": 13.0\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 5.615067977905273,\n                    \"z\":
+    13.5\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 5.600093065897623,\n                    \"z\": 14.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 5.585118153889973,\n                   
+    \"z\": 14.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 5.570143241882324,\n                    \"z\":
+    15.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 5.555168647766113,\n                    \"z\": 15.5\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 5.540193894704182,\n                   
+    \"z\": 16.0\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 5.525218982696533,\n                    \"z\":
+    16.5\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 5.509918549855549,\n                    \"z\": 17.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 5.494780877431233,\n                   
+    \"z\": 17.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 5.479805965423584,\n                    \"z\":
+    18.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 5.464831053415934,\n                    \"z\": 18.5\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 5.449856141408285,\n                   
+    \"z\": 19.0\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 5.434881229400634,\n                    \"z\":
+    19.5\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 5.419906317392984,\n                    \"z\": 20.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 5.404931405385335,\n                   
+    \"z\": 20.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 5.389956493377685,\n                    \"z\":
+    21.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 5.374981581370036,\n                    \"z\": 21.5\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 5.360006828308105,\n                   
+    \"z\": 22.0\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 5.345032234191894,\n                    \"z\":
+    22.5\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 5.330057322184244,\n                    \"z\": 23.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 5.315082410176594,\n                   
+    \"z\": 23.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 5.300107498168945,\n                    \"z\":
+    24.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 5.285132586161295,\n                    \"z\": 24.5\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 5.270157674153646,\n                   
+    \"z\": 25.0\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 5.255182762145996,\n                    \"z\":
+    25.5\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 5.240207850138346,\n                    \"z\": 26.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 5.22507017771403,\n                   
+    \"z\": 26.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 5.2097697448730468,\n                    \"z\":
+    27.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 5.194794832865397,\n                    \"z\": 27.5\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 5.179819920857748,\n                   
+    \"z\": 28.0\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 5.164845008850097,\n                    \"z\":
+    28.5\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 5.149870414733886,\n                    \"z\": 29.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 5.134895661671956,\n                   
+    \"z\": 29.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 5.119920749664306,\n                    \"z\":
+    30.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 5.104945837656656,\n                    \"z\": 30.5\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 5.089970925649006,\n                   
+    \"z\": 31.0\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 5.074996013641357,\n                    \"z\":
+    31.5\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 5.0600211016337079,\n                    \"z\": 32.0\n               
+    },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 5.045046189626057,\n                    \"z\": 32.5\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 5.030071277618408,\n                   
+    \"z\": 33.0\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 5.015096365610758,\n                    \"z\":
+    33.5\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 5.000121612548828,\n                    \"z\": 34.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 4.985147018432617,\n                   
+    \"z\": 34.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 4.970172106424967,\n                    \"z\":
+    35.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 4.955197194417318,\n                    \"z\": 35.5\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 4.9402222824096679,\n                   
+    \"z\": 36.0\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 4.924921849568685,\n                    \"z\":
+    36.5\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 4.909784177144368,\n                    \"z\": 37.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 4.894809265136718,\n                   
+    \"z\": 37.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 4.879834353129069,\n                    \"z\":
+    38.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 4.864859441121419,\n                    \"z\": 38.5\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 4.849884529113769,\n                   
+    \"z\": 39.0\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 4.83490961710612,\n                    \"z\":
+    39.5\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 4.81993470509847,\n                    \"z\": 40.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 4.80495979309082,\n                   
+    \"z\": 40.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 4.789985198974609,\n                    \"z\":
+    41.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 4.775010445912678,\n                    \"z\": 41.5\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 4.760035533905029,\n                   
+    \"z\": 42.0\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 4.745060621897379,\n                    \"z\":
+    42.5\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 4.730085709889729,\n                    \"z\": 43.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 4.71511079788208,\n                   
+    \"z\": 43.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 4.70013588587443,\n                    \"z\":
+    44.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 4.68516097386678,\n                    \"z\": 44.5\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 4.67018606185913,\n                   
+    \"z\": 45.0\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 4.655211149851481,\n                    \"z\":
+    45.5\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 4.640073477427164,\n                    \"z\": 46.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 4.624773044586181,\n                   
+    \"z\": 46.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 4.609798132578531,\n                    \"z\":
+    47.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 4.594823379516601,\n                    \"z\": 47.5\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 4.57984878540039,\n                   
+    \"z\": 48.0\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 4.56487387339274,\n                    \"z\":
+    48.5\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 4.54989896138509,\n                    \"z\": 49.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 4.534924049377441,\n                   
+    \"z\": 49.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 4.5199491373697919,\n                    \"z\":
+    50.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 4.504974225362142,\n                    \"z\": 50.5\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 4.489999313354492,\n                   
+    \"z\": 51.0\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 4.475024401346842,\n                    \"z\":
+    51.5\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 4.460049489339193,\n                    \"z\": 52.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 4.4450745773315429,\n                   
+    \"z\": 52.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 4.430099983215332,\n                    \"z\":
+    53.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 4.415125230153402,\n                    \"z\": 53.5\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 4.4001503181457519,\n                   
+    \"z\": 54.0\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 4.385175406138102,\n                    \"z\":
+    54.5\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 4.370200494130453,\n                    \"z\": 55.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 4.355225582122802,\n                   
+    \"z\": 55.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 4.339925149281819,\n                    \"z\":
+    56.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 4.3247874768575029,\n                    \"z\": 56.5\n               
+    },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 4.309812564849853,\n                    \"z\": 57.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 4.294837652842204,\n                   
+    \"z\": 57.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 4.279862740834554,\n                    \"z\":
+    58.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 4.264887828826904,\n                    \"z\": 58.5\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 4.249912916819254,\n                   
+    \"z\": 59.0\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 4.234938163757324,\n                    \"z\":
+    59.5\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 4.219963569641113,\n                    \"z\": 60.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 4.204988657633463,\n                   
+    \"z\": 60.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 4.190013745625814,\n                    \"z\":
+    61.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 4.175038833618164,\n                    \"z\": 61.5\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 4.160063921610514,\n                   
+    \"z\": 62.0\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 4.145089009602865,\n                    \"z\":
+    62.5\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 4.130114097595214,\n                    \"z\": 63.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 4.115139185587564,\n                   
+    \"z\": 63.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 4.1001642735799159,\n                    \"z\":
+    64.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 4.085189361572265,\n                    \"z\": 64.5\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 4.070214449564615,\n                   
+    \"z\": 65.0\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 4.055076777140299,\n                    \"z\":
+    65.5\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 4.039776344299316,\n                    \"z\": 66.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 4.024801591237385,\n                   
+    \"z\": 66.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 4.009826838175456,\n                    \"z\":
+    67.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 3.9948520851135256,\n                    \"z\": 67.5\n               
+    },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 3.979877173105875,\n                    \"z\": 68.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 3.9649022610982258,\n                   
+    \"z\": 68.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 3.949927349090576,\n                    \"z\":
+    69.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 3.9349524370829269,\n                    \"z\": 69.5\n               
+    },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 3.919977525075277,\n                    \"z\": 70.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 3.905002613067627,\n                   
+    \"z\": 70.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 3.8900278600056965,\n                    \"z\":
+    71.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 3.8750530274709065,\n                    \"z\": 71.5\n               
+    },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 3.860078115463257,\n                    \"z\": 72.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 3.8451032034556067,\n                   
+    \"z\": 72.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 3.830128370920817,\n                    \"z\":
+    73.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 3.8151536178588869,\n                    \"z\": 73.5\n               
+    },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 3.800178705851237,\n                    \"z\": 74.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 3.7852037938435876,\n                   
+    \"z\": 74.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 3.7702288818359377,\n                    \"z\":
+    75.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 3.754928448994954,\n                    \"z\": 75.5\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 3.7397907765706379,\n                   
+    \"z\": 76.0\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 3.7248158645629885,\n                    \"z\":
+    76.5\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 3.7098411115010578,\n                    \"z\": 77.0\n               
+    },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 3.694866278966268,\n                    \"z\": 77.5\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 3.679891366958618,\n                   
+    \"z\": 78.0\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 3.6649164549509685,\n                    \"z\":
+    78.5\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 3.649941542943319,\n                    \"z\": 79.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 3.634966630935669,\n                   
+    \"z\": 79.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 3.6199918778737389,\n                    \"z\":
+    80.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 3.605017045338949,\n                    \"z\": 80.5\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 3.590042133331299,\n                   
+    \"z\": 81.0\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 3.5750672213236496,\n                    \"z\":
+    81.5\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 3.5600923093159997,\n                    \"z\": 82.0\n               
+    },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 3.5451173973083498,\n                    \"z\": 82.5\n               
+    },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 3.530142644246419,\n                    \"z\": 83.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 3.515167811711629,\n                   
+    \"z\": 83.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 3.5001928997039797,\n                    \"z\":
+    84.0\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 3.48521798769633,\n                    \"z\": 84.5\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 3.4700803152720138,\n                   
+    \"z\": 85.0\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 3.4547798824310305,\n                    \"z\":
+    85.5\n                },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 3.4398051293690998,\n                    \"z\": 86.0\n               
+    },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 3.4248302968343098,\n                    \"z\": 86.5\n               
+    },\n                {\n                    \"x\": 48.0,\n                   
+    \"y\": 3.40985538482666,\n                    \"z\": 87.0\n                },\n               
+    {\n                    \"x\": 48.0,\n                    \"y\": 3.3948804728190109,\n                   
+    \"z\": 87.5\n                },\n                {\n                    \"x\":
+    48.0,\n                    \"y\": 3.3799055608113615,\n                    \"z\":
+    88.0\n                }\n            ]\n        }\n    ]\n}"
+  generatedRoot: {fileID: 1067322125}
+  carvedTerrain: {fileID: 1637614001}
+  originalData: {fileID: 15600000, guid: 2d8c90afb9b0f2f4e990aa31d37a4dd8, type: 2}
+  carvedData: {fileID: 15600000, guid: e463191f0c94aea49abeba983ba1224a, type: 2}
+  ownsTransientData: 0
+--- !u!114 &1035453333
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1035453331}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33b9c653c721464fb18efdeceac33e5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: TerraLoom.Core.Unity::TerraLoom.Core.Unity.TerraLoomWorld
+  WorldId: rivers-sample
+  Revision: 0
+  Seed: 42
+  AutoGenerateOnStart: 0
+  Terrain: {fileID: 1637614001}
+  Resolution: 257
+  TerrainSize: {x: 256, y: 48, z: 256}
+  Frequency: 4
+  GeneratedLayers: []
+  GeneratedTerrainMaterial: {fileID: 0}
+  BlendResolution: 128
+  RockSlopeStart: 18
+  RockSlopeEnd: 40
+  UseSeedAnchors: 0
+  SeedAnchorCount: 8
+  AnchorMargin: 8
+  ManualAnchors:
+  - Id: source
+    Position: {x: 48, y: 5.7597914, z: 8}
+    Target: {fileID: 0}
+  - Id: mouth
+    Position: {x: 48, y: 3.3599055, z: 88}
+    Target: {fileID: 0}
+  Areas: []
+  generatedTerrain: {fileID: 0}
+  generatedData: {fileID: 0}
+  generatedDataIsTransient: 0
+--- !u!4 &1035453334
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1035453331}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1067322126}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1067322125
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1067322126}
+  m_Layer: 0
+  m_Name: Rivers (generated)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1067322126
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1067322125}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 781562125}
+  - {fileID: 767378548}
+  - {fileID: 254140839}
+  m_Father: {fileID: 1035453334}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1086199486
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1086199488}
+  - component: {fileID: 1086199487}
+  m_Layer: 0
+  m_Name: Main Camera
+  m_TagString: MainCamera
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!20 &1086199487
+Camera:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1086199486}
+  m_Enabled: 1
+  serializedVersion: 2
+  m_ClearFlags: 2
+  m_BackGroundColor: {r: 0.48, g: 0.65, b: 0.78, a: 1}
+  m_projectionMatrixMode: 1
+  m_GateFitMode: 2
+  m_FOVAxisMode: 0
+  m_Iso: 200
+  m_ShutterSpeed: 0.005
+  m_Aperture: 16
+  m_FocusDistance: 10
+  m_FocalLength: 50
+  m_BladeCount: 5
+  m_Curvature: {x: 2, y: 11}
+  m_BarrelClipping: 0.25
+  m_Anamorphism: 0
+  m_SensorSize: {x: 36, y: 24}
+  m_LensShift: {x: 0, y: 0}
+  m_NormalizedViewPortRect:
+    serializedVersion: 2
+    x: 0
+    y: 0
+    width: 1
+    height: 1
+  near clip plane: 0.3
+  far clip plane: 500
+  field of view: 48
+  orthographic: 0
+  orthographic size: 5
+  m_Depth: 0
+  m_CullingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_RenderingPath: -1
+  m_TargetTexture: {fileID: 0}
+  m_TargetDisplay: 0
+  m_TargetEye: 3
+  m_HDR: 1
+  m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
+  m_ForceIntoRT: 0
+  m_OcclusionCulling: 1
+  m_StereoConvergence: 10
+  m_StereoSeparation: 0.022
+--- !u!4 &1086199488
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1086199486}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.33383104, y: -0.25193295, z: 0.09307952, w: 0.9035612}
+  m_LocalPosition: {x: 100, y: 90, z: -38}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1502574271
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1502574273}
+  - component: {fileID: 1502574272}
+  m_Layer: 0
+  m_Name: Sun
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!108 &1502574272
+Light:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1502574271}
+  m_Enabled: 1
+  serializedVersion: 12
+  m_Type: 1
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Intensity: 2
+  m_Range: 10
+  m_SpotAngle: 30
+  m_InnerSpotAngle: 21.80208
+  m_CookieSize2D: {x: 0.5, y: 0.5}
+  m_Shadows:
+    m_Type: 2
+    m_Resolution: -1
+    m_CustomResolution: -1
+    m_Strength: 1
+    m_Bias: 0.05
+    m_NormalBias: 0.4
+    m_NearPlane: 0.2
+    m_CullingMatrixOverride:
+      e00: 1
+      e01: 0
+      e02: 0
+      e03: 0
+      e10: 0
+      e11: 1
+      e12: 0
+      e13: 0
+      e20: 0
+      e21: 0
+      e22: 1
+      e23: 0
+      e30: 0
+      e31: 0
+      e32: 0
+      e33: 1
+    m_UseCullingMatrixOverride: 0
+  m_Cookie: {fileID: 0}
+  m_DrawHalo: 0
+  m_Flare: {fileID: 0}
+  m_RenderMode: 0
+  m_CullingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_RenderingLayerMask: 1
+  m_Lightmapping: 4
+  m_LightShadowCasterMode: 0
+  m_AreaSize: {x: 1, y: 1}
+  m_BounceIntensity: 1
+  m_ColorTemperature: 6570
+  m_UseColorTemperature: 0
+  m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_UseBoundingSphereOverride: 0
+  m_UseViewFrustumForShadowCasterCull: 1
+  m_ForceVisible: 0
+  m_ShadowRadius: 0
+  m_ShadowAngle: 0
+  m_LightUnit: 1
+  m_LuxAtDistance: 1
+  m_EnableSpotReflector: 1
+--- !u!4 &1502574273
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1502574271}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.38791165, y: -0.27470842, z: 0.12230807, w: 0.8712638}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1637614000
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1637614003}
+  - component: {fileID: 1637614001}
+  - component: {fileID: 1637614002}
+  m_Layer: 0
+  m_Name: Slope Terrain (copy carved by Rivers)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483647
+  m_IsActive: 1
+--- !u!218 &1637614001
+Terrain:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1637614000}
+  m_Enabled: 1
+  serializedVersion: 6
+  m_TerrainData: {fileID: 15600000, guid: e463191f0c94aea49abeba983ba1224a, type: 2}
+  m_TreeDistance: 5000
+  m_TreeBillboardDistance: 50
+  m_TreeCrossFadeLength: 5
+  m_TreeMaximumFullLODCount: 50
+  m_DetailObjectDistance: 80
+  m_DetailObjectDensity: 1
+  m_HeightmapPixelError: 5
+  m_SplatMapDistance: 1000
+  m_HeightmapMinimumLODSimplification: 0
+  m_HeightmapMaximumLOD: 0
+  m_ShadowCastingMode: 2
+  m_DrawHeightmap: 1
+  m_DrawInstanced: 1
+  m_DrawTreesAndFoliage: 1
+  m_StaticShadowCaster: 0
+  m_IgnoreQualitySettings: 0
+  m_ReflectionProbeUsage: 1
+  m_MaterialTemplate: {fileID: 2100000, guid: 85d27842216644648a603e3309a55dbb, type: 2}
+  m_BakeLightProbesForTrees: 1
+  m_PreserveTreePrototypeLayers: 0
+  m_DeringLightProbesForTrees: 1
+  m_ReceiveGI: 1
+  m_ScaleInLightmap: 0.26666668
+  m_LightmapParameters: {fileID: 15203, guid: 0000000000000000f000000000000000, type: 0}
+  m_GroupingID: 0
+  m_RenderingLayerMask: 1
+  m_AllowAutoConnect: 1
+  m_EnableHeightmapRayTracing: 1
+  m_EnableTreesAndDetailsRayTracing: 0
+  m_TreeMotionVectorModeOverride: 3
+--- !u!154 &1637614002
+TerrainCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1637614000}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_TerrainData: {fileID: 15600000, guid: e463191f0c94aea49abeba983ba1224a, type: 2}
+  m_EnableTreeColliders: 1
+--- !u!4 &1637614003
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1637614000}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1660057539 &9223372036854775807
+SceneRoots:
+  m_ObjectHideFlags: 0
+  m_Roots:
+  - {fileID: 1637614003}
+  - {fileID: 1035453334}
+  - {fileID: 1502574273}
+  - {fileID: 1086199488}

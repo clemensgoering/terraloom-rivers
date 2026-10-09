@@ -1,0 +1,7 @@
+{
+  "name": "TerraLoom.Rivers.Unity",
+  "rootNamespace": "TerraLoom.Rivers.Unity",
+  "references": ["TerraLoom.Core.Runtime", "TerraLoom.Core.Generation", "TerraLoom.Core.Unity", "TerraLoom.Rivers.Runtime"],
+  "autoReferenced": true,
+  "noEngineReferences": false
+}

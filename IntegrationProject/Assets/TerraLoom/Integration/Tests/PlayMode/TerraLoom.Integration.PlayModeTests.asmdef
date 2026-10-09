@@ -1,0 +1,5 @@
+{
+  "name":"TerraLoom.Integration.PlayModeTests",
+  "references":["TerraLoom.Integration","TerraLoom.Core.Runtime","TerraLoom.Core.Unity","TerraLoom.Paths.Runtime","TerraLoom.Paths.Unity","TerraLoom.Rivers.Runtime","TerraLoom.Rivers.Unity"],
+  "optionalUnityReferences":["TestAssemblies"],"autoReferenced":false
+}

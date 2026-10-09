@@ -1,0 +1,5 @@
+{
+  "owner": "TerraLoom.Rivers.SampleBuilder/v1",
+  "recipe": "129x129; size 96x16x96; height metres = 6 - 0.03*z; flat x; source (48,8); mouth (48,88); seed 42",
+  "assets": "Original generated terrain, meadow texture/layer, URP materials, baked terrain copy and river meshes. No external art. Water uses TerraLoom/RiverWater when available, otherwise URP/Lit."
+}

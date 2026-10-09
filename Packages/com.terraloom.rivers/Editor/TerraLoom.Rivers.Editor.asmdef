@@ -3,7 +3,10 @@
   "rootNamespace": "TerraLoom.Rivers",
   "references": [
     "TerraLoom.Core.Runtime",
-    "TerraLoom.Rivers.Runtime"
+    "TerraLoom.Rivers.Runtime",
+    "TerraLoom.Core.Unity",
+    "TerraLoom.Core.Generation",
+    "TerraLoom.Rivers.Unity"
   ],
   "includePlatforms": [
     "Editor"

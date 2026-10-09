@@ -1,0 +1,5 @@
+{
+  "name":"TerraLoom.Integration.Editor",
+  "references":["TerraLoom.Integration","TerraLoom.Core.Runtime","TerraLoom.Core.Unity","TerraLoom.Core.Editor","TerraLoom.Rivers.Runtime","TerraLoom.Rivers.Unity","TerraLoom.Rivers.Editor","TerraLoom.Paths.Runtime","TerraLoom.Paths.Unity","TerraLoom.Paths.Editor"],
+  "includePlatforms":["Editor"],"autoReferenced":true
+}
