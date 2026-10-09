@@ -25,7 +25,10 @@ namespace TerraLoom.Integration
                 player.height=1.8f;player.radius=.3f;player.stepOffset=.25f;player.slopeLimit=40;
             }
             var terrain=Composition.World.Terrain;
-            var spawn=terrain.transform.position+new Vector3(12,0,48);spawn.y=terrain.SampleHeight(spawn)+terrain.transform.position.y+1;
+            var spawn=terrain.transform.position+new Vector3(12,0,48);
+            foreach(var anchor in Composition.World.CaptureAnchors().Anchors)
+                if(anchor.Id=="west"){spawn=new Vector3((float)anchor.Position.X,(float)anchor.Position.Y,(float)anchor.Position.Z);break;}
+            spawn.y=terrain.SampleHeight(spawn)+terrain.transform.position.y+1;
             player.enabled=false;player.transform.position=spawn;player.enabled=true;
             walking=true;yaw=90;pitch=0;vertical=0;
             View.transform.SetParent(player.transform,false);View.transform.localPosition=new Vector3(0,.6f,0);View.transform.localRotation=Quaternion.Euler(0,yaw,0);
@@ -54,13 +57,14 @@ namespace TerraLoom.Integration
         }
         private void OnGUI()
         {
-            GUILayout.BeginArea(new Rect(15,15,460,135),GUI.skin.box);
+            GUILayout.BeginArea(new Rect(15,285,460,135),GUI.skin.box);
             GUILayout.Label("TerraLoom — Core / Rivers / Paths test");
             GUILayout.Label(walking?"WASD move · mouse look · Space jump · Esc overview":"Tab: walk over the path, ramps and bridge");
             if (Composition) GUILayout.Label(Composition.Diagnostics);
             if(GUILayout.Button(walking?"Return to overview":"Walk from western path target")) { if(walking)EndWalk();else BeginWalk(); }
             GUILayout.EndArea();
         }
+        public void ReturnToOverview() { if(walking)EndWalk(); }
         private void OnDestroy()
         {
             Cursor.lockState=CursorLockMode.None;Cursor.visible=true;

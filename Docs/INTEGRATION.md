@@ -1,5 +1,25 @@
 # Gemeinsames Testprojekt, 09.10.2026
 
+## v0.3: zuerst die dynamische Welt testen
+
+`Assets/TerraLoom/Integration/Generated/TerraLoomDynamic.unity` enthaelt nur
+Konfiguration, Referenzen und Kamera/Licht. Play erzeugt die komplette Welt aus
+dem Seed. Same seed wiederholt, Next seed baut Terrain, Ziele, Bereiche, Fluss,
+Weg/Bruecke und Vegetation neu. Tab startet den Begehversuch am tatsaechlichen
+seedabgeleiteten westlichen Ziel. UseSeedConfiguration=false verwendet dieselbe
+Runtime-Pipeline mit manuell gepflegtem Core-Terrain, Zielen und Bereichen.
+
+Tools > TerraLoom > World Workbench zeigt Core, regionale Dekoration und die
+installierten Module mit gemeinsamen Scene-Ebenen/Legende. Die Consumer-Komposition
+beziehungsweise Seed-Rezept-Karte ist der Einstieg fuer den gemeinsamen Neubau.
+Module koennen auf dem Core-Objekt oder getrennten Objekten mit Core-Referenz liegen.
+
+Vier Bereiche vergleichen separate Sommer-/Winter-Prefabs im Westen mit denselben
+Prefabs und regionalen Shaderwerten im Osten. 14 originale Nature-Prefabs, zwei
+Terrain-Layer und vier Wasserpaletten sind verfuegbar. Eis ist ein visueller Shaderstil.
+Core Docs/REGIONAL-STYLES.md und EDITOR-EXTENSIONS.md beschreiben Anpassung und APIs.
+Die statische Szene unten bleibt als Bake-/Reload-Nachweis erhalten.
+
 Core, Paths und Rivers als Geschwisterordner anordnen. `python Rivers/Tools/create_integration.py`
 erzeugt daneben das Unity-Projekt `Integration`. Es benutzt relative lokale UPM-Pakete;
 die drei Produktpakete behalten eigenstaendige Abhaengigkeiten. Nur das Verbraucherbeispiel

@@ -31,7 +31,15 @@ namespace TerraLoom.Integration.Editor
             world.ManualAnchors=world.ManualAnchors.Concat(new[] {
                 new ManualWorldAnchor { Id="west",Position=new Vector3(12,0,48) },
                 new ManualWorldAnchor { Id="east",Position=new Vector3(84,0,48) } }).ToArray();
-            world.Areas=new[] { new LandscapeArea { Id="wet-bank",Center=new Vector2(48,48),Size=new Vector2(16,96),Feather=2,Tags=new[] { "wet","riparian" } } };
+            SeasonalSampleBuilder.ConfigureRegions(world);
+            var regionalProfiles=SeasonalSampleBuilder.BuildProfiles();
+            // Paint a fresh sample source, then let Rivers create its reversible height copy from it.
+            rivers.Clear();
+            var regionalSource=SeasonalSampleBuilder.PaintCopy(world,regionalProfiles,Root+"/RegionalSourceTerrain.asset");
+            world.Terrain.terrainData=regionalSource;world.Terrain.GetComponent<TerrainCollider>().terrainData=regionalSource;
+            WaterStyleLibrary.Build();
+            rivers.WaterMaterial=MakeRegionalWater();
+            rivers.BankMaterial=MakeMaterial("RegionalBank",new Color(.38f,.29f,.16f),false);
             var paths=world.gameObject.AddComponent<TerraLoomPaths>(); paths.World=world; paths.AutomaticNetwork=false;
             paths.Connections.Add(new PathConnectionSettings { Id="settlement-road",StartId="west",EndId="east" });
             paths.GroundMaterial=MakeMaterial("Gravel",new Color(.55f,.42f,.26f),false);
@@ -42,7 +50,8 @@ namespace TerraLoom.Integration.Editor
             if (!paths.LastPlan.Routes.Any(r=>r.Surfaces.Contains(TerraLoom.Paths.PathSurface.Bridge))) throw new InvalidOperationException("Integration sample must contain an actual negotiated bridge.");
             RiversSampleBuilder.Bake(rivers,Root+"/River");
             PathsSampleBuilder.Bake(paths,Root+"/Paths");
-            ScatterNature(world);
+            SeasonalSampleBuilder.AddDecoration(world,regionalProfiles,new[] { new Rect(36,0,24,96),new Rect(0,32,96,32) });
+            SeasonalSampleBuilder.AddLabels(world);
             RenderSettings.ambientMode=AmbientMode.Flat; RenderSettings.ambientLight=new Color(.55f,.61f,.66f);
             var camera=UnityEngine.Object.FindFirstObjectByType<Camera>(); camera.transform.position=new Vector3(109,84,-28); camera.transform.LookAt(new Vector3(48,5,48));
             camera.backgroundColor=new Color(.58f,.72f,.8f);
@@ -52,6 +61,35 @@ namespace TerraLoom.Integration.Editor
             AssetDatabase.Refresh(); AssetDatabase.SaveAssets();
             EditorSceneManager.SaveScene(world.gameObject.scene,Root+"/TerraLoomIntegration.unity");
             Debug.Log(integration.Diagnostics);
+            BuildRuntimeScene();
+        }
+        /// <summary>Configuration-only scene: contains no terrain or generated mesh. Start builds everything.</summary>
+        public static void BuildRuntimeScene()
+        {
+            var scene=EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
+            var host=new GameObject("TerraLoom Dynamic World");TerraLoomEditorIcons.Apply(host,"Core");
+            var world=host.AddComponent<TerraLoomWorld>();world.Recipe=TerrainRecipe.DrainageValley;world.Seed=2042;
+            world.GeneratedTerrainMaterial=AssetDatabase.LoadAssetAtPath<Material>(RiversSampleBuilder.SampleDirectory+"/Terrain.mat");
+            if(!world.GeneratedTerrainMaterial)throw new InvalidOperationException("Build the original river sample terrain material first.");
+            var riverHost=new GameObject("Rivers (optional module)");riverHost.transform.SetParent(host.transform,false);TerraLoomEditorIcons.Apply(riverHost,"Rivers");
+            var rivers=riverHost.AddComponent<TerraLoomRivers>();rivers.World=world;
+            rivers.WaterMaterial=AssetDatabase.LoadAssetAtPath<Material>(Root+"/RegionalWater.mat");
+            rivers.BankMaterial=AssetDatabase.LoadAssetAtPath<Material>(Root+"/RegionalBank.mat");
+            rivers.BedMaterial=AssetDatabase.LoadAssetAtPath<Material>(RiversSampleBuilder.SampleDirectory+"/Bed.mat");
+            var pathHost=new GameObject("Paths (optional module)");pathHost.transform.SetParent(host.transform,false);TerraLoomEditorIcons.Apply(pathHost,"Paths");
+            var paths=pathHost.AddComponent<TerraLoomPaths>();paths.World=world;paths.BridgeClearance=1.2f;paths.MaximumSlope=.35f;
+            paths.GroundMaterial=AssetDatabase.LoadAssetAtPath<Material>(Root+"/Gravel.mat");paths.BridgeMaterial=AssetDatabase.LoadAssetAtPath<Material>(Root+"/Bridge.mat");
+            var composition=host.AddComponent<TerraLoomIntegration>();composition.World=world;composition.Paths=paths;composition.Rivers=rivers;
+            var decoration=host.AddComponent<RegionDecoration>();decoration.World=world;decoration.Profiles=SeasonalSampleBuilder.BuildProfiles();
+            var runtime=host.AddComponent<SeededWorldDemo>();runtime.Composition=composition;runtime.Decoration=decoration;runtime.Profiles=decoration.Profiles;
+            host.AddComponent<RegionalShowcaseGuide>().World=world;
+            var sun=new GameObject("Sun").AddComponent<Light>();sun.type=LightType.Directional;sun.intensity=2;sun.shadows=LightShadows.Soft;sun.transform.rotation=Quaternion.Euler(45,-35,0);
+            RenderSettings.ambientMode=AmbientMode.Flat;RenderSettings.ambientLight=new Color(.55f,.61f,.66f);
+            var camera=new GameObject("Main Camera").AddComponent<Camera>();camera.tag="MainCamera";camera.transform.position=new Vector3(109,84,-28);camera.transform.LookAt(new Vector3(48,5,48));
+            camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=new Color(.58f,.72f,.8f);camera.farClipPlane=500;
+            var driver=host.AddComponent<IntegrationTestDriver>();driver.Composition=composition;driver.View=camera;
+            AssetDatabase.SaveAssets();EditorSceneManager.SaveScene(scene,Root+"/TerraLoomDynamic.unity");
+            Debug.Log("Configuration-only dynamic scene saved; all world geometry is generated at runtime from the seed.");
         }
         private static Material MakeMaterial(string name,Color tint,bool wood)
         {
@@ -64,30 +102,25 @@ namespace TerraLoom.Integration.Editor
                 colors[y*64+x]=new Color(value,value,value,1);
             }
             texture.SetPixels(colors);texture.Apply(); texture=Save(texture,Root+"/"+name+"Texture.asset");
-            var mat=new Material(Shader.Find("Universal Render Pipeline/Lit")) { name=name };
+            var mat=new Material(Shader.Find("TerraLoom/SeasonalSurface")) { name=name };
             mat.SetColor("_BaseColor",tint);mat.SetTexture("_BaseMap",texture);mat.SetFloat("_Smoothness",.07f);
             mat.SetTextureScale("_BaseMap",wood?new Vector2(.25f,.8f):new Vector2(.6f,.6f));
+            mat.SetFloat("_UseWorldRegions",1);mat.SetFloat("_WinterBoundaryZ",48);mat.SetFloat("_RegionBlend",6);
             return Save(mat,Root+"/"+name+".mat");
+        }
+        private static Material MakeRegionalWater()
+        {
+            var source=AssetDatabase.LoadAssetAtPath<Material>(WaterStyleLibrary.Root+"/GlacialRiver.mat");
+            if(!source)throw new InvalidOperationException("Missing original water style.");
+            var material=new Material(source) { name="Summer current to winter ice" };
+            material.SetFloat("_UseWorldRegions",1);material.SetFloat("_WinterBoundaryZ",48);material.SetFloat("_RegionBlend",8);
+            return Save(material,Root+"/RegionalWater.mat");
         }
         private static T Save<T>(T value,string path) where T:UnityEngine.Object
         {
             var old=AssetDatabase.LoadAssetAtPath<T>(path);
             if (old) { EditorUtility.CopySerialized(value,old);UnityEngine.Object.DestroyImmediate(value);EditorUtility.SetDirty(old);return old; }
             AssetDatabase.CreateAsset(value,path);return value;
-        }
-        private static void ScatterNature(TerraLoomWorld world)
-        {
-            string[] names={"Tree","Rock","Grass"};
-            for(int i=0;i<90;i++)
-            {
-                float z=10+(i*17%76),x=(i%2==0?34:61)+(i*7%9);
-                if (Mathf.Abs(z-48)<7) continue;
-                var prefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/TerraLoom/CoreSamples/Baked/"+names[i%9==0?0:i%5==0?1:2]+".prefab");
-                if (!prefab) throw new InvalidOperationException("Missing own Core nature prefab.");
-                var item=(GameObject)PrefabUtility.InstantiatePrefab(prefab,world.gameObject.scene); item.transform.SetParent(world.transform,true);
-                item.transform.position=new Vector3(x,world.Terrain.SampleHeight(new Vector3(x,0,z))+world.Terrain.transform.position.y,z);
-                item.transform.rotation=Quaternion.Euler(0,i*137.5f,0);item.transform.localScale=Vector3.one*.7f;
-            }
         }
     }
 }

@@ -1,0 +1,10 @@
+TerraLoom.Rivers.WaterStyleLibrary/v1
+Original TerraLoom water material palettes, authored with OpenAI assistance.
+Shader: TerraLoom/RiverWater; original procedural waves, bank foam and static ice variation.
+No purchased art, third-party textures or private project content is included.
+The shader references Unity URP lighting/shadow helpers from the installed Unity packages.
+ClearRiver: blue-green flowing water. GlacialRiver: pale blue, slower, partial visual ice.
+MarshWater: subdued green with slow flow. FrozenWater: pale static ice, IceAmount=1.
+UV contract: signed across metres in UV.x, along metres in UV.y, two bank-edge vertices per row.
+Presets disable the example world-Z winter region; ice never changes collision or navigation.
+Rebuild updates these four material assets in place and preserves existing GUIDs.

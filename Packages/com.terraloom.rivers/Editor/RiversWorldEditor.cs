@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text;
+using TerraLoom.Core.Editor;
 using TerraLoom.Rivers.Unity;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -14,8 +15,21 @@ namespace TerraLoom.Rivers.Editor
         private string message;
         public override void OnInspectorGUI()
         {
-            DrawDefaultInspector();
             var rivers = (TerraLoomRivers)target;
+            serializedObject.Update();
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                EditorGUILayout.LabelField(new GUIContent("TerraLoom Rivers", TerraLoomEditorIcons.Get("Rivers")), EditorStyles.boldLabel);
+                using (new EditorGUI.DisabledScope(!rivers.World))
+                    if (GUILayout.Button("Open World Workbench")) TerraLoomWorldWindow.Open(rivers.World);
+            }
+            WorldInspectorSections.Draw(serializedObject, "rivers.core", "Core link / startup", true, "World", "GenerateOnStart");
+            WorldInspectorSections.Draw(serializedObject, "rivers.targets", "Targets / network", true, "AutomaticSourceAndMouth", "Connections");
+            WorldInspectorSections.Draw(serializedObject, "rivers.shape", "Shape / grade", true, "Width", "Depth", "BankWidth", "MaximumSlope", "BridgeClearance", "CarveTerrainCopy");
+            WorldInspectorSections.Draw(serializedObject, "rivers.regions", "Regions / protected", true, "RegionCosts", "ProtectedAreas");
+            WorldInspectorSections.Draw(serializedObject, "rivers.materials", "Materials", true, "WaterMaterial", "BedMaterial", "BankMaterial");
+            WorldInspectorSections.Draw(serializedObject, "rivers.budgets", "Budgets", false, "CellSize", "SampleSpacing", "MaximumNodes", "TotalSearchBudget", "TotalSampleBudget", "MaximumGeometryVertices");
+            serializedObject.ApplyModifiedProperties();
             EditorGUILayout.HelpBox("Assign a Core world and Terrain (foreign Terrain supported). Generate carves a copy when enabled; Clear restores the original. Bake before saving generated content.", MessageType.Info);
             using (new EditorGUI.DisabledScope(EditorApplication.isPlayingOrWillChangePlaymode))
             {

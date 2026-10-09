@@ -6,7 +6,8 @@
     "TerraLoom.Rivers.Runtime",
     "TerraLoom.Core.Unity",
     "TerraLoom.Core.Generation",
-    "TerraLoom.Rivers.Unity"
+    "TerraLoom.Rivers.Unity",
+    "TerraLoom.Core.Editor"
   ],
   "includePlatforms": [
     "Editor"

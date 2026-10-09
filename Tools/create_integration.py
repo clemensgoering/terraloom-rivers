@@ -27,7 +27,8 @@ for name in ('Core', 'Paths', 'Rivers'):
 (destination / 'README.md').write_text('''# TerraLoom integration test
 
 Open this project in Unity 6000.3.9f1. Tools > TerraLoom > Integration > Build Test Scene.
-Open Assets/TerraLoom/Integration/Generated/TerraLoomIntegration.unity and enter Play Mode.
+Open Assets/TerraLoom/Integration/Generated/TerraLoomDynamic.unity and enter Play Mode.
+Same seed / Next seed rebuilds terrain, seed targets, regions, rivers, paths and regional assets at runtime.
 Tab switches to walking; WASD moves, mouse looks, Space jumps, Esc returns to the overview.
 The baked example works without generating on Start. Rebuild through the composition inspector.
 

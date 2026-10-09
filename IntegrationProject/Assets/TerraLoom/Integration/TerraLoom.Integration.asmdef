@@ -1,5 +1,15 @@
 {
-  "name":"TerraLoom.Integration",
-  "references":["TerraLoom.Core.Runtime","TerraLoom.Core.Unity","TerraLoom.Rivers.Runtime","TerraLoom.Rivers.Unity","TerraLoom.Paths.Runtime","TerraLoom.Paths.Unity","Unity.InputSystem"],
-  "autoReferenced":true
+  "name": "TerraLoom.Integration",
+  "references": [
+    "TerraLoom.Core.Runtime",
+    "TerraLoom.Core.Unity",
+    "TerraLoom.Rivers.Runtime",
+    "TerraLoom.Rivers.Unity",
+    "TerraLoom.Paths.Runtime",
+    "TerraLoom.Paths.Unity",
+    "Unity.InputSystem",
+    "Unity.RenderPipelines.Universal.Runtime",
+    "Unity.RenderPipelines.Core.Runtime"
+  ],
+  "autoReferenced": true
 }

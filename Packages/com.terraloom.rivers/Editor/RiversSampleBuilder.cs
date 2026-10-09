@@ -26,6 +26,7 @@ namespace TerraLoom.Rivers.Editor
         /// <summary>Offline, GPU-free executeMethod entry. Replaces the open scene; use BuildInteractive in the editor.</summary>
         public static void BuildBatch()
         {
+            WaterStyleLibrary.Build();
             EnsureFolder(SampleDirectory);
             // Refuse all unowned collisions before changing any saved sample content.
             foreach (string guid in AssetDatabase.FindAssets("", new[] { SampleDirectory }))

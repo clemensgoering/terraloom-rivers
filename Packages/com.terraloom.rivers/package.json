@@ -1,10 +1,10 @@
 {
   "name": "com.terraloom.rivers",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "displayName": "TerraLoom Rivers",
-  "description": "Initial development skeleton; generation algorithms are not implemented.",
+  "description": "Deterministic river planning, reversible terrain carving, regional water styles and modular world authoring.",
   "unity": "6000.3",
   "dependencies": {
-    "com.terraloom.core": "0.2.0"
+    "com.terraloom.core": "0.3.0"
   }
 }
