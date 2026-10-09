@@ -43,6 +43,8 @@ namespace TerraLoom.Rivers.Unity
         public bool CarveTerrainCopy = true;
         [Tooltip("Experimental smooth terrain channel with only a water mesh. Requires carving, positive Water Inset and Bank Width. Bed/Bank materials are unused. Clear restores source terrain.")]
         public bool TerrainBrush;
+        [Tooltip("Optional existing TerrainLayer index for sediment, -1 preserves source textures. Terrain Brush only. Painting uses the realized cut and smooth channel influence.")]
+        public int SedimentTerrainLayer = -1;
         public int MaximumGeometryVertices = 1000000;
         [SerializeField, TextArea] private string diagnostics, planJson;
         [SerializeField] private GameObject generatedRoot;
@@ -61,8 +63,16 @@ namespace TerraLoom.Rivers.Unity
             SampleSpacing, MaximumNodes, TotalSearchBudget, TotalSampleBudget, bridgeClearance: BridgeClearance,
             regionCosts: RegionCosts.Select(r => new RiverRegionCost(r.RegionId, r.CostPerMetre)), allowExcavation: CarveTerrainCopy,
             minimumBendRadius: MinimumBendRadius, waterInset: WaterInset, terrainBrush: TerrainBrush,
-            terrainCellGuard: TerrainBrush && World && World.Terrain && World.Terrain.terrainData
-                ? Math.Max(World.Terrain.terrainData.size.x,World.Terrain.terrainData.size.z)/(World.Terrain.terrainData.heightmapResolution-1) : 0);
+            terrainCellGuard: CaptureTerrainSupportGuard());
+
+        private double CaptureTerrainSupportGuard()
+        {
+            if(!TerrainBrush||!World||!World.Terrain||!World.Terrain.terrainData)return 0;
+            var data=World.Terrain.terrainData;
+            double guard=Math.Max((double)data.size.x/(data.heightmapResolution-1),(double)data.size.z/(data.heightmapResolution-1));
+            if(SedimentTerrainLayer>=0)guard=Math.Max(guard,Math.Max((double)data.size.x/(data.alphamapWidth-1),(double)data.size.z/(data.alphamapHeight-1)));
+            return guard;
+        }
 
         public PlanSnapshot CaptureInput(out WorldBounds bounds, out IReadOnlyList<RiverRequest> requests)
         {
@@ -89,7 +99,7 @@ namespace TerraLoom.Rivers.Unity
                     {
                         var area=p.Capture();
                         if(!TerrainBrush)return area;
-                        double gx=(double)size.x/(selected.terrainData.heightmapResolution-1),gz=(double)size.z/(selected.terrainData.heightmapResolution-1);
+                        double gx=CaptureTerrainSupportGuard(),gz=gx;
                         var b=area.Bounds;
                         return new AreaReservation(area.Id,area.OwnerId,new WorldBounds(b.MinX-gx,b.MinZ-gz,b.MaxX+gx,b.MaxZ+gz),area.Strength,area.Purpose,area.TransitionCost);
                     })).BaseSnapshot;
@@ -117,6 +127,7 @@ namespace TerraLoom.Rivers.Unity
                 if (!WaterMaterial || !TerrainBrush && (!BedMaterial || !BankMaterial)) throw new InvalidOperationException("Assign water material; mesh channels also need bed and bank materials.");
                 if (!World || !World.Terrain) throw new InvalidOperationException("Assign a Core world.");
                 if (Mathf.Abs(transform.localToWorldMatrix.determinant) < .000001f) throw new InvalidOperationException("River transform must have nonzero scale.");
+                if(TerrainBrush && SedimentTerrainLayer < -1)throw new InvalidOperationException("Sediment layer must be -1 or an existing terrain layer index.");
                 var profile = CaptureProfile(); var plan = RiverPlanner.Plan(input, profile, bounds, requests, cancellation);
                 diagnostics = string.Join("\n", plan.Reports.Select(r => r.Request.Id + ": " + r.Outcome + " — " + r.Detail));
                 if (!plan.Complete || plan.Routes.Count == 0) return false;
@@ -144,6 +155,9 @@ namespace TerraLoom.Rivers.Unity
                     profile.TerrainBrush ? input.Reservations : null);
                 if(profile.WaterInset>0)
                 {
+                    if(profile.TerrainBrush && SedimentTerrainLayer>=0)
+                        diagnostics += "\nSediment layer "+SedimentTerrainLayer+": "+RiverTerrainPainter.Apply(
+                            stagedData,basis,target.transform.position,plan,profile,SedimentTerrainLayer,input.Reservations,cancellation)+" painted texels on owned terrain.";
                     foreach(var marker in staged.GetComponentsInChildren<RiverGeneratedGeometry>(true))
                     {
                         if(marker.Role!=RiverGeometryRole.Water)continue;

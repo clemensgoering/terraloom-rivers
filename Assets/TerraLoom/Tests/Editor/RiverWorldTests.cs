@@ -291,6 +291,49 @@ namespace TerraLoom.Tests
             rivers.Clear();Assert.That(rivers.World.Terrain.terrainData,Is.SameAs(original));
         }
 
+        [Test] public void SedimentPaintPreservesSourceLayerRatiosAndFailureOwnership()
+        {
+            var layers=new[]{new TerrainLayer{name="Grass"},new TerrainLayer{name="Rock"},new TerrainLayer{name="Sediment"}};
+            try
+            {
+                original.terrainLayers=layers;original.alphamapResolution=32;
+                var weights=new float[32,32,3];for(int z=0;z<32;z++)for(int x=0;x<32;x++){weights[z,x,0]=.6f;weights[z,x,1]=.4f;}
+                original.SetAlphamaps(0,0,weights);var before=original.GetAlphamaps(0,0,32,32);
+                rivers.TerrainBrush=true;rivers.WaterInset=.3f;rivers.SedimentTerrainLayer=2;
+                Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics);
+                var painted=rivers.CarvedTerrainData.GetAlphamaps(0,0,32,32);int mixed=0,soil=0;
+                for(int z=0;z<32;z++)for(int x=0;x<32;x++)
+                {
+                    Assert.That(painted[z,x,0]+painted[z,x,1]+painted[z,x,2],Is.EqualTo(1).Within(.008));
+                    if(painted[z,x,2]>.01f)soil++;
+                    if(painted[z,x,2]>.1f&&painted[z,x,2]<.8f)
+                    {Assert.That(painted[z,x,0]/painted[z,x,1],Is.EqualTo(1.5f).Within(.06));mixed++;}
+                }
+                Assert.That(soil,Is.GreaterThan(0));Assert.That(mixed,Is.GreaterThan(0));
+                Assert.That(painted[0,0,0],Is.EqualTo(before[0,0,0]));
+                Assert.That(original.GetAlphamaps(0,0,32,32),Is.EqualTo(before));
+                var root=rivers.GeneratedRoot;var data=rivers.CarvedTerrainData;string json=rivers.PlanJson;
+                rivers.SedimentTerrainLayer=3;Assert.That(rivers.Generate(),Is.False);
+                Assert.That(rivers.GeneratedRoot,Is.SameAs(root));Assert.That(rivers.CarvedTerrainData,Is.SameAs(data));Assert.That(rivers.PlanJson,Is.EqualTo(json));
+                rivers.SedimentTerrainLayer=2;
+                Assert.That(rivers.CaptureProfile().TerrainCellGuard,Is.GreaterThanOrEqualTo(64.0/31));
+                Assert.Throws<InvalidOperationException>(()=>RiverTerrainPainter.Apply(data,original,Vector3.zero,
+                    rivers.LastPlan,rivers.CaptureProfile(),2,new[]{new AreaReservation("texture-only-guard","test",
+                    new WorldBounds(27.25,30,27.75,34),ReservationStrength.Hard,ReservationPurpose.ProtectedArea)}));
+                Assert.That(data.GetAlphamaps(0,0,32,32),Is.EqualTo(painted));
+                Assert.Throws<OperationCanceledException>(()=>RiverTerrainPainter.Apply(data,original,Vector3.zero,
+                    rivers.LastPlan,rivers.CaptureProfile(),2,Array.Empty<AreaReservation>(),new CancellationToken(true)));
+                Assert.That(data.GetAlphamaps(0,0,32,32),Is.EqualTo(painted));
+                rivers.World.UseSeedAnchors=true;rivers.World.SeedAnchorCount=5;rivers.World.AnchorMargin=10;rivers.World.Seed=43;
+                Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics);painted=rivers.CarvedTerrainData.GetAlphamaps(0,0,32,32);
+                Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics);
+                Assert.That(rivers.CarvedTerrainData.GetAlphamaps(0,0,32,32),Is.EqualTo(painted));
+                rivers.Clear();Assert.That(rivers.World.Terrain.terrainData,Is.SameAs(original));
+                Assert.That(original.GetAlphamaps(0,0,32,32),Is.EqualTo(before));
+            }
+            finally{rivers.Clear();original.terrainLayers=Array.Empty<TerrainLayer>();foreach(var layer in layers)Object.DestroyImmediate(layer);}
+        }
+
         [Test] public void InvalidInsetRetainsPublishedTerrainAndMeshes()
         {
             Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics);

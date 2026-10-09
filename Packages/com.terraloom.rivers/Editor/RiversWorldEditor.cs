@@ -30,6 +30,19 @@ namespace TerraLoom.Rivers.Editor
             if(serializedObject.FindProperty("TerrainBrush").boolValue)
                 WorldInspectorSections.Draw(serializedObject,"rivers.materials","Water material (ground uses Terrain layers)",true,"WaterMaterial");
             else WorldInspectorSections.Draw(serializedObject, "rivers.materials", "Materials", true, "WaterMaterial", "BedMaterial", "BankMaterial");
+            if(serializedObject.FindProperty("TerrainBrush").boolValue)
+            {
+                var linked=serializedObject.FindProperty("World").objectReferenceValue as TerraLoom.Core.Unity.TerraLoomWorld;
+                var layers=linked&&linked.Terrain&&linked.Terrain.terrainData?linked.Terrain.terrainData.terrainLayers:Array.Empty<TerrainLayer>();
+                var labels=new string[layers.Length+1];labels[0]="Keep source textures";
+                for(int i=0;i<layers.Length;i++)labels[i+1]=i+": "+(layers[i]?layers[i].name:"Missing terrain layer");
+                var sediment=serializedObject.FindProperty("SedimentTerrainLayer");
+                if(sediment.intValue>=layers.Length)EditorGUILayout.HelpBox("Selected sediment layer is missing. Generation will retain the previous river; select an existing layer.",MessageType.Warning);
+                EditorGUI.BeginChangeCheck();
+                int choice=EditorGUILayout.Popup("Sediment Terrain Layer",Mathf.Clamp(sediment.intValue+1,0,labels.Length-1),labels);
+                if(EditorGUI.EndChangeCheck())sediment.intValue=choice-1;
+                EditorGUILayout.HelpBox("Sediment uses the realized cut and smooth brush mask on the owned terrain copy. Other layer proportions are retained; Clear restores source textures. No new layer is added at runtime.",MessageType.Info);
+            }
             WorldInspectorSections.Draw(serializedObject, "rivers.budgets", "Budgets", false, "CellSize", "SampleSpacing", "MaximumNodes", "TotalSearchBudget", "TotalSampleBudget", "MaximumGeometryVertices");
             serializedObject.ApplyModifiedProperties();
             if(!rivers.TerrainBrush)EditorGUILayout.HelpBox("Bed and Banks are visible channel surfaces with colliders. Depth lowers the bed below water. Water Inset lowers water below captured centre terrain (plus 2 cm); positive inset is experimental, requires terrain carving, extends water to sampled bank intersections and rejects actual terrain penetration before publication. Bank heights still follow local terrain. Clear restores the source terrain.", MessageType.Info);

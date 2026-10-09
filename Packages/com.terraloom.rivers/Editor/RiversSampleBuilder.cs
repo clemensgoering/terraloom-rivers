@@ -63,7 +63,24 @@ namespace TerraLoom.Rivers.Editor
             ground = Save(ground, SampleDirectory + "/MeadowTexture.asset", true);
             var layer = Save(new TerrainLayer { name = "Original meadow layer", diffuseTexture = ground, tileSize = new Vector2(6, 6),
                 smoothnessSource = TerrainLayerSmoothnessSource.Constant, smoothness = .05f }, SampleDirectory + "/MeadowLayer.terrainlayer", true);
-            data.terrainLayers = new[] { layer };
+            if(inset)
+            {
+                var sediment=new Texture2D(32,32,TextureFormat.RGBA32,true){name="Original procedural river sediment",wrapMode=TextureWrapMode.Repeat};
+                var soil=new Color[32*32];
+                for(int i=0;i<soil.Length;i++)
+                {
+                    uint hash=unchecked((uint)i*747796405u+2891336453u);hash=(hash^(hash>>16))*2246822519u;hash^=hash>>13;
+                    soil[i]=Color.Lerp(new Color(.24f,.21f,.16f),new Color(.48f,.43f,.32f),(hash&65535)/65535f);
+                }
+                sediment.SetPixels(soil);sediment.Apply();
+                sediment=Save(sediment,SampleDirectory+"/SedimentTexture.asset",true);
+                var sedimentLayer=Save(new TerrainLayer{name="Original river sediment layer",diffuseTexture=sediment,tileSize=new Vector2(2,2),
+                    smoothnessSource=TerrainLayerSmoothnessSource.Constant,smoothness=.08f},SampleDirectory+"/SedimentLayer.terrainlayer",true);
+                data.terrainLayers=new[]{layer,sedimentLayer};data.alphamapResolution=128;
+                var weights=new float[128,128,2];for(int z=0;z<128;z++)for(int x=0;x<128;x++)weights[z,x,0]=1;
+                data.SetAlphamaps(0,0,weights);
+            }
+            else data.terrainLayers = new[] { layer };
             data = Save(data, SampleDirectory + "/OriginalSlopeTerrain.asset", true);
             var terrain = Terrain.CreateTerrainGameObject(data).GetComponent<Terrain>();
             terrain.name = "Slope Terrain (copy carved by Rivers)";
@@ -79,6 +96,7 @@ namespace TerraLoom.Rivers.Editor
             rivers.CarveTerrainCopy = true;
             rivers.WaterInset = inset ? .6f : 0;
             rivers.TerrainBrush = inset;
+            rivers.SedimentTerrainLayer = inset ? 1 : -1;
             rivers.ProtectedAreas.Add(new RiverProtectionSettings { Id = "sample-detour", Center = new Vector2(48,48), Size = new Vector2(8,12) });
             rivers.BedMaterial = Save(MakeMaterial("Original river bed", "Universal Render Pipeline/Lit", new Color(.25f, .18f, .1f)), SampleDirectory + "/Bed.mat", true);
             rivers.BankMaterial = Save(MakeMaterial("Original river bank", "Universal Render Pipeline/Lit", new Color(.43f, .34f, .19f)), SampleDirectory + "/Bank.mat", true);
@@ -94,7 +112,7 @@ namespace TerraLoom.Rivers.Editor
             camera.fieldOfView = 48; camera.farClipPlane = 500; camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = new Color(.48f, .65f, .78f);
             SaveText(SampleDirectory + "/RiversPlan.json", rivers.PlanJson);
-            SaveText(SampleDirectory + "/Provenance.json", "{\n  \"owner\": \"TerraLoom.Rivers.SampleBuilder/v1\",\n  \"recipe\": \"129x129; size 96x16x96; height metres = 6 - 0.03*z; flat x; source (48,8); mouth (48,88); protected detour (48,48) size 8x12; seed 42; WaterInset see saved component\",\n  \"assets\": \"Original generated terrain, meadow texture/layer, URP materials, baked terrain copy and river meshes. No external art. Water uses TerraLoom/RiverWater when available, otherwise URP/Lit.\"\n}\n");
+            SaveText(SampleDirectory + "/Provenance.json", "{\n  \"owner\": \"TerraLoom.Rivers.SampleBuilder/v1\",\n  \"recipe\": \"129x129; size 96x16x96; height metres = 6 - 0.03*z; flat x; source (48,8); mouth (48,88); protected detour (48,48) size 8x12; seed 42; WaterInset and SedimentTerrainLayer see saved component\",\n  \"assets\": \"Original generated terrain, meadow texture/layer, URP materials, baked terrain copy and river meshes. No external art. Water uses TerraLoom/RiverWater when available, otherwise URP/Lit.\"\n}\n");
             MarkDirty(rivers); EditorUtility.SetDirty(data); AssetDatabase.SaveAssets();
             if (File.Exists(SampleScene)) RequireOwned(SampleScene);
             if (!EditorSceneManager.SaveScene(scene, SampleScene)) throw new IOException("Cannot save Rivers sample scene.");

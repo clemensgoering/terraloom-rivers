@@ -78,7 +78,13 @@ Distanz zur endgültig beschnittenen Uferlinie. Natürliche Ufermaterialien blei
 TerrainBrush ist ein experimenteller Terrain-Modus: nur Wasser als Mesh, Bett und
 weich auslaufende Boeschungen im Terrain mit TerrainCollider. Bed/Bank-Materialien
 sind nicht erforderlich. Positive WaterInset, BankWidth und CarveTerrainCopy sind
-Pflicht. Das Terrain behaelt seine vorhandenen Layer; Materialmalerei folgt separat.
+Pflicht. `Sediment Terrain Layer` waehlt optional einen vorhandenen TerrainLayer;
+`Keep source textures` (-1) deaktiviert die Bemalung. Die Maske folgt dem realen
+Abtrag und dem weichen Pinselprofil, nicht den rechteckigen Schutzbounds. Andere
+Layerverhaeltnisse bleiben erhalten. Nur die eigene Terrainkopie wird bemalt;
+Clear stellt das Original wieder her. Die experimentelle Beispielszene erzeugt
+einen eigenen prozeduralen Sedimentlayer. Dessen sichtbare Wirkung ist derzeit
+dezent; eine abschliessende natuerliche Uferoptik ist noch nicht abgenommen.
 Profil-v4 enthaelt Modus und Rasterguard; alte Plaene neu generieren. Schutzflaechen
 werden konservativ gegen angrenzende Rasterzellen geprueft; Fehler behalten die alte
 Welt. Gemeinsame Brueckenfenster noch offen. Details: Core/Docs/TERRAIN-RIVER-BRUSH.md.
