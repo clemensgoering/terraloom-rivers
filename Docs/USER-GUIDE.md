@@ -99,6 +99,23 @@ Relief) und eigene Fels-/Wiesentexturen. Die Ausgangsbemalung mischt Fels ueber
 SampleBuilder, kein neuer Biomezwang oder allgemeines Runtime-Habitatprofil.
 Der bekannte Flusskorridor innerhalb22m von x=48 bleibt hoehenmaessig unveraendert.
 Vegetationsgradienten und gemeinsame Brush-Bruecken sind damit noch nicht geprueft.
+
+Die Brush-Beispielszene ergaenzt nun drei Core-RegionDecoration-Kinder fuer Baeume,
+Steine und Gras, mit eigenen Profilassets im Generated-Ordner. Alle nutzen eine
+gemeinsame Landschaftsregion ohne Biome. Baeume bleiben unter7.5m/26Grad, Steine
+liegen ab7m bis65Grad, Gras unter8.5m/32Grad. Steine nutzen die neue optionale
+Terrainnormalen-Ausrichtung und-0.30m Einbettung. Count600/600/900 sind Kandidaten-
+budgets, inklusive verworfener/assetloser Kategorien, keine zugesicherten Mengen.
+Seed42 erzeugt21Baeume,39Steine,242Grasinstanzen. Der Inspector zeigt Profil,
+Assetnamen, Habitatfilter, Platzierungsmodus und aktuelle Mengen.
+
+Dekoration wird nach dem finalen Terrain/Fluss erzeugt. Aussparungen stammen aus
+den Flussreservierungen plus2m Sicherheitsrand. Nach manueller Flussaenderung
+muessen diese Aussparungen und die drei Dekoratoren neu erzeugt werden; die Szene
+ist kein automatischer Rebuild-Controller. Dasselbe gilt fuer Runtime-Verbraucher.
+Die Regeln sind im SampleBuilder/Profile sichtbar; Runtime nutzt die bestehenden
+Core-APIs. Natuerliche Kontaktflaechen, praezise Kronenkollision und gemeinsame
+Brush-Bruecken sind damit noch nicht abgenommen.
 Profil-v4 enthaelt Modus und Rasterguard; alte Plaene neu generieren. Schutzflaechen
 werden konservativ gegen angrenzende Rasterzellen geprueft; Fehler behalten die alte
 Welt. Gemeinsame Brueckenfenster noch offen. Details: Core/Docs/TERRAIN-RIVER-BRUSH.md.

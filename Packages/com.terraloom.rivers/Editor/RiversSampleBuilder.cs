@@ -118,6 +118,7 @@ namespace TerraLoom.Rivers.Editor
             var world = new GameObject("Rivers Sample World").AddComponent<TerraLoomWorld>();
             world.WorldId = "rivers-sample"; world.Seed = 42; world.Terrain = terrain;
             world.AutoGenerateOnStart = false; world.UseSeedAnchors = false;
+            if(inset)world.Areas=new[]{new LandscapeArea{Id="river-landscape",Center=new Vector2(48,48),Size=new Vector2(96,96),Tags=new[]{"sample","landscape"}}};
             world.ManualAnchors = new[] { Anchor("source", 48, 8, terrain), Anchor("mouth", 48, 88, terrain) };
             var rivers = world.gameObject.AddComponent<TerraLoomRivers>();
             rivers.World = world; rivers.GenerateOnStart = false; rivers.AutomaticSourceAndMouth = false;
@@ -133,6 +134,7 @@ namespace TerraLoom.Rivers.Editor
             rivers.WaterMaterial = Save(MakeMaterial("Original river water", waterShader, new Color(.07f, .35f, .43f)), SampleDirectory + "/Water.mat", true);
             if (!rivers.Generate()) throw new InvalidOperationException("Rivers sample generation failed: " + rivers.Diagnostics);
             Bake(rivers, SampleDirectory + "/Baked", true);
+            if(inset)AddHabitatDecoration(world,rivers);
             var sun = new GameObject("Sun").AddComponent<Light>(); sun.type = LightType.Directional; sun.intensity = 2;
             sun.transform.rotation = Quaternion.Euler(48, -35, 0); sun.shadows = LightShadows.Soft;
             RenderSettings.sun = sun; RenderSettings.ambientLight = new Color(.6f, .66f, .72f);
@@ -141,12 +143,44 @@ namespace TerraLoom.Rivers.Editor
             camera.fieldOfView = 48; camera.farClipPlane = 500; camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = new Color(.48f, .65f, .78f);
             SaveText(SampleDirectory + "/RiversPlan.json", rivers.PlanJson);
-            SaveText(SampleDirectory + "/Provenance.json", "{\n  \"owner\": \"TerraLoom.Rivers.SampleBuilder/v1\",\n  \"recipe\": \"129x129; size 96x16x96; height metres = 6 - 0.03*z; brush sample adds side hills outside abs(x-48)>22m; source meadow/rock weights use slope12-27deg and height8-12m; source (48,8); mouth (48,88); protected detour (48,48) size 8x12; seed 42; WaterInset and SedimentTerrainLayer see saved component\",\n  \"assets\": \"Original generated terrain, procedural meadow/sediment/rock textures and layers (brush sample), URP materials, baked terrain copy and river meshes. No external art. Water uses TerraLoom/RiverWater when available, otherwise URP/Lit.\"\n}\n");
+            SaveText(SampleDirectory + "/Provenance.json", "{\n  \"owner\": \"TerraLoom.Rivers.SampleBuilder/v1\",\n  \"recipe\": \"129x129; size 96x16x96; height metres = 6 - 0.03*z; brush sample adds side hills outside abs(x-48)>22m; source meadow/rock weights use slope12-27deg and height8-12m; source (48,8); mouth (48,88); protected detour (48,48) size 8x12; seed 42; WaterInset and SedimentTerrainLayer see saved component\",\n  \"assets\": \"Original generated terrain, procedural meadow/sediment/rock textures and layers (brush sample), URP materials, baked terrain copy and river meshes. Brush habitat profiles and candidate budgets see saved child decorators; decoration follows final river carving and reservation exclusions. Original Core seasonal meshes/prefabs. No external art. Water uses TerraLoom/RiverWater when available, otherwise URP/Lit.\"\n}\n");
             MarkDirty(rivers); EditorUtility.SetDirty(data); AssetDatabase.SaveAssets();
             if (File.Exists(SampleScene)) RequireOwned(SampleScene);
             if (!EditorSceneManager.SaveScene(scene, SampleScene)) throw new IOException("Cannot save Rivers sample scene.");
             Stamp(SampleScene);
             Debug.Log("Rivers sample ready: " + SampleScene + "\n" + rivers.Diagnostics + "\nNo rendering performed; parent may render the saved scene.");
+        }
+
+        /// <summary>Sample composition: generate decoration AFTER the final river terrain.
+        /// Separate adapters expose category-specific habitat rules using existing Core APIs.</summary>
+        private static void AddHabitatDecoration(TerraLoomWorld world,TerraLoomRivers rivers)
+        {
+            SeasonalAssetBuilder.Build();
+            var exclusions=rivers.LastPlan.Routes.SelectMany(r=>r.Offers).SelectMany(o=>o.Reservations)
+                .Select(a=>new Rect((float)a.Bounds.MinX-2,(float)a.Bounds.MinZ-2,
+                    (float)(a.Bounds.MaxX-a.Bounds.MinX)+4,(float)(a.Bounds.MaxZ-a.Bounds.MinZ)+4)).ToArray();
+            string[] kinds={"Trees","Rocks","Grass"};
+            string[] assets={"SummerPine","GraniteBoulder","MeadowGrass"};
+            for(int category=0;category<3;category++)
+            {
+                var prefab=AssetDatabase.LoadAssetAtPath<GameObject>(SeasonalAssetBuilder.Root+"/"+assets[category]+".prefab");
+                if(!prefab)throw new InvalidOperationException("Missing original habitat prefab "+assets[category]);
+                var profile=ScriptableObject.CreateInstance<RegionalStyleProfile>();
+                profile.name=kinds[category]+" habitat";profile.RegionId="river-landscape";profile.UseHabitat=true;
+                profile.ElevationRange=category==1?new Vector2(7,16):new Vector2(0,category==0?7.5f:8.5f);
+                profile.SlopeRange=new Vector2(0,category==1?65:category==0?26:32);
+                profile.Density=category==1?1:.9f;profile.ClusterScale=12;profile.ClusterStrength=category==1?.2f:.45f;
+                profile.MinScale=category==0?.65f:.8f;profile.MaxScale=category==0?.9f:1.3f;
+                profile.AlignToTerrainNormal=category==1;profile.GroundOffset=category==1?-.3f:-.05f;
+                if(category==0)profile.Trees=new[]{prefab};
+                else if(category==1)profile.Rocks=new[]{prefab};else profile.Grass=new[]{prefab};
+                profile.Validate();profile=Save(profile,SampleDirectory+"/"+kinds[category]+"Habitat.asset",true);
+                var go=new GameObject(kinds[category]+" - habitat after Rivers");go.transform.SetParent(world.transform,false);
+                var decorator=go.AddComponent<RegionDecoration>();decorator.World=world;decorator.Profiles=new[]{profile};
+                decorator.SeedOffset=103+category*271;decorator.Count=category==2?900:600;
+                decorator.MaximumSlope=65;decorator.Exclusions=exclusions;decorator.Generate();
+                Debug.Log("RIVER_HABITAT "+kinds[category]+" placed="+decorator.PlacedCount+" rejected="+decorator.RejectedCount);
+            }
         }
 
         public static void Bake(TerraLoomRivers rivers, string directory) => Bake(rivers, directory, false);
