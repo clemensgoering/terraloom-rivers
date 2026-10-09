@@ -12,7 +12,7 @@ namespace TerraLoom.Rivers
     /// a read-only point sampler cannot prove the absence of arbitrarily narrow unsampled terrain features.</summary>
     public static class RiverPlanner
     {
-        public const string AlgorithmVersion = "rivers-sampled-radius-v4";
+        public const string AlgorithmVersion = "rivers-inset-shoreline-v5";
         private const int MaximumCurvePoints = 16384;
 
         /// <summary>Selects one main river from manual or seeded Core anchors. Highest bed to lowest bed;
@@ -282,7 +282,7 @@ namespace TerraLoom.Rivers
             double radius = p.Width / 2 + p.BankWidth;
             for (int i = 0; i < count; i++)
             {
-                work.Check(); var point = terrain[i]; double level = point.Y + p.SurfaceOffset;
+                work.Check(); var point = terrain[i]; double level = point.Y + p.SurfaceOffset - p.WaterInset;
                 bed[i] = new WorldPoint(point.X, level - p.Depth, point.Z); water[i] = new WorldPoint(point.X, level, point.Z);
                 var a = terrain[Math.Max(0, i - 1)]; var b = terrain[Math.Min(count - 1, i + 1)];
                 double distance = Distance(a, b), dx = (b.X - a.X) / distance, dz = (b.Z - a.Z) / distance;
@@ -312,14 +312,27 @@ namespace TerraLoom.Rivers
             {
                 work.Check(); int first = span.First, last = span.Last;
                 string id = "river:" + RiverHash.Digest(w => { w.Write(domain); w.Write(request.Id); w.Write(first); });
-                var footprint = Envelope(water[first], water[last], p.Width / 2);
+                // Protect sampled wet shoulders, rather than classifying the whole dry upper bank as water.
+                double wetRadius = p.Width / 2;
+                if (p.WaterInset > 0)
+                    for (int i = first; i <= last; i++)
+                    {
+                        work.Check();
+                        foreach (var side in new[] { left[i], right[i] })
+                        {
+                            double t = (water[i].Y-bed[i].Y)/(side.Y-bed[i].Y);
+                            double ratio = (p.Width/2)/radius;
+                            wetRadius = Math.Max(wetRadius,Distance(water[i],side)*(ratio+(1-ratio)*t));
+                        }
+                    }
+                var footprint = Envelope(water[first], water[last], wetRadius);
                 var banks = Envelope(water[first], water[last], radius);
                 double dropPerMetre = (water[first].Y - water[last].Y) / Distance(water[first], water[last]);
                 double projection = (Math.Abs(water[last].X - water[first].X) + Math.Abs(water[last].Z - water[first].Z))
                     / Distance(water[first], water[last]);
                 // Conservative heights also include the extrapolated longitudinal end caps of the rectangular bed.
-                double waterHeight = water[first].Y + dropPerMetre * p.Width / 2 * projection;
-                double bedHeight = bed[last].Y - dropPerMetre * p.Width / 2 * projection;
+                double waterHeight = water[first].Y + dropPerMetre * wetRadius * projection;
+                double bedHeight = bed[last].Y - dropPerMetre * wetRadius * projection;
                 if (!RiverHash.Finite(waterHeight) || !RiverHash.Finite(bedHeight))
                     throw new Stop(RiverOutcome.NoRoute, "Exported height envelope exceeds numeric range.");
                 double bankHeight = Math.Max(waterHeight, bank[first]);
@@ -481,7 +494,7 @@ namespace TerraLoom.Rivers
                 // terrain must not pierce the piecewise water surface unless the caller explicitly allows
                 // excavation, capped at Depth above water. Sampling and centreline downhill rules are unchanged.
                 // Bank terrain raises the bank envelope only; this planner never writes terrain.
-                double maximumCut = Profile.AllowExcavation ? Profile.Depth : 0;
+                double maximumCut = Profile.AllowExcavation ? Profile.Depth + Profile.WaterInset : 0;
                 var bedBounds = Envelope(rawA, rawB, Profile.Width / 2);
                 int sx = Steps(maxX - minX), sz = Steps(maxZ - minZ);
                 // Preflight prevents allocating/entering a giant product with a small remaining batch budget.
@@ -496,7 +509,7 @@ namespace TerraLoom.Rivers
                     double t = ((x - rawA.X) * (rawB.X - rawA.X) + (z - rawA.Z) * (rawB.Z - rawA.Z)) / (length * length);
                     double sample = t * along;
                     int low = Math.Max(0, Math.Min(along - 1, (int)sample)); double fraction = sample - low;
-                    double level = points[low].Y + (points[low + 1].Y - points[low].Y) * fraction + Profile.SurfaceOffset;
+                    double level = points[low].Y + (points[low + 1].Y - points[low].Y) * fraction + Profile.SurfaceOffset - Profile.WaterInset;
                     if (ground.Y > level && ground.Y - level > maximumCut)
                     { Reject(Profile.AllowExcavation ? "maximum excavation cut exceeded" : "terrain pierces water footprint"); return null; }
                 }
@@ -510,7 +523,7 @@ namespace TerraLoom.Rivers
                     double t = ((x - rawA.X) * (rawB.X - rawA.X) + (z - rawA.Z) * (rawB.Z - rawA.Z)) / (length * length);
                     double sample = t * along;
                     int low = Math.Max(0, Math.Min(along - 1, (int)sample));
-                    double level = points[low].Y + (points[low + 1].Y - points[low].Y) * (sample - low) + Profile.SurfaceOffset;
+                    double level = points[low].Y + (points[low + 1].Y - points[low].Y) * (sample - low) + Profile.SurfaceOffset - Profile.WaterInset;
                     if (ground.Y > level && ground.Y - level > maximumCut)
                     { Reject(Profile.AllowExcavation ? "maximum excavation cut exceeded" : "terrain pierces water footprint"); return null; }
                 }

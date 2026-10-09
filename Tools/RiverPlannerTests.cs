@@ -240,6 +240,23 @@ internal static class RiverPlannerTests
             var impossible=Plan(input,new RiverProfile(minimumBendRadius:1000));
             Require(!impossible.Complete && impossible.Routes.Count==0 && Detail(impossible).Contains("sampled bend radius"),Detail(impossible));
         });
+        Check("inset water intersects the banks and exports conservative wet protection", () =>
+        {
+            var p=new RiverProfile(allowExcavation:true,waterInset:.3);
+            var plan=Plan(Input(),p); Require(plan.Complete,Detail(plan)); var route=plan.Routes.Single();
+            Near(route.WaterPolyline[0].Y,p.SurfaceOffset-.3);
+            Require(route.LeftBankPolyline[0].Y>route.WaterPolyline[0].Y,"No dry upper bank.");
+            for(int i=0;i<route.WaterPolyline.Count;i++)
+            {
+                var shore=RiverChannelSurface.WaterPoint(route,i,true,p.Width,p.BankWidth);
+                Near(shore.Y,route.WaterPolyline[i].Y);
+                Require(route.Offers.Any(o=>o.Corridor.Bed.Contains(shore)),"Wet bank outside protected water.");
+                Require(shore.Z>p.Width/2 && shore.Z<p.Width/2+p.BankWidth,"Water failed to intersect bank.");
+            }
+            Throws<ArgumentException>(()=>new RiverProfile(waterInset:.3));
+            Throws<ArgumentException>(()=>new RiverProfile(allowExcavation:true,waterInset:1));
+            Throws<ArgumentException>(()=>new RiverProfile(allowExcavation:true,waterInset:double.NaN));
+        });
         Console.WriteLine("RiverPlanner: " + passed + " passed, " + failed + " failed.");
         return failed == 0 ? 0 : 1;
     }

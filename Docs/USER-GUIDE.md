@@ -2,23 +2,27 @@
 
 Water, Bed und Banks sind gerenderte Meshes, Bed/Banks auch Collider. Sie
 verschwinden nach Carving nicht. CarveTerrainCopy senkt eine eigene Terrainkopie
-unter die geplanten Faces; Clear stellt die Quelle wieder her. Wasser liegt
-derzeit auf erfasster Mittenterrainhoehe+2cm; Depth senkt nur das Bett. Eine
-sichtbare Uferkante oberhalb des Wassers erfordert zusaetzliche Querschnitts-
-planung. Die einfache geneigte Demo zeigt noch keine landschaftliche Qualitaet.
+unter die geplanten Faces; Clear stellt die Quelle wieder her. Wasser liegt bei WaterInset=0 auf erfasster Mittenterrainhoehe+2cm; Depth senkt nur
+das Bett. WaterInset>0 senkt Wasser zusaetzlich ab und erweitert die Wasserflaeche
+bis zu den abgetasteten Boeschungsschnitten. Das ist experimentell: vor Publish
+pruefen Vertices und Dreieckszentren das wirklich geschnittene Unity-Terrain.
+Eindringen verwirft den Aufbau und erhaelt Meshes, Terrain und Plan des vorherigen
+Flusses. Die gekruemmte Demo scheitert bei 0.3m derzeit bewusst an dieser Pruefung.
+Standard und gemeinsame Demos bleiben bei0. Details: Core/Docs/INSET-WATER.md.
+Die einfache geneigte Demo zeigt weiterhin keine landschaftliche Produktqualitaet.
 
-Rivers-v4 erzwingt einen abgetasteten Mindestradius auf finalen Terrain-Samples
+Rivers-v5 erzwingt einen abgetasteten Mindestradius auf finalen Terrain-Samples
 inkl. innerer Endzonen. MinimumBendRadius0=max(0.25m,Breite/2+BankWidth), positiv
 = Meter. Messarm=max(1m,Breite/2+BankWidth), nahe Enden symmetrisch gekuerzt.
 Fuenf bestehende Filletvorschlaege muessen Radius, Terrain, Downhill und Ufer-
 pruefung bestehen. Kein neuer Suchretry und keine kontinuierliche Garantie.
-Profil-v2/neue Algorithmusversion: alte Plaene aus dem Rezept neu generieren.
+Profil-v3/neue Algorithmusversion: alte Plaene aus dem Rezept neu generieren.
 
 Lokale Uferplanung (`rivers-local-banks-v3`): sichtbare Bankpunkte folgen dem
 erfassten Terrain, waehrend Querungen eine separate konservative Hoehenhuelle
 verwenden. Wasser/Bett fallen stromabwaerts; lokale Ufer duerfen steigen.
 Mesh und Terraincarver teilen exakt geplante Querschnitte und Dreiecksdiagonalen.
-Carving senkt nur abgedeckte Rasterpunkte, maximal 2*Depth+2cm, ohne neue Endkappen
+Carving senkt nur abgedeckte Rasterpunkte, maximal 2*Depth+WaterInset+2cm, ohne neue Endkappen
 oder Aufschuettung. JSON Format2 speichert die lokalen Ufer fuer die Scene-Vorschau;
 alte Rezepte explizit neu generieren. Braune Footprint-Linien zeigen die echten
 Bankseams. Details und offene Raster-/Dichtungsgrenzen: Core/Docs/BANK-EARTHWORK.md.

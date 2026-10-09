@@ -142,6 +142,79 @@ namespace TerraLoom.Tests
             for(int i=1;i<route.WaterPolyline.Count;i++) Assert.That(route.WaterPolyline[i].Y,Is.LessThanOrEqualTo(route.WaterPolyline[i-1].Y+1e-8));
             AssertMeshesMatchPlan();
         }
+        [Test] public void InsetWaterHasDryBanksAndClearanceAgainstActualCarvedTerrain()
+        {
+            var before=original.GetHeights(0,0,65,65); rivers.WaterInset=.3f;
+            Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics);
+            var route=rivers.LastPlan.Routes.Single();
+            Assert.That(route.LeftBankPolyline[0].Y-route.WaterPolyline[0].Y,Is.GreaterThan(.25));
+            var waterFilter=rivers.GeneratedRoot.GetComponentsInChildren<RiverGeneratedGeometry>()
+                .Single(g=>g.Role==RiverGeometryRole.Water).GetComponent<MeshFilter>();
+            var mesh=waterFilter.sharedMesh; var vertices=mesh.vertices;
+            foreach(var v in vertices)
+            {
+                var p=waterFilter.transform.TransformPoint(v);
+                float terrainHeight=rivers.World.Terrain.SampleHeight(p)+rivers.World.Terrain.transform.position.y;
+                Assert.That(terrainHeight,Is.LessThanOrEqualTo(p.y+.00001f),"Terrain pierces a water vertex at "+p);
+            }
+            var indices=mesh.triangles;
+            for(int i=0;i<indices.Length;i+=3)
+            {
+                var p=waterFilter.transform.TransformPoint((vertices[indices[i]]+vertices[indices[i+1]]+vertices[indices[i+2]])/3);
+                float terrainHeight=rivers.World.Terrain.SampleHeight(p)+rivers.World.Terrain.transform.position.y;
+                Assert.That(terrainHeight,Is.LessThan(p.y),"No actual wet depth at triangle centre "+p);
+            }
+            Assert.That(original.GetHeights(0,0,65,65),Is.EqualTo(before));
+            rivers.Clear(); Assert.That(rivers.World.Terrain.terrainData,Is.SameAs(original));
+        }
+
+        [Test] public void ActualTerrainInspectionReportsPenetrationAndCancellation()
+        {
+            rivers.WaterInset=.3f;
+            Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics);
+            var terrain=rivers.World.Terrain;
+            var good=RiverWaterTerrainInspection.Inspect(rivers.GeneratedRoot,terrain.terrainData,terrain.transform.position);
+            Assert.That(good.Acceptable,Is.True,good.ToString());
+            Assert.That(good.Vertices,Is.GreaterThan(0));Assert.That(good.Centres,Is.GreaterThan(0));
+            // Source terrain has not been excavated; testing the planned bed would miss this failure.
+            var bad=RiverWaterTerrainInspection.Inspect(rivers.GeneratedRoot,original,terrain.transform.position);
+            Assert.That(bad.Acceptable,Is.False);
+            Assert.That(bad.MinimumVertexClearance,Is.LessThan(-.2));
+            Assert.Throws<OperationCanceledException>(()=>RiverWaterTerrainInspection.Inspect(
+                rivers.GeneratedRoot,terrain.terrainData,terrain.transform.position,new CancellationToken(true)));
+        }
+
+        [Test] public void CurvedSampleInsetFailureRetainsPublishedRiverAndTerrain()
+        {
+            rivers.Clear();original.heightmapResolution=129;original.size=new Vector3(96,16,96);
+            var heights=new float[129,129];
+            for(int z=0;z<129;z++)for(int x=0;x<129;x++)heights[z,x]=(6f-.03f*(96f*z/128f))/16f;
+            original.SetHeights(0,0,heights);
+            rivers.World.ManualAnchors=new[]{
+                new ManualWorldAnchor{Id="source",Position=new Vector3(48,0,8)},
+                new ManualWorldAnchor{Id="mouth",Position=new Vector3(48,0,88)}};
+            rivers.CellSize=2;
+            rivers.ProtectedAreas.Add(new RiverProtectionSettings{Id="sample-detour",Center=new Vector2(48,48),Size=new Vector2(8,12)});
+            Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics);
+            var root=rivers.GeneratedRoot;var data=rivers.CarvedTerrainData;string json=rivers.PlanJson;
+            rivers.WaterInset=.3f;
+            Assert.That(rivers.Generate(),Is.False,"Known curved heightfield penetration must not publish.");
+            Assert.That(rivers.Diagnostics,Does.Contain("actual carved terrain"));
+            Assert.That(rivers.GeneratedRoot,Is.SameAs(root));Assert.That(rivers.CarvedTerrainData,Is.SameAs(data));
+            Assert.That(rivers.World.Terrain.terrainData,Is.SameAs(data));Assert.That(rivers.PlanJson,Is.EqualTo(json));
+            Assert.That(terrainObject.GetComponent<TerrainCollider>().terrainData,Is.SameAs(data));
+        }
+
+        [Test] public void InvalidInsetRetainsPublishedTerrainAndMeshes()
+        {
+            Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics);
+            var root=rivers.GeneratedRoot;var data=rivers.CarvedTerrainData;string json=rivers.PlanJson;
+            rivers.WaterInset=rivers.Depth+1;
+            Assert.That(rivers.Generate(),Is.False);
+            Assert.That(rivers.GeneratedRoot,Is.SameAs(root)); Assert.That(rivers.CarvedTerrainData,Is.SameAs(data));
+            Assert.That(rivers.PlanJson,Is.EqualTo(json));
+        }
+
         [Test] public void CurvedMeshesUseExactPlannedBanksAndTheirInterpolatedInnerRows()
         {
             rivers.Width=1; rivers.BankWidth=.25f; rivers.CarveTerrainCopy=false;

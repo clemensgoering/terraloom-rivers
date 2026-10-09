@@ -7,6 +7,20 @@ namespace TerraLoom.Rivers
     /// Columns: right bank, right bed edge, left bed edge, left bank. No terrain resampling.</summary>
     public static class RiverChannelSurface
     {
+        /// <summary>Water intersection with the planned bank cross-section at this station.
+        /// The longitudinal surface remains sampled; this is not an exact clip of every bank triangle.</summary>
+        public static WorldPoint WaterPoint(RiverRoute route, int row, bool left, double width, double bankWidth)
+        {
+            var inner = Point(route,row,left ? 2 : 1,width,bankWidth);
+            var outer = Point(route,row,left ? 3 : 0,width,bankWidth);
+            double level = route.WaterPolyline[row].Y;
+            double rise = outer.Y-inner.Y;
+            if (rise <= 0 || level < inner.Y || level > outer.Y)
+                throw new ArgumentException("Water must intersect the planned bank section.");
+            double t = (level-inner.Y)/rise;
+            return new WorldPoint(inner.X+(outer.X-inner.X)*t,level,inner.Z+(outer.Z-inner.Z)*t);
+        }
+
         public static WorldPoint Point(RiverRoute route, int row, int column, double width, double bankWidth)
         {
             if (route == null) throw new ArgumentNullException(nameof(route));

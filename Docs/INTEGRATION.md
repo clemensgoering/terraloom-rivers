@@ -90,3 +90,18 @@ Die eigenstaendigen Module verwenden veroeffentlichte Git-Pins. Falls Unity kein
 GitHub-Lesezugriff hat, aktiviert `Tools/UseLocalCore.ps1` voruebergehend den lokalen Core;
 `-Restore` stellt Manifest/Lockfile wieder her. Das Integration-Projekt braucht diesen
 Schritt nicht. Fuer Produkt-Audits die veroeffentlichten Pins wiederherstellen.
+
+
+## Experimental water inset (2026-10-09)
+
+Shared dynamic and landscape recipes explicitly use WaterInset=0. The expanded wet
+bank protection of positive inset can invalidate existing crossing windows with
+OutsideCandidate; do not reduce the protected wet footprint to force acceptance.
+Standalone inset publication additionally checks actual staged terrain vertices and
+triangle centres and retains the previous river on penetration. This is not yet a
+supported all-seed combined inset workflow. See Core/Docs/INSET-WATER.md.
+
+RuntimePlayerValidation.BuildRiverEvidenceBatch builds the standalone renderer.
+-terraloomSmoke -terraloomWaterInset <metres> selects the transient comparison;
+-terraloomScreenshot <absolute PNG path> writes overview, section and player images.
+TERRALOOM_RIVER_EVIDENCE_SUCCESS means the runner completed, not visual acceptance.

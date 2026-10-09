@@ -32,6 +32,8 @@ namespace TerraLoom.Rivers.Unity
         [Min(.1f)] public float Width = 4, Depth = .6f, BankWidth = 2, CellSize = 2;
         [Tooltip("Minimum sampled XZ centreline radius in metres. Zero selects max(0.25 m, half width + bank width). External endpoint directions and continuous curvature are not certified.")]
         [Min(0)] public float MinimumBendRadius;
+        [Tooltip("Experimental: water metres below captured centre terrain, before the 2 cm offset. Requires carving; at most Depth. Actual staged terrain probes can reject curved shorelines. Zero preserves overlay geometry.")]
+        [Min(0)] public float WaterInset;
         [Min(0)] public float MaximumSlope = .3f, BridgeClearance = 1;
         [Min(.05f)] public float SampleSpacing = .5f;
         public int MaximumNodes = 65536, TotalSearchBudget = 250000, TotalSampleBudget = 4000000;
@@ -56,7 +58,7 @@ namespace TerraLoom.Rivers.Unity
         public RiverProfile CaptureProfile() => new RiverProfile(Width, Depth, BankWidth, CellSize, MaximumSlope,
             SampleSpacing, MaximumNodes, TotalSearchBudget, TotalSampleBudget, bridgeClearance: BridgeClearance,
             regionCosts: RegionCosts.Select(r => new RiverRegionCost(r.RegionId, r.CostPerMetre)), allowExcavation: CarveTerrainCopy,
-            minimumBendRadius: MinimumBendRadius);
+            minimumBendRadius: MinimumBendRadius, waterInset: WaterInset);
 
         public PlanSnapshot CaptureInput(out WorldBounds bounds, out IReadOnlyList<RiverRequest> requests)
         {
@@ -113,7 +115,7 @@ namespace TerraLoom.Rivers.Unity
                 foreach (RiverGeometryRole role in Enum.GetValues(typeof(RiverGeometryRole)))
                 {
                     var mesh = RiverGeometry.Build(route, Width, BankWidth, role,
-                        MaximumGeometryVertices - vertices, cancellation); vertices += mesh.vertexCount;
+                        MaximumGeometryVertices - vertices, cancellation, profile.WaterInset > 0); vertices += mesh.vertexCount;
                     var child = new GameObject(route.Request.Id + " " + role); child.transform.SetParent(staged.transform, false);
                     var marker = child.AddComponent<RiverGeneratedGeometry>();
                     child.AddComponent<MeshFilter>().sharedMesh = mesh; marker.Initialize(role);
@@ -127,6 +129,12 @@ namespace TerraLoom.Rivers.Unity
                 Terrain target = World.Terrain; TerrainData basis = carvedData ? originalData : target.terrainData;
                 if (carvedData && (target != carvedTerrain || target.terrainData != carvedData)) throw new InvalidOperationException("Selected terrain changed; clear before regeneration.");
                 if (CarveTerrainCopy) stagedData = RiverTerrainCarver.Build(basis, target.transform.position, plan, profile, cancellation);
+                if(profile.WaterInset>0)
+                {
+                    var inspection=RiverWaterTerrainInspection.Inspect(staged,stagedData,target.transform.position,cancellation);
+                    if(!inspection.Acceptable)throw new InvalidOperationException("Inset shoreline intersects the actual carved terrain. Previous river retained. " + inspection);
+                    diagnostics += "\n" + inspection;
+                }
                 cancellation.ThrowIfCancellationRequested();
                 string serialized = RiverPlanStore.Save(plan);
                 var oldRoot = generatedRoot; var oldData = carvedData; bool oldOwned = ownsTransientData;

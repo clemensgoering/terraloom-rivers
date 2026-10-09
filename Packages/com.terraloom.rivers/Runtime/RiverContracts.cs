@@ -42,6 +42,8 @@ namespace TerraLoom.Rivers
         public double BankTransitionCost { get; }
         public double BridgeClearance { get; }
         public double SurfaceOffset { get; }
+        /// <summary>Metres below captured centre terrain, in addition to SurfaceOffset. Requires excavation and cannot exceed Depth.</summary>
+        public double WaterInset { get; }
         public bool AllowExcavation { get; }
         public IReadOnlyList<RiverRegionCost> RegionCosts { get; }
         public string Fingerprint { get; }
@@ -50,12 +52,13 @@ namespace TerraLoom.Rivers
             double maximumSlope = .5, double sampleSpacing = .5, int maximumNodes = 100000,
             int totalSearchBudget = 250000, int totalSampleBudget = 2000000, double bankTransitionCost = 2,
             double bridgeClearance = 1, IEnumerable<RiverRegionCost> regionCosts = null, double surfaceOffset = .02,
-            bool allowExcavation = false, double minimumBendRadius = 0)
+            bool allowExcavation = false, double minimumBendRadius = 0, double waterInset = 0)
         {
             if (!RiverHash.Positive(width) || !RiverHash.Positive(depth) || !RiverHash.Nonnegative(bankWidth)
                 || !RiverHash.Positive(cellSize) || !RiverHash.Nonnegative(maximumSlope) || !RiverHash.Positive(sampleSpacing)
                 || !RiverHash.Nonnegative(bankTransitionCost) || !RiverHash.Nonnegative(bridgeClearance) || !RiverHash.Nonnegative(surfaceOffset)
                 || !RiverHash.Finite(width / 2 + bankWidth) || !RiverHash.Nonnegative(minimumBendRadius)
+                || !RiverHash.Nonnegative(waterInset) || waterInset > depth || waterInset > 0 && !allowExcavation
                 || maximumNodes < 4 || maximumNodes > 2000000
                 || totalSearchBudget < 1 || totalSearchBudget > 5000000 || totalSampleBudget < 1 || totalSampleBudget > 100000000)
                 throw new ArgumentException("Invalid river profile or bounded work limits.");
@@ -63,6 +66,7 @@ namespace TerraLoom.Rivers
             SampleSpacing = sampleSpacing; MaximumNodes = maximumNodes; TotalSearchBudget = totalSearchBudget;
             TotalSampleBudget = totalSampleBudget; BankTransitionCost = bankTransitionCost; BridgeClearance = bridgeClearance;
             SurfaceOffset = surfaceOffset;
+            WaterInset = waterInset;
             AllowExcavation = allowExcavation;
             MinimumBendRadius = minimumBendRadius == 0 ? Math.Max(.25, width / 2 + bankWidth) : minimumBendRadius;
             var costs = (regionCosts ?? Array.Empty<RiverRegionCost>()).ToArray();
@@ -71,7 +75,7 @@ namespace TerraLoom.Rivers
             RegionCosts = Array.AsReadOnly(costs.OrderBy(c => c.RegionId, StringComparer.Ordinal).ToArray());
             Fingerprint = RiverHash.Digest(w =>
             {
-                w.Write("rivers-profile-v2"); RiverHash.Number(w, MinimumBendRadius);
+                w.Write("rivers-profile-v3"); RiverHash.Number(w, MinimumBendRadius); RiverHash.Number(w, WaterInset);
                 foreach (double n in new[] { Width, Depth, BankWidth, CellSize, MaximumSlope, SampleSpacing, BankTransitionCost, BridgeClearance, SurfaceOffset }) RiverHash.Number(w, n);
                 w.Write(AllowExcavation);
                 w.Write(MaximumNodes); w.Write(TotalSearchBudget); w.Write(TotalSampleBudget); w.Write(RegionCosts.Count);

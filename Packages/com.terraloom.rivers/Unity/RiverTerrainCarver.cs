@@ -28,10 +28,10 @@ namespace TerraLoom.Rivers.Unity
                             target=Math.Min(target,surface-.02);
                     }
                     double normalized=(target-origin.y)/size.y;
-                    // Planner permits terrain at most Depth above water; the bed is Depth below.
+                    // Planner permits terrain at most Depth + WaterInset above water; bed is Depth below.
                     // Apply that same maximum to actual Unity grid samples, including banks after union.
-                    if (current-target > profile.Depth*2+.020001)
-                        throw new InvalidOperationException("River excavation exceeds twice Depth plus 2 cm mesh clearance. Previous terrain retained.");
+                    if (current-target > profile.Depth*2+profile.WaterInset+.020001)
+                        throw new InvalidOperationException("River excavation exceeds twice Depth plus Water Inset and 2 cm mesh clearance. Previous terrain retained.");
                     if (normalized < 0 || normalized > 1) throw new InvalidOperationException("River bed leaves Terrain height range. Raise the terrain or reduce river depth.");
                     values[z,x]=(float)normalized;
                 }

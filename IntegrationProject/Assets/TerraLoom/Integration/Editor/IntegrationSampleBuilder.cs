@@ -73,7 +73,7 @@ namespace TerraLoom.Integration.Editor
             world.GeneratedTerrainMaterial=AssetDatabase.LoadAssetAtPath<Material>(RiversSampleBuilder.SampleDirectory+"/Terrain.mat");
             if(!world.GeneratedTerrainMaterial)throw new InvalidOperationException("Build the original river sample terrain material first.");
             var riverHost=new GameObject("Rivers (optional module)");riverHost.transform.SetParent(host.transform,false);TerraLoomEditorIcons.Apply(riverHost,"Rivers");
-            var rivers=riverHost.AddComponent<TerraLoomRivers>();rivers.World=world;
+            var rivers=riverHost.AddComponent<TerraLoomRivers>();rivers.World=world;rivers.WaterInset=0;
             rivers.WaterMaterial=AssetDatabase.LoadAssetAtPath<Material>(Root+"/RegionalWater.mat");
             rivers.BankMaterial=AssetDatabase.LoadAssetAtPath<Material>(Root+"/RegionalBank.mat");
             rivers.BedMaterial=AssetDatabase.LoadAssetAtPath<Material>(RiversSampleBuilder.SampleDirectory+"/Bed.mat");
@@ -114,6 +114,9 @@ namespace TerraLoom.Integration.Editor
         {
             EditorSceneManager.OpenScene(Root+"/TerraLoomDynamic.unity");
             var recipe=UnityEngine.Object.FindFirstObjectByType<SeededWorldDemo>();recipe.LandscapeMode=true;
+            // Curved overlapping crossing windows do not yet cover widened wet bank shoulders.
+            // Keep the existing landscape recipe explicit; failed inset requests never fall back at runtime.
+            recipe.Composition.Rivers.WaterInset=0;
             Directory.CreateDirectory(Root+"/LandscapeProfiles");AssetDatabase.Refresh();
             recipe.Profiles=recipe.Profiles.Select(source=>{
                 var profile=UnityEngine.Object.Instantiate(source);profile.name=source.name+" habitat";

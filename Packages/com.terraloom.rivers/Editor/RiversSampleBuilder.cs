@@ -66,6 +66,9 @@ namespace TerraLoom.Rivers.Editor
             rivers.World = world; rivers.GenerateOnStart = false; rivers.AutomaticSourceAndMouth = false;
             rivers.Connections.Add(new RiverConnectionSettings { Id = "sample-river", SourceId = "source", MouthId = "mouth" });
             rivers.CarveTerrainCopy = true;
+            // Curved inset shorelines remain experimental until heightfield embedding is resolved.
+            rivers.WaterInset = 0;
+            rivers.ProtectedAreas.Add(new RiverProtectionSettings { Id = "sample-detour", Center = new Vector2(48,48), Size = new Vector2(8,12) });
             rivers.BedMaterial = Save(MakeMaterial("Original river bed", "Universal Render Pipeline/Lit", new Color(.25f, .18f, .1f)), SampleDirectory + "/Bed.mat", true);
             rivers.BankMaterial = Save(MakeMaterial("Original river bank", "Universal Render Pipeline/Lit", new Color(.43f, .34f, .19f)), SampleDirectory + "/Bank.mat", true);
             string waterShader = Shader.Find("TerraLoom/RiverWater") ? "TerraLoom/RiverWater" : "Universal Render Pipeline/Lit";

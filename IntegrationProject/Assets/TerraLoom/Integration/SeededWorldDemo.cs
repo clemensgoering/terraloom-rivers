@@ -50,6 +50,15 @@ namespace TerraLoom.Integration
         private IEnumerator PlayerSmoke()
         {
             var args=Environment.GetCommandLineArgs();int index=Array.IndexOf(args,"-terraloomScreenshot");
+            int insetIndex=Array.IndexOf(args,"-terraloomWaterInset");
+            if(insetIndex>=0)
+            {
+                if(insetIndex+1>=args.Length || !float.TryParse(args[insetIndex+1],System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture,out float inset) || float.IsNaN(inset) || float.IsInfinity(inset)
+                    || inset<0 || inset>Composition.Rivers.Depth)
+                {Debug.LogError("TERRALOOM_RUNTIME_SMOKE_FAILED invalid water inset");Application.Quit(1);yield break;}
+                Composition.Rivers.WaterInset=inset;
+            }
             foreach(int value in new[]{2042,2043,71})
             {
                 Seed=value;

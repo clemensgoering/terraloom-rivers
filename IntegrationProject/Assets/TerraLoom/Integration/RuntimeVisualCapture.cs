@@ -18,6 +18,22 @@ namespace TerraLoom.Integration
             try
             {
                 Save(camera,path);
+                InspectWaterTerrain(composition.Rivers);
+                var river=composition.Rivers.LastPlan.Routes[0];
+                int middle=river.WaterPolyline.Count/2;
+                var station=river.WaterPolyline[middle];
+                var before=river.WaterPolyline[Math.Max(0,middle-1)];
+                var after=river.WaterPolyline[Math.Min(river.WaterPolyline.Count-1,middle+1)];
+                var forwardRiver=new Vector3((float)(after.X-before.X),0,(float)(after.Z-before.Z)).normalized;
+                var sideRiver=new Vector3(-forwardRiver.z,0,forwardRiver.x);
+                var centreRiver=new Vector3((float)station.X,(float)station.Y,(float)station.Z);
+                string riverStem=Path.Combine(Path.GetDirectoryName(path),Path.GetFileNameWithoutExtension(path));
+                camera.transform.position=centreRiver+sideRiver*9+Vector3.up*3;
+                camera.transform.LookAt(centreRiver);
+                Save(camera,riverStem+"-river-section.png");
+                camera.transform.position=centreRiver+sideRiver*6-forwardRiver*4+Vector3.up*1.7f;
+                camera.transform.LookAt(centreRiver+forwardRiver*5);
+                Save(camera,riverStem+"-river-player.png");
                 foreach(var route in composition.Paths.LastPlan.Routes)for(int i=0;i<route.Surfaces.Count;i++)
                 {
                     if(route.Surfaces[i]!=TerraLoom.Paths.PathSurface.Bridge)continue;
@@ -35,6 +51,15 @@ namespace TerraLoom.Integration
             }
             finally{camera.transform.SetPositionAndRotation(position,rotation);}
         }
+        public static void InspectWaterTerrain(TerraLoom.Rivers.Unity.TerraLoomRivers rivers)
+        {
+            var terrain=rivers.World.Terrain;
+            var result=TerraLoom.Rivers.Unity.RiverWaterTerrainInspection.Inspect(
+                rivers.GeneratedRoot,terrain.terrainData,terrain.transform.position);
+            Debug.Log("TERRALOOM_WATER_TERRAIN_PROBE "+result);
+            if(!result.Acceptable)Debug.LogWarning("TERRALOOM_WATER_TERRAIN_NOT_ACCEPTED "+result);
+        }
+
         public static void Save(Camera camera,string path)
         {
             if(!camera)throw new InvalidOperationException("A runtime camera is required.");

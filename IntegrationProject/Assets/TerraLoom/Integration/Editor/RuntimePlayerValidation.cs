@@ -14,6 +14,13 @@ namespace TerraLoom.Integration.Editor
             => Build("TerraLoomDynamic", "Player");
         public static void BuildLandscapeBatch()
             => Build("TerraLoomLandscape", "PlayerLandscape");
+        public static void BuildRiverEvidenceBatch()
+        {
+            var scene=UnityEditor.SceneManagement.EditorSceneManager.OpenScene(TerraLoom.Rivers.Editor.RiversSampleBuilder.SampleScene);
+            new GameObject("Standalone river evidence").AddComponent<RiverSampleEvidence>();
+            UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene,IntegrationSampleBuilder.Root+"/RiverEvidence.unity");
+            Build("RiverEvidence","PlayerRiverEvidence");
+        }
         private static void Build(string scene,string output)
         {
             Directory.CreateDirectory(".artifacts/"+output);
