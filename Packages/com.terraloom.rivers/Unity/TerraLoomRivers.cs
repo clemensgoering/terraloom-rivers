@@ -131,6 +131,15 @@ namespace TerraLoom.Rivers.Unity
                 if (CarveTerrainCopy) stagedData = RiverTerrainCarver.Build(basis, target.transform.position, plan, profile, cancellation);
                 if(profile.WaterInset>0)
                 {
+                    foreach(var marker in staged.GetComponentsInChildren<RiverGeneratedGeometry>(true))
+                    {
+                        if(marker.Role!=RiverGeometryRole.Water)continue;
+                        var filter=marker.GetComponent<MeshFilter>();int oldCount=filter.sharedMesh.vertexCount;
+                        var clipped=RiverWaterTerrainClipper.Build(filter.sharedMesh,filter.transform.localToWorldMatrix,
+                            stagedData,target.transform.position,MaximumGeometryVertices-vertices+oldCount,cancellation);
+                        marker.DisposeOwnedMesh();filter.sharedMesh=clipped;marker.Initialize(RiverGeometryRole.Water);
+                        vertices+=clipped.vertexCount-oldCount;
+                    }
                     var inspection=RiverWaterTerrainInspection.Inspect(staged,stagedData,target.transform.position,cancellation);
                     if(!inspection.Acceptable)throw new InvalidOperationException("Inset shoreline intersects the actual carved terrain. Previous river retained. " + inspection);
                     diagnostics += "\n" + inspection;

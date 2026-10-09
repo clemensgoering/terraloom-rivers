@@ -6,8 +6,10 @@ unter die geplanten Faces; Clear stellt die Quelle wieder her. Wasser liegt bei 
 das Bett. WaterInset>0 senkt Wasser zusaetzlich ab und erweitert die Wasserflaeche
 bis zu den abgetasteten Boeschungsschnitten. Das ist experimentell: vor Publish
 pruefen Vertices und Dreieckszentren das wirklich geschnittene Unity-Terrain.
-Eindringen verwirft den Aufbau und erhaelt Meshes, Terrain und Plan des vorherigen
-Flusses. Die gekruemmte Demo scheitert bei 0.3m derzeit bewusst an dieser Pruefung.
+Die Wasserflaeche wird zuvor gegen das echte Terrain beschnitten, ohne den
+Wasserstand zu aendern oder zusaetzliche Erdarbeit auszufuehren. Unaufgeloeste
+Konflikte verwerfen den Aufbau und erhalten den vorherigen Fluss. Die gekruemmte
+Standalone-Demo funktioniert jetzt bei0.3m und0.6m; gemeinsame Querungen bleiben offen.
 Standard und gemeinsame Demos bleiben bei0. Details: Core/Docs/INSET-WATER.md.
 Die einfache geneigte Demo zeigt weiterhin keine landschaftliche Produktqualitaet.
 
@@ -58,3 +60,16 @@ Unity -batchmode -nographics -quit -projectPath <Rivers-Projekt> -executeMethod 
 ```
 
 Der Builder rendert keine Bilder; native Import-/EditTests und visuelle Abnahme erfolgen separat. Diese erste Version plant begrenzte, abgetastete Flusskorridore; sie garantiert keine globale Hydrologie oder beliebig komplexe Flussnetze. Rivers publiziert Korridor-/Reservierungs-/Querungsangebote Ã¼ber Core fÃ¼r Paths; dadurch entsteht noch keine fertige BrÃ¼cke. Paths und Rivers importieren einander nicht. Vorhandene Wasser-/Querungsangebote sind fÃ¼r Verbraucher schreibgeschÃ¼tzte Planinformationen.
+
+
+`Tools > TerraLoom > Rivers > Build Inset Sample Scene (Experimental)` baut die
+gekrümmte Standalone-Szene mit WaterInset=0.3m. Es verwendet denselben eigenen
+Generated-Ordner wie die Standarddemo, fragt nach ungespeicherten Szenen und ersetzt
+nur eigene markierte Sampleassets. Batch: RiversSampleBuilder.BuildInsetBatch.
+Es ist keine gemeinsame Brückendemo. Native Tests prüfen zusätzlich Seed42/43/71.
+
+Neue Wasser-Meshes speichern Halbbreite in UV-Kanal2 (Unity UV3), unabhängig von
+Across/Along in UV0. Clipping interpoliert beide Daten; dies verhindert falsche
+Schaumbänder an neu eingefügten Innenvertices. Der Shader hat einen Fallback für
+alte Zweispalten-Bakes. Schaum folgt derzeit dem geplanten Rand, nicht einer exakten
+Distanz zur endgültig beschnittenen Uferlinie. Natürliche Ufermaterialien bleiben offen.

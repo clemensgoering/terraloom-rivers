@@ -24,8 +24,19 @@ namespace TerraLoom.Rivers.Editor
             if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) BuildBatch();
         }
 
+        [MenuItem("Tools/TerraLoom/Rivers/Build Inset Sample Scene (Experimental)")]
+        public static void BuildInsetInteractive()
+        {
+            if(EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())BuildInsetBatch();
+        }
+
         /// <summary>Offline, GPU-free executeMethod entry. Replaces the open scene; use BuildInteractive in the editor.</summary>
-        public static void BuildBatch()
+        public static void BuildBatch() => Build(false);
+
+        /// <summary>Same owned sample assets with experimental inset water. Not a combined bridge fixture.</summary>
+        public static void BuildInsetBatch() => Build(true);
+
+        private static void Build(bool inset)
         {
             WaterStyleLibrary.Build();
             EnsureFolder(SampleDirectory);
@@ -66,8 +77,7 @@ namespace TerraLoom.Rivers.Editor
             rivers.World = world; rivers.GenerateOnStart = false; rivers.AutomaticSourceAndMouth = false;
             rivers.Connections.Add(new RiverConnectionSettings { Id = "sample-river", SourceId = "source", MouthId = "mouth" });
             rivers.CarveTerrainCopy = true;
-            // Curved inset shorelines remain experimental until heightfield embedding is resolved.
-            rivers.WaterInset = 0;
+            rivers.WaterInset = inset ? .3f : 0;
             rivers.ProtectedAreas.Add(new RiverProtectionSettings { Id = "sample-detour", Center = new Vector2(48,48), Size = new Vector2(8,12) });
             rivers.BedMaterial = Save(MakeMaterial("Original river bed", "Universal Render Pipeline/Lit", new Color(.25f, .18f, .1f)), SampleDirectory + "/Bed.mat", true);
             rivers.BankMaterial = Save(MakeMaterial("Original river bank", "Universal Render Pipeline/Lit", new Color(.43f, .34f, .19f)), SampleDirectory + "/Bank.mat", true);
@@ -83,7 +93,7 @@ namespace TerraLoom.Rivers.Editor
             camera.fieldOfView = 48; camera.farClipPlane = 500; camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = new Color(.48f, .65f, .78f);
             SaveText(SampleDirectory + "/RiversPlan.json", rivers.PlanJson);
-            SaveText(SampleDirectory + "/Provenance.json", "{\n  \"owner\": \"TerraLoom.Rivers.SampleBuilder/v1\",\n  \"recipe\": \"129x129; size 96x16x96; height metres = 6 - 0.03*z; flat x; source (48,8); mouth (48,88); seed 42\",\n  \"assets\": \"Original generated terrain, meadow texture/layer, URP materials, baked terrain copy and river meshes. No external art. Water uses TerraLoom/RiverWater when available, otherwise URP/Lit.\"\n}\n");
+            SaveText(SampleDirectory + "/Provenance.json", "{\n  \"owner\": \"TerraLoom.Rivers.SampleBuilder/v1\",\n  \"recipe\": \"129x129; size 96x16x96; height metres = 6 - 0.03*z; flat x; source (48,8); mouth (48,88); protected detour (48,48) size 8x12; seed 42; WaterInset see saved component\",\n  \"assets\": \"Original generated terrain, meadow texture/layer, URP materials, baked terrain copy and river meshes. No external art. Water uses TerraLoom/RiverWater when available, otherwise URP/Lit.\"\n}\n");
             MarkDirty(rivers); EditorUtility.SetDirty(data); AssetDatabase.SaveAssets();
             if (File.Exists(SampleScene)) RequireOwned(SampleScene);
             if (!EditorSceneManager.SaveScene(scene, SampleScene)) throw new IOException("Cannot save Rivers sample scene.");

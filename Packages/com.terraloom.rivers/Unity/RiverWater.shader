@@ -40,6 +40,7 @@ Shader "TerraLoom/RiverWater"
             float4 positionOS : POSITION;
             float3 normalOS : NORMAL;
             float2 uv : TEXCOORD0;
+            float2 shoreline : TEXCOORD2;
             UNITY_VERTEX_INPUT_INSTANCE_ID
         };
         struct Varyings
@@ -64,9 +65,9 @@ Shader "TerraLoom/RiverWater"
             output.positionCS = position.positionCS;
             output.normalWS = TransformObjectToWorldNormal(input.normalOS);
             output.uv = input.uv;
-            // RiverGeometry uses signed across metres and along metres. Both edge vertices have the
-            // same abs(across), so interpolation preserves the actual half width without another API input.
-            output.halfWidth = abs(input.uv.x);
+            // Width is independent of across UV after subdivision/clipping. The fallback retains
+            // compatibility with older baked two-column water meshes without the new channel.
+            output.halfWidth = input.shoreline.x > 0 ? input.shoreline.x : abs(input.uv.x);
             output.fogAndVertexLight = half4(ComputeFogFactor(position.positionCS.z), VertexLighting(position.positionWS, output.normalWS));
             return output;
         }

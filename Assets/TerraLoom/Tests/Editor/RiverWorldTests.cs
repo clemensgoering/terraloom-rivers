@@ -184,7 +184,7 @@ namespace TerraLoom.Tests
                 rivers.GeneratedRoot,terrain.terrainData,terrain.transform.position,new CancellationToken(true)));
         }
 
-        [Test] public void CurvedSampleInsetFailureRetainsPublishedRiverAndTerrain()
+        [Test] public void CurvedSampleInsetClipsWaterAgainstActualTerrain()
         {
             rivers.Clear();original.heightmapResolution=129;original.size=new Vector3(96,16,96);
             var heights=new float[129,129];
@@ -196,13 +196,66 @@ namespace TerraLoom.Tests
             rivers.CellSize=2;
             rivers.ProtectedAreas.Add(new RiverProtectionSettings{Id="sample-detour",Center=new Vector2(48,48),Size=new Vector2(8,12)});
             Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics);
-            var root=rivers.GeneratedRoot;var data=rivers.CarvedTerrainData;string json=rivers.PlanJson;
             rivers.WaterInset=.3f;
-            Assert.That(rivers.Generate(),Is.False,"Known curved heightfield penetration must not publish.");
-            Assert.That(rivers.Diagnostics,Does.Contain("actual carved terrain"));
-            Assert.That(rivers.GeneratedRoot,Is.SameAs(root));Assert.That(rivers.CarvedTerrainData,Is.SameAs(data));
+            Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics);
+            var result=RiverWaterTerrainInspection.Inspect(rivers.GeneratedRoot,rivers.CarvedTerrainData,Vector3.zero);
+            Assert.That(result.Acceptable,Is.True,result.ToString());
+            var filter=rivers.GeneratedRoot.GetComponentsInChildren<RiverGeneratedGeometry>()
+                .Single(m=>m.Role==RiverGeometryRole.Water).GetComponent<MeshFilter>();
+            Assert.That(filter.sharedMesh.vertexCount,Is.GreaterThan(rivers.LastPlan.Routes.Single().WaterPolyline.Count*2));
+            var points=filter.sharedMesh.vertices;var uv=filter.sharedMesh.uv;string json=rivers.PlanJson;
+            Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics);
+            filter=rivers.GeneratedRoot.GetComponentsInChildren<RiverGeneratedGeometry>()
+                .Single(m=>m.Role==RiverGeometryRole.Water).GetComponent<MeshFilter>();
+            Assert.That(filter.sharedMesh.vertices,Is.EqualTo(points));Assert.That(filter.sharedMesh.uv,Is.EqualTo(uv));
+            Assert.That(rivers.PlanJson,Is.EqualTo(json));
+            Assert.That(original.GetHeights(0,0,129,129),Is.EqualTo(heights).Within(.00004f));
+            var root=rivers.GeneratedRoot;var data=rivers.CarvedTerrainData;
+            rivers.MaximumGeometryVertices=3;
+            Assert.That(rivers.Generate(),Is.False);Assert.That(rivers.GeneratedRoot,Is.SameAs(root));
             Assert.That(rivers.World.Terrain.terrainData,Is.SameAs(data));Assert.That(rivers.PlanJson,Is.EqualTo(json));
             Assert.That(terrainObject.GetComponent<TerrainCollider>().terrainData,Is.SameAs(data));
+        }
+
+        [Test] public void WaterClipperKeepsLevelUvWidthAndInputsUnderWorldTranslation()
+        {
+            var data=new TerrainData{heightmapResolution=33,size=new Vector3(10,10,10)};
+            var heights=new float[33,33];for(int z=0;z<33;z++)for(int x=0;x<33;x++)heights[z,x]=x/32f*.2f;
+            data.SetHeights(0,0,heights);
+            var mesh=new Mesh();Mesh clipped=null;
+            try
+            {
+                mesh.vertices=new[]{new Vector3(2,1,2),new Vector3(2,1,8),new Vector3(8,1,2),new Vector3(8,1,8)};
+                mesh.uv=new[]{new Vector2(-3,0),new Vector2(-3,6),new Vector2(3,0),new Vector2(3,6)};
+                mesh.triangles=new[]{0,1,2,2,1,3};var before=mesh.vertices;
+                var origin=new Vector3(100,3,200);var matrix=Matrix4x4.Translate(origin);
+                clipped=RiverWaterTerrainClipper.Build(mesh,matrix,data,origin,100000);
+                Assert.That(clipped.vertices.All(p=>p.y==1 && p.x>=2 && p.x<5),Is.True,"Keep level, clip wet side only.");
+                Assert.That(clipped.normals.All(n=>n.y>.99f),Is.True);
+                var widths=new System.Collections.Generic.List<Vector2>();clipped.GetUVs(2,widths);
+                Assert.That(widths.Count,Is.EqualTo(clipped.vertexCount));
+                Assert.That(widths.All(p=>Math.Abs(p.x-3)<1e-5),Is.True,"No false interior foam after subdivision.");
+                Assert.That(clipped.uv2,Is.EqualTo(clipped.uv));Assert.That(mesh.vertices,Is.EqualTo(before));
+                Assert.That(data.GetHeights(0,0,33,33),Is.EqualTo(heights).Within(.00004f));
+                Assert.Throws<InvalidOperationException>(()=>RiverWaterTerrainClipper.Build(mesh,matrix,data,origin,3));
+                Assert.Throws<OperationCanceledException>(()=>RiverWaterTerrainClipper.Build(mesh,matrix,data,origin,100000,new CancellationToken(true)));
+            }
+            finally{if(clipped)Object.DestroyImmediate(clipped);Object.DestroyImmediate(mesh);Object.DestroyImmediate(data);}
+        }
+
+        [Test] public void SeededInsetUsesSameTerrainClippingForThreeSeeds()
+        {
+            rivers.World.UseSeedAnchors=true;rivers.World.SeedAnchorCount=5;rivers.World.AnchorMargin=10;
+            rivers.WaterInset=.3f;
+            foreach(int seed in new[]{42,43,71})
+            {
+                rivers.World.Seed=seed;
+                Assert.That(rivers.Generate(),Is.True,"Seed "+seed+": "+rivers.Diagnostics);
+                var check=RiverWaterTerrainInspection.Inspect(rivers.GeneratedRoot,rivers.CarvedTerrainData,Vector3.zero);
+                Assert.That(check.Acceptable,Is.True,"Seed "+seed+": "+check);
+                string json=rivers.PlanJson;
+                Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics);Assert.That(rivers.PlanJson,Is.EqualTo(json));
+            }
         }
 
         [Test] public void InvalidInsetRetainsPublishedTerrainAndMeshes()

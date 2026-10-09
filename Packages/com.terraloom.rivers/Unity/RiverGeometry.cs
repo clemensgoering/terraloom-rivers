@@ -56,6 +56,11 @@ namespace TerraLoom.Rivers.Unity
                     if (!Finite(vertex.x) || !Finite(vertex.y) || !Finite(vertex.z) || !Finite((float)along))
                         throw new ArgumentException("Planned river exceeds mesh numeric range.");
                     float offset = (float)((c < columns / 2 ? -1 : 1) * (outerBank ? outer : half));
+                    if(role==RiverGeometryRole.Water && extendWaterToBanks)
+                    {
+                        double dx=point.X-water[i].X,dz=point.Z-water[i].Z;
+                        offset=(float)((c==0?-1:1)*Math.Sqrt(dx*dx+dz*dz));
+                    }
                     vertices.Add(vertex); uv.Add(new Vector2(offset, (float)along));
                 }
                 if (i == 0) continue;
@@ -126,6 +131,10 @@ namespace TerraLoom.Rivers.Unity
         {
             var mesh = new Mesh { name = "River " + role, hideFlags = HideFlags.DontSave, indexFormat = vertices.Count > 65535 ? IndexFormat.UInt32 : IndexFormat.UInt16 };
             mesh.SetVertices(vertices); mesh.SetUVs(0, uv); mesh.SetUVs(1, uv);
+            // Independent edge width survives subdivision; abs(interpolated across) does not.
+            var shoreline=new List<Vector2>(uv.Count);
+            foreach(var p in uv)shoreline.Add(new Vector2(Mathf.Abs(p.x),0));
+            mesh.SetUVs(2,shoreline);
             var colors = new Color[vertices.Count]; for (int i = 0; i < colors.Length; i++) colors[i] = Color.white;
             mesh.colors = colors; mesh.SetTriangles(indices, 0); mesh.RecalculateNormals(); mesh.RecalculateBounds(); return mesh;
         }
