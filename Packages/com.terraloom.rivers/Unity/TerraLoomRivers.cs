@@ -45,6 +45,8 @@ namespace TerraLoom.Rivers.Unity
         public bool TerrainBrush;
         [Tooltip("Optional existing TerrainLayer index for sediment, -1 preserves source textures. Terrain Brush only. Painting uses the realized cut and smooth channel influence.")]
         public int SedimentTerrainLayer = -1;
+        [Tooltip("Metres of actual terrain cut needed for full sediment exposure, still softened by the channel brush. Material only; does not change river heights or reservations.")]
+        [Min(.001f)] public float SedimentExposureDepth = .15f;
         public int MaximumGeometryVertices = 1000000;
         [SerializeField, TextArea] private string diagnostics, planJson;
         [SerializeField] private GameObject generatedRoot;
@@ -157,7 +159,7 @@ namespace TerraLoom.Rivers.Unity
                 {
                     if(profile.TerrainBrush && SedimentTerrainLayer>=0)
                         diagnostics += "\nSediment layer "+SedimentTerrainLayer+": "+RiverTerrainPainter.Apply(
-                            stagedData,basis,target.transform.position,plan,profile,SedimentTerrainLayer,input.Reservations,cancellation)+" painted texels on owned terrain.";
+                            stagedData,basis,target.transform.position,plan,profile,SedimentTerrainLayer,input.Reservations,cancellation,SedimentExposureDepth)+" painted texels on owned terrain.";
                     foreach(var marker in staged.GetComponentsInChildren<RiverGeneratedGeometry>(true))
                     {
                         if(marker.Role!=RiverGeometryRole.Water)continue;

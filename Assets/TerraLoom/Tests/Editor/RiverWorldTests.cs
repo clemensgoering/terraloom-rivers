@@ -312,7 +312,25 @@ namespace TerraLoom.Tests
                 Assert.That(soil,Is.GreaterThan(0));Assert.That(mixed,Is.GreaterThan(0));
                 Assert.That(painted[0,0,0],Is.EqualTo(before[0,0,0]));
                 Assert.That(original.GetAlphamaps(0,0,32,32),Is.EqualTo(before));
+                string geometryPlan=rivers.PlanJson;
+                var heights=rivers.CarvedTerrainData.GetHeights(0,0,65,65);
+                rivers.SedimentExposureDepth=2;
+                Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics);
+                Assert.That(rivers.PlanJson,Is.EqualTo(geometryPlan));
+                Assert.That(rivers.CarvedTerrainData.GetHeights(0,0,65,65),Is.EqualTo(heights));
+                var faint=rivers.CarvedTerrainData.GetAlphamaps(0,0,32,32);float strongTotal=0,faintTotal=0;
+                for(int z=0;z<32;z++)for(int x=0;x<32;x++){strongTotal+=painted[z,x,2];faintTotal+=faint[z,x,2];}
+                Assert.That(strongTotal,Is.GreaterThan(faintTotal));
+                rivers.SedimentExposureDepth=.15f;Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics);
+                painted=rivers.CarvedTerrainData.GetAlphamaps(0,0,32,32);
                 var root=rivers.GeneratedRoot;var data=rivers.CarvedTerrainData;string json=rivers.PlanJson;
+                foreach(float invalid in new[]{0f,-1f,float.NaN,float.PositiveInfinity})
+                {
+                    rivers.SedimentExposureDepth=invalid;Assert.That(rivers.Generate(),Is.False);
+                    Assert.That(rivers.GeneratedRoot,Is.SameAs(root));Assert.That(rivers.CarvedTerrainData,Is.SameAs(data));
+                    Assert.That(data.GetAlphamaps(0,0,32,32),Is.EqualTo(painted));
+                }
+                rivers.SedimentExposureDepth=.15f;
                 rivers.SedimentTerrainLayer=3;Assert.That(rivers.Generate(),Is.False);
                 Assert.That(rivers.GeneratedRoot,Is.SameAs(root));Assert.That(rivers.CarvedTerrainData,Is.SameAs(data));Assert.That(rivers.PlanJson,Is.EqualTo(json));
                 rivers.SedimentTerrainLayer=2;

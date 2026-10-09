@@ -13,12 +13,14 @@ namespace TerraLoom.Rivers.Unity
     {
         public static int Apply(TerrainData carved,TerrainData source,Vector3 origin,RiverPlan plan,
             RiverProfile profile,int sedimentLayer,IEnumerable<AreaReservation> reservations,
-            CancellationToken cancellation=default)
+            CancellationToken cancellation=default,float fullExposureDepth=.15f)
         {
             if(!carved||!source||carved==source||plan==null||profile==null||!profile.TerrainBrush
                 ||!plan.Complete||plan.ProfileFingerprint!=profile.Fingerprint)
                 throw new ArgumentException("Matching terrain brush plan and a separate carved terrain required.");
             int w=carved.alphamapWidth,h=carved.alphamapHeight,layers=carved.alphamapLayers;
+            if(float.IsNaN(fullExposureDepth)||float.IsInfinity(fullExposureDepth)||fullExposureDepth<=0)
+                throw new ArgumentOutOfRangeException(nameof(fullExposureDepth),"Full sediment exposure requires a finite positive cut depth in metres.");
             if(sedimentLayer<0||sedimentLayer>=layers)throw new ArgumentOutOfRangeException(nameof(sedimentLayer),"Select an existing terrain layer, or disable sediment painting with -1.");
             var hard=(reservations??Array.Empty<AreaReservation>()).Where(a=>a.Strength==ReservationStrength.Hard).ToArray();
             long spans=plan.Routes.Sum(r=>(long)r.WaterPolyline.Count-1);
@@ -39,7 +41,9 @@ namespace TerraLoom.Rivers.Unity
                 if(mask<=0)continue;
                 // Paint follows realized earthwork as well as the planned cross-section. No maximal
                 // reservation rectangle is painted, and untouched low terrain is not stained.
-                mask=Math.Min(mask,(before-after)/(profile.Depth+profile.WaterInset));
+                // Visual exposure is independent of channel depth: a deep river must not
+                // make an equally excavated bank retain more meadow than a shallow river.
+                mask*=Math.Min(1,(before-after)/fullExposureDepth);
                 float amount=(float)Math.Max(0,Math.Min(1,mask));
                 double sx=size.x/(w-1),sz=size.z/(h-1);
                 var support=new WorldBounds(px-sx,pz-sz,px+sx,pz+sz);

@@ -83,8 +83,22 @@ Pflicht. `Sediment Terrain Layer` waehlt optional einen vorhandenen TerrainLayer
 Abtrag und dem weichen Pinselprofil, nicht den rechteckigen Schutzbounds. Andere
 Layerverhaeltnisse bleiben erhalten. Nur die eigene Terrainkopie wird bemalt;
 Clear stellt das Original wieder her. Die experimentelle Beispielszene erzeugt
-einen eigenen prozeduralen Sedimentlayer. Dessen sichtbare Wirkung ist derzeit
-dezent; eine abschliessende natuerliche Uferoptik ist noch nicht abgenommen.
+einen eigenen prozeduralen Sedimentlayer mit warmem Erdton, um die Freilegung
+sichtbar zu machen. Eine abschliessende natuerliche Uferoptik ist noch nicht abgenommen.
+
+`Sediment Exposure Depth` steuert die Freilegung unabhaengig von der Grabentiefe:
+bei0.15m Abtrag erreicht die Materialmaske ihre volle lokale Pinselstaerke; der
+weiche Aussenrand bleibt erhalten. Groessere Werte lassen mehr Ausgangsmaterial
+durchscheinen. Dieser Wert veraendert weder Wasserhoehe, Terrainhoehen noch den
+Flussplan. Nur endliche positive Werte sind erlaubt. Er wird am Rivers-Component
+gespeichert; Plan-JSON enthaelt weiterhin keine Materialkonfiguration.
+
+Die experimentelle Brush-Szene zeigt jetzt seitliche Huegel (bis8m zusaetzliches
+Relief) und eigene Fels-/Wiesentexturen. Die Ausgangsbemalung mischt Fels ueber
+12-27Grad Hangneigung und8-12m Hoehe; das ist ein transparentes Beispielrezept im
+SampleBuilder, kein neuer Biomezwang oder allgemeines Runtime-Habitatprofil.
+Der bekannte Flusskorridor innerhalb22m von x=48 bleibt hoehenmaessig unveraendert.
+Vegetationsgradienten und gemeinsame Brush-Bruecken sind damit noch nicht geprueft.
 Profil-v4 enthaelt Modus und Rasterguard; alte Plaene neu generieren. Schutzflaechen
 werden konservativ gegen angrenzende Rasterzellen geprueft; Fehler behalten die alte
 Welt. Gemeinsame Brueckenfenster noch offen. Details: Core/Docs/TERRAIN-RIVER-BRUSH.md.

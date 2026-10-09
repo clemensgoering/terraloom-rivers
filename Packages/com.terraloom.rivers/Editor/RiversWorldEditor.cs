@@ -41,6 +41,7 @@ namespace TerraLoom.Rivers.Editor
                 EditorGUI.BeginChangeCheck();
                 int choice=EditorGUILayout.Popup("Sediment Terrain Layer",Mathf.Clamp(sediment.intValue+1,0,labels.Length-1),labels);
                 if(EditorGUI.EndChangeCheck())sediment.intValue=choice-1;
+                if(sediment.intValue>=0)EditorGUILayout.PropertyField(serializedObject.FindProperty("SedimentExposureDepth"));
                 EditorGUILayout.HelpBox("Sediment uses the realized cut and smooth brush mask on the owned terrain copy. Other layer proportions are retained; Clear restores source textures. No new layer is added at runtime.",MessageType.Info);
             }
             WorldInspectorSections.Draw(serializedObject, "rivers.budgets", "Budgets", false, "CellSize", "SampleSpacing", "MaximumNodes", "TotalSearchBudget", "TotalSampleBudget", "MaximumGeometryVertices");
