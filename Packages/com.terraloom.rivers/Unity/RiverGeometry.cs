@@ -16,7 +16,7 @@ namespace TerraLoom.Rivers.Unity
         /// retain their exact planned XYZ; inner rows interpolate bank XZ offsets at the bed/water ratio.
         /// Width and bankWidth must match the profile used to validate this route.</summary>
         public static Mesh Build(RiverRoute route, float width, float bankWidth, RiverGeometryRole role,
-            int vertexBudget = 1000000, CancellationToken cancellation = default, bool extendWaterToBanks = false)
+            int vertexBudget = 1000000, CancellationToken cancellation = default, bool extendWaterToBanks = false, bool terrainBrush = false)
         {
             if (route == null || !Finite(width) || width <= 0 || !Finite(bankWidth) || bankWidth < 0
                 || !Enum.IsDefined(typeof(RiverGeometryRole), role))
@@ -48,7 +48,9 @@ namespace TerraLoom.Rivers.Unity
                     bool outerBank = role == RiverGeometryRole.Banks && (c == 0 || c == 3);
                     int channelColumn = role == RiverGeometryRole.Banks ? c : c + 1;
                     var channelPoint = RiverChannelSurface.Point(route, i, channelColumn, width, bankWidth);
-                    var point = role == RiverGeometryRole.Water && extendWaterToBanks
+                    var point = role==RiverGeometryRole.Water && terrainBrush
+                        ? new WorldPoint((c==0?right[i]:left[i]).X,water[i].Y,(c==0?right[i]:left[i]).Z)
+                        : role == RiverGeometryRole.Water && extendWaterToBanks
                         ? RiverChannelSurface.WaterPoint(route,i,c == 1,width,bankWidth)
                         : role == RiverGeometryRole.Water
                         ? new WorldPoint(channelPoint.X, water[i].Y, channelPoint.Z) : channelPoint;

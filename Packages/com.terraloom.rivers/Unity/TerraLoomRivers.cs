@@ -41,6 +41,8 @@ namespace TerraLoom.Rivers.Unity
         public List<RiverProtectionSettings> ProtectedAreas = new List<RiverProtectionSettings>();
         public Material WaterMaterial, BedMaterial, BankMaterial;
         public bool CarveTerrainCopy = true;
+        [Tooltip("Experimental smooth terrain channel with only a water mesh. Requires carving, positive Water Inset and Bank Width. Bed/Bank materials are unused. Clear restores source terrain.")]
+        public bool TerrainBrush;
         public int MaximumGeometryVertices = 1000000;
         [SerializeField, TextArea] private string diagnostics, planJson;
         [SerializeField] private GameObject generatedRoot;
@@ -58,7 +60,9 @@ namespace TerraLoom.Rivers.Unity
         public RiverProfile CaptureProfile() => new RiverProfile(Width, Depth, BankWidth, CellSize, MaximumSlope,
             SampleSpacing, MaximumNodes, TotalSearchBudget, TotalSampleBudget, bridgeClearance: BridgeClearance,
             regionCosts: RegionCosts.Select(r => new RiverRegionCost(r.RegionId, r.CostPerMetre)), allowExcavation: CarveTerrainCopy,
-            minimumBendRadius: MinimumBendRadius, waterInset: WaterInset);
+            minimumBendRadius: MinimumBendRadius, waterInset: WaterInset, terrainBrush: TerrainBrush,
+            terrainCellGuard: TerrainBrush && World && World.Terrain && World.Terrain.terrainData
+                ? Math.Max(World.Terrain.terrainData.size.x,World.Terrain.terrainData.size.z)/(World.Terrain.terrainData.heightmapResolution-1) : 0);
 
         public PlanSnapshot CaptureInput(out WorldBounds bounds, out IReadOnlyList<RiverRequest> requests)
         {
@@ -81,7 +85,14 @@ namespace TerraLoom.Rivers.Unity
                 var profile = CaptureProfile();
                 return new PlanningInput(World.Seed, World.Revision, RiverPlanner.AlgorithmVersion,
                     RiverPlanner.ProfileVersion(profile, bounds, requests), terrain, World.TerrainContentFingerprint, anchors,
-                    World.CaptureLandscape(points), ProtectedAreas.Select(p => p.Capture())).BaseSnapshot;
+                    World.CaptureLandscape(points), ProtectedAreas.Select(p =>
+                    {
+                        var area=p.Capture();
+                        if(!TerrainBrush)return area;
+                        double gx=(double)size.x/(selected.terrainData.heightmapResolution-1),gz=(double)size.z/(selected.terrainData.heightmapResolution-1);
+                        var b=area.Bounds;
+                        return new AreaReservation(area.Id,area.OwnerId,new WorldBounds(b.MinX-gx,b.MinZ-gz,b.MaxX+gx,b.MaxZ+gz),area.Strength,area.Purpose,area.TransitionCost);
+                    })).BaseSnapshot;
             }
             finally { selected.terrainData = current; }
         }
@@ -103,7 +114,7 @@ namespace TerraLoom.Rivers.Unity
             try
             {
                 cancellation.ThrowIfCancellationRequested();
-                if (!WaterMaterial || !BedMaterial || !BankMaterial) throw new InvalidOperationException("Assign water, bed and bank materials.");
+                if (!WaterMaterial || !TerrainBrush && (!BedMaterial || !BankMaterial)) throw new InvalidOperationException("Assign water material; mesh channels also need bed and bank materials.");
                 if (!World || !World.Terrain) throw new InvalidOperationException("Assign a Core world.");
                 if (Mathf.Abs(transform.localToWorldMatrix.determinant) < .000001f) throw new InvalidOperationException("River transform must have nonzero scale.");
                 var profile = CaptureProfile(); var plan = RiverPlanner.Plan(input, profile, bounds, requests, cancellation);
@@ -114,8 +125,9 @@ namespace TerraLoom.Rivers.Unity
                 foreach (var route in plan.Routes)
                 foreach (RiverGeometryRole role in Enum.GetValues(typeof(RiverGeometryRole)))
                 {
+                    if(profile.TerrainBrush && role!=RiverGeometryRole.Water)continue;
                     var mesh = RiverGeometry.Build(route, Width, BankWidth, role,
-                        MaximumGeometryVertices - vertices, cancellation, profile.WaterInset > 0); vertices += mesh.vertexCount;
+                        MaximumGeometryVertices - vertices, cancellation, profile.WaterInset > 0, profile.TerrainBrush); vertices += mesh.vertexCount;
                     var child = new GameObject(route.Request.Id + " " + role); child.transform.SetParent(staged.transform, false);
                     var marker = child.AddComponent<RiverGeneratedGeometry>();
                     child.AddComponent<MeshFilter>().sharedMesh = mesh; marker.Initialize(role);
@@ -128,7 +140,8 @@ namespace TerraLoom.Rivers.Unity
                 }
                 Terrain target = World.Terrain; TerrainData basis = carvedData ? originalData : target.terrainData;
                 if (carvedData && (target != carvedTerrain || target.terrainData != carvedData)) throw new InvalidOperationException("Selected terrain changed; clear before regeneration.");
-                if (CarveTerrainCopy) stagedData = RiverTerrainCarver.Build(basis, target.transform.position, plan, profile, cancellation);
+                if (CarveTerrainCopy) stagedData = RiverTerrainCarver.Build(basis, target.transform.position, plan, profile, cancellation,
+                    profile.TerrainBrush ? input.Reservations : null);
                 if(profile.WaterInset>0)
                 {
                     foreach(var marker in staged.GetComponentsInChildren<RiverGeneratedGeometry>(true))

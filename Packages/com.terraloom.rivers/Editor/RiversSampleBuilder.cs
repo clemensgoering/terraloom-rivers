@@ -24,7 +24,7 @@ namespace TerraLoom.Rivers.Editor
             if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) BuildBatch();
         }
 
-        [MenuItem("Tools/TerraLoom/Rivers/Build Inset Sample Scene (Experimental)")]
+        [MenuItem("Tools/TerraLoom/Rivers/Build Terrain Brush Sample Scene (Experimental)")]
         public static void BuildInsetInteractive()
         {
             if(EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())BuildInsetBatch();
@@ -77,7 +77,8 @@ namespace TerraLoom.Rivers.Editor
             rivers.World = world; rivers.GenerateOnStart = false; rivers.AutomaticSourceAndMouth = false;
             rivers.Connections.Add(new RiverConnectionSettings { Id = "sample-river", SourceId = "source", MouthId = "mouth" });
             rivers.CarveTerrainCopy = true;
-            rivers.WaterInset = inset ? .3f : 0;
+            rivers.WaterInset = inset ? .6f : 0;
+            rivers.TerrainBrush = inset;
             rivers.ProtectedAreas.Add(new RiverProtectionSettings { Id = "sample-detour", Center = new Vector2(48,48), Size = new Vector2(8,12) });
             rivers.BedMaterial = Save(MakeMaterial("Original river bed", "Universal Render Pipeline/Lit", new Color(.25f, .18f, .1f)), SampleDirectory + "/Bed.mat", true);
             rivers.BankMaterial = Save(MakeMaterial("Original river bank", "Universal Render Pipeline/Lit", new Color(.43f, .34f, .19f)), SampleDirectory + "/Bank.mat", true);

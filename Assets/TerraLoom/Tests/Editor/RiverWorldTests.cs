@@ -184,7 +184,7 @@ namespace TerraLoom.Tests
                 rivers.GeneratedRoot,terrain.terrainData,terrain.transform.position,new CancellationToken(true)));
         }
 
-        [Test] public void CurvedSampleInsetClipsWaterAgainstActualTerrain()
+        [TestCase(false)] [TestCase(true)] public void CurvedSampleInsetClipsWaterAgainstActualTerrain(bool brush)
         {
             rivers.Clear();original.heightmapResolution=129;original.size=new Vector3(96,16,96);
             var heights=new float[129,129];
@@ -196,7 +196,8 @@ namespace TerraLoom.Tests
             rivers.CellSize=2;
             rivers.ProtectedAreas.Add(new RiverProtectionSettings{Id="sample-detour",Center=new Vector2(48,48),Size=new Vector2(8,12)});
             Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics);
-            rivers.WaterInset=.3f;
+            rivers.WaterInset=.3f;rivers.TerrainBrush=brush;
+            if(brush){rivers.BedMaterial=null;rivers.BankMaterial=null;}
             Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics);
             var result=RiverWaterTerrainInspection.Inspect(rivers.GeneratedRoot,rivers.CarvedTerrainData,Vector3.zero);
             Assert.That(result.Acceptable,Is.True,result.ToString());
@@ -243,10 +244,10 @@ namespace TerraLoom.Tests
             finally{if(clipped)Object.DestroyImmediate(clipped);Object.DestroyImmediate(mesh);Object.DestroyImmediate(data);}
         }
 
-        [Test] public void SeededInsetUsesSameTerrainClippingForThreeSeeds()
+        [TestCase(false)] [TestCase(true)] public void SeededInsetUsesSameTerrainClippingForThreeSeeds(bool brush)
         {
             rivers.World.UseSeedAnchors=true;rivers.World.SeedAnchorCount=5;rivers.World.AnchorMargin=10;
-            rivers.WaterInset=.3f;
+            rivers.WaterInset=.3f;rivers.TerrainBrush=brush;
             foreach(int seed in new[]{42,43,71})
             {
                 rivers.World.Seed=seed;
@@ -256,6 +257,38 @@ namespace TerraLoom.Tests
                 string json=rivers.PlanJson;
                 Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics);Assert.That(rivers.PlanJson,Is.EqualTo(json));
             }
+        }
+
+        [Test] public void TerrainBrushFormsSmoothChannelWithoutBedOrBankMeshes()
+        {
+            rivers.TerrainBrush=true;rivers.WaterInset=.3f;rivers.BedMaterial=null;rivers.BankMaterial=null;
+            Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics);
+            var parts=rivers.GeneratedRoot.GetComponentsInChildren<RiverGeneratedGeometry>();
+            Assert.That(parts.Length,Is.EqualTo(1));Assert.That(parts[0].Role,Is.EqualTo(RiverGeometryRole.Water));
+            Assert.That(rivers.GeneratedRoot.GetComponentsInChildren<MeshCollider>(),Is.Empty);
+            var data=rivers.CarvedTerrainData;var before=original.GetHeights(0,0,65,65);
+            double full=original.GetHeight(32,32)-data.GetHeight(32,32);
+            double shoulder=original.GetHeight(29,32)-data.GetHeight(29,32);
+            Assert.That(full,Is.EqualTo(.9).Within(.001));Assert.That(shoulder,Is.EqualTo(.45).Within(.001));
+            Assert.That(data.GetHeight(28,32),Is.EqualTo(original.GetHeight(28,32)));
+            var route=rivers.LastPlan.Routes.Single();
+            for(int z=0;z<65;z++)for(int x=0;x<65;x++)
+            {
+                bool inside=false;
+                for(int span=0;span<route.WaterPolyline.Count-1;span++)
+                    if(RiverChannelSurface.TryHeight(route,span,rivers.Width,rivers.BankWidth,x,z,out _)){inside=true;break;}
+                if(!inside)Assert.That(data.GetHeight(x,z),Is.EqualTo(original.GetHeight(x,z)),"Brush left authorized face at "+x+","+z);
+                Assert.That(data.GetHeight(x,z),Is.LessThanOrEqualTo(original.GetHeight(x,z)));
+            }
+            Assert.That(terrainObject.GetComponent<TerrainCollider>().terrainData,Is.SameAs(data));
+            Assert.That(original.GetHeights(0,0,65,65),Is.EqualTo(before));
+            // A source-cap neighbour is outside the face, but is influenced by an excavated node.
+            Assert.Throws<InvalidOperationException>(()=>RiverTerrainCarver.Build(original,Vector3.zero,
+                rivers.LastPlan,rivers.CaptureProfile(),default,new[]{new AreaReservation("source-support","test",
+                new WorldBounds(31,7.25,33,7.75),ReservationStrength.Hard,ReservationPurpose.ProtectedArea)}));
+            var root=rivers.GeneratedRoot;rivers.CarveTerrainCopy=false;
+            Assert.That(rivers.Generate(),Is.False);Assert.That(rivers.GeneratedRoot,Is.SameAs(root));
+            rivers.Clear();Assert.That(rivers.World.Terrain.terrainData,Is.SameAs(original));
         }
 
         [Test] public void InvalidInsetRetainsPublishedTerrainAndMeshes()

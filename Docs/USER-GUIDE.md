@@ -1,6 +1,6 @@
 # Rivers: Editor und Sample
 
-Water, Bed und Banks sind gerenderte Meshes, Bed/Banks auch Collider. Sie
+Im bisherigen Mesh-Modus sind Water, Bed und Banks gerenderte Meshes, Bed/Banks auch Collider. Sie
 verschwinden nach Carving nicht. CarveTerrainCopy senkt eine eigene Terrainkopie
 unter die geplanten Faces; Clear stellt die Quelle wieder her. Wasser liegt bei WaterInset=0 auf erfasster Mittenterrainhoehe+2cm; Depth senkt nur
 das Bett. WaterInset>0 senkt Wasser zusaetzlich ab und erweitert die Wasserflaeche
@@ -62,8 +62,8 @@ Unity -batchmode -nographics -quit -projectPath <Rivers-Projekt> -executeMethod 
 Der Builder rendert keine Bilder; native Import-/EditTests und visuelle Abnahme erfolgen separat. Diese erste Version plant begrenzte, abgetastete Flusskorridore; sie garantiert keine globale Hydrologie oder beliebig komplexe Flussnetze. Rivers publiziert Korridor-/Reservierungs-/Querungsangebote Ã¼ber Core fÃ¼r Paths; dadurch entsteht noch keine fertige BrÃ¼cke. Paths und Rivers importieren einander nicht. Vorhandene Wasser-/Querungsangebote sind fÃ¼r Verbraucher schreibgeschÃ¼tzte Planinformationen.
 
 
-`Tools > TerraLoom > Rivers > Build Inset Sample Scene (Experimental)` baut die
-gekrümmte Standalone-Szene mit WaterInset=0.3m. Es verwendet denselben eigenen
+`Tools > TerraLoom > Rivers > Build Terrain Brush Sample Scene (Experimental)` baut die
+gekrümmte Standalone-Szene jetzt mit TerrainBrush und WaterInset=0.6m. Es verwendet denselben eigenen
 Generated-Ordner wie die Standarddemo, fragt nach ungespeicherten Szenen und ersetzt
 nur eigene markierte Sampleassets. Batch: RiversSampleBuilder.BuildInsetBatch.
 Es ist keine gemeinsame Brückendemo. Native Tests prüfen zusätzlich Seed42/43/71.
@@ -73,3 +73,12 @@ Across/Along in UV0. Clipping interpoliert beide Daten; dies verhindert falsche
 Schaumbänder an neu eingefügten Innenvertices. Der Shader hat einen Fallback für
 alte Zweispalten-Bakes. Schaum folgt derzeit dem geplanten Rand, nicht einer exakten
 Distanz zur endgültig beschnittenen Uferlinie. Natürliche Ufermaterialien bleiben offen.
+
+
+TerrainBrush ist ein experimenteller Terrain-Modus: nur Wasser als Mesh, Bett und
+weich auslaufende Boeschungen im Terrain mit TerrainCollider. Bed/Bank-Materialien
+sind nicht erforderlich. Positive WaterInset, BankWidth und CarveTerrainCopy sind
+Pflicht. Das Terrain behaelt seine vorhandenen Layer; Materialmalerei folgt separat.
+Profil-v4 enthaelt Modus und Rasterguard; alte Plaene neu generieren. Schutzflaechen
+werden konservativ gegen angrenzende Rasterzellen geprueft; Fehler behalten die alte
+Welt. Gemeinsame Brueckenfenster noch offen. Details: Core/Docs/TERRAIN-RIVER-BRUSH.md.

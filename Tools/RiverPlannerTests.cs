@@ -257,6 +257,21 @@ internal static class RiverPlannerTests
             Throws<ArgumentException>(()=>new RiverProfile(allowExcavation:true,waterInset:1));
             Throws<ArgumentException>(()=>new RiverProfile(allowExcavation:true,waterInset:double.NaN));
         });
+        Check("terrain brush shares masks, identity and conservative raster support offers", () =>
+        {
+            var p=new RiverProfile(width:4,depth:.6,bankWidth:2,allowExcavation:true,waterInset:.3,terrainBrush:true,terrainCellGuard:.75);
+            var plan=Plan(Input(),p);Require(plan.Complete,Detail(plan));var route=plan.Routes.Single();
+            int span=route.WaterPolyline.Count/2;
+            Require(RiverTerrainBrush.TryHeight(route,span,p,0,0,0,out double bed,out double full),"Missing bed mask");
+            Near(full,1);Near(bed,-.9);
+            Require(RiverTerrainBrush.TryHeight(route,span,p,0,3,0,out double slope,out double half),"Missing bank mask");
+            Near(half,.5);Near(slope,-.45);
+            Require(!RiverTerrainBrush.TryHeight(route,span,p,0,5,0,out _,out _),"Brush left planned channel");
+            Require(route.Offers.All(o=>o.Corridor.Banks.MinZ<=-4.75 && o.Corridor.Bed.MinZ<=-4),"Missing physical/raster guard");
+            var other=new RiverProfile(width:4,depth:.6,bankWidth:2,allowExcavation:true,waterInset:.3);
+            Require(p.Fingerprint!=other.Fingerprint,"Brush recipe not fingerprinted");
+            Throws<ArgumentException>(()=>new RiverProfile(terrainBrush:true));
+        });
         Console.WriteLine("RiverPlanner: " + passed + " passed, " + failed + " failed.");
         return failed == 0 ? 0 : 1;
     }

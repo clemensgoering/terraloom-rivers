@@ -14,6 +14,11 @@ namespace TerraLoom.Integration.Editor
             => Build("TerraLoomDynamic", "Player");
         public static void BuildLandscapeBatch()
             => Build("TerraLoomLandscape", "PlayerLandscape");
+        public static void BuildTerrainBrushEvidenceBatch()
+        {
+            TerraLoom.Rivers.Editor.RiversSampleBuilder.BuildInsetBatch();
+            BuildRiverEvidenceBatch();
+        }
         public static void BuildRiverEvidenceBatch()
         {
             var scene=UnityEditor.SceneManagement.EditorSceneManager.OpenScene(TerraLoom.Rivers.Editor.RiversSampleBuilder.SampleScene);

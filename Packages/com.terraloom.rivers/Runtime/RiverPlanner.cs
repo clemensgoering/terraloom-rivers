@@ -313,7 +313,7 @@ namespace TerraLoom.Rivers
                 work.Check(); int first = span.First, last = span.Last;
                 string id = "river:" + RiverHash.Digest(w => { w.Write(domain); w.Write(request.Id); w.Write(first); });
                 // Protect sampled wet shoulders, rather than classifying the whole dry upper bank as water.
-                double wetRadius = p.Width / 2;
+                double wetRadius = p.TerrainBrush ? radius : p.Width / 2;
                 if (p.WaterInset > 0)
                     for (int i = first; i <= last; i++)
                     {
@@ -326,7 +326,7 @@ namespace TerraLoom.Rivers
                         }
                     }
                 var footprint = Envelope(water[first], water[last], wetRadius);
-                var banks = Envelope(water[first], water[last], radius);
+                var banks = Envelope(water[first], water[last], radius+(p.TerrainBrush?p.TerrainCellGuard:0));
                 double dropPerMetre = (water[first].Y - water[last].Y) / Distance(water[first], water[last]);
                 double projection = (Math.Abs(water[last].X - water[first].X) + Math.Abs(water[last].Z - water[first].Z))
                     / Distance(water[first], water[last]);
