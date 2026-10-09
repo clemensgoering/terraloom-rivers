@@ -1,6 +1,6 @@
 # TerraLoom Rivers: Arbeitsgrundlage
 Lies README.md und Docs/CLOUD-HANDOFF.md zuerst; weitere Quellen nur themenbezogen.
-Die verbindliche Entscheidungssammlung liegt im [Core-Konzept](https://github.com/clemensgoering/terraloom-core/blob/2fc21a681b2e40b163a9aee7bdaf9b4ec917012e/Docs/CONCEPT.md); Epos-Herkunft dort in Docs/EPOS-TRANSFER.md. Core ist im Projektmanifest auf `2fc21a681b2e40b163a9aee7bdaf9b4ec917012e` gepinnt.
+Die verbindliche Entscheidungssammlung liegt im [Core-Konzept](https://github.com/clemensgoering/terraloom-core/blob/972282d69b295d0fc3c816f5de50800ea487690a/Docs/CONCEPT.md); Epos-Herkunft dort in Docs/EPOS-TRANSFER.md. Core ist im Projektmanifest auf `972282d69b295d0fc3c816f5de50800ea487690a` gepinnt.
 - Arbeite sparsam: kleine klare Aufgaben, gezielte Suchen, guenstige Subagenten bei Bedarf.
 - Zentrale Algorithmen fuer Editorvorschau und Runtime; keine getrennten Kopien.
 - Runtime-Planung ohne Unity/Editor-Abhaengigkeit; Adapter/Editor separat.

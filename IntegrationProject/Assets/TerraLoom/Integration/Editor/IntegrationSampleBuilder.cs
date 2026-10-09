@@ -62,6 +62,7 @@ namespace TerraLoom.Integration.Editor
             EditorSceneManager.SaveScene(world.gameObject.scene,Root+"/TerraLoomIntegration.unity");
             Debug.Log(integration.Diagnostics);
             BuildRuntimeScene();
+            BuildLandscapeScene();
         }
         /// <summary>Configuration-only scene: contains no terrain or generated mesh. Start builds everything.</summary>
         public static void BuildRuntimeScene()
@@ -107,6 +108,25 @@ namespace TerraLoom.Integration.Editor
             mat.SetTextureScale("_BaseMap",wood?new Vector2(.25f,.8f):new Vector2(.6f,.6f));
             mat.SetFloat("_UseWorldRegions",1);mat.SetFloat("_WinterBoundaryZ",48);mat.SetFloat("_RegionBlend",6);
             return Save(mat,Root+"/"+name+".mat");
+        }
+        /// <summary>Independent configuration-only landscape; keeps the regional comparison gallery intact.</summary>
+        public static void BuildLandscapeScene()
+        {
+            EditorSceneManager.OpenScene(Root+"/TerraLoomDynamic.unity");
+            var recipe=UnityEngine.Object.FindFirstObjectByType<SeededWorldDemo>();recipe.LandscapeMode=true;
+            Directory.CreateDirectory(Root+"/LandscapeProfiles");AssetDatabase.Refresh();
+            recipe.Profiles=recipe.Profiles.Select(source=>{
+                var profile=UnityEngine.Object.Instantiate(source);profile.name=source.name+" habitat";
+                profile.UseHabitat=true;profile.Density=.9f;profile.SlopeRange=new Vector2(0,32);
+                profile.ClusterScale=22;profile.ClusterStrength=.65f;
+                return Save(profile,Root+"/LandscapeProfiles/"+source.RegionId+".asset");
+            }).ToArray();
+            recipe.Decoration.Profiles=recipe.Profiles;
+            var sun=UnityEngine.Object.FindFirstObjectByType<Light>();sun.intensity=1.3f;
+            recipe.GetComponent<RegionalShowcaseGuide>().enabled=false;
+            var camera=Camera.main;camera.transform.position=new Vector3(111,60,-16);camera.transform.LookAt(new Vector3(48,5,48));
+            AssetDatabase.SaveAssets();EditorSceneManager.SaveScene(recipe.gameObject.scene,Root+"/TerraLoomLandscape.unity");
+            Debug.Log("Seeded landscape configuration saved: connected road bends/branch and habitat profiles. Visual acceptance remains explicit.");
         }
         private static Material MakeRegionalWater()
         {

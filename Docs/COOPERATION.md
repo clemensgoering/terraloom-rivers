@@ -2,7 +2,7 @@
 
 Paths and Rivers exchange offers through shared `TerraLoom.Core` contracts. Rivers publishes a `RiverOffer` containing a corridor, its crossing candidates, and its reservations; callers combine those contributions in one `PlanSnapshot` with a shared `PlanIdentity`. Paths submits crossing requests to Core's evaluator through `PathCrossingNegotiator`, preserving a decision for every request, including conflicts. Neither module depends on the other.
 
-The package manifest, lockfile and bootstrap config pin the published Core contract commit `2fc21a681b2e40b163a9aee7bdaf9b4ec917012e`. The normal compile check fetches this exact revision. Local contract proof builds may use development Core through an explicit `--development-core` override; it leaves the pin unchanged. No machine-specific path is saved in package dependencies.
+The package manifest, lockfile and bootstrap config pin the published Core contract commit `972282d69b295d0fc3c816f5de50800ea487690a`. The normal compile check fetches this exact revision. Local contract proof builds may use development Core through an explicit `--development-core` override; it leaves the pin unchanged. No machine-specific path is saved in package dependencies.
 
 ## Lokale Plan-Zusammenfuehrung
 

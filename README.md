@@ -6,7 +6,7 @@ Editor/Runtime und eigene Beispielszene. [Anleitung](Docs/USER-GUIDE.md),
 
 ## Einstieg
 1. Dieses Repository als Unity-Projekt oeffnen: Assets, Packages und ProjectSettings liegen im Root.
-2. [Cloud-Uebergabe](Docs/CLOUD-HANDOFF.md) und [Konzept](https://github.com/clemensgoering/terraloom-core/blob/2fc21a681b2e40b163a9aee7bdaf9b4ec917012e/Docs/CONCEPT.md) lesen.
+2. [Cloud-Uebergabe](Docs/CLOUD-HANDOFF.md) und [Konzept](https://github.com/clemensgoering/terraloom-core/blob/972282d69b295d0fc3c816f5de50800ea487690a/Docs/CONCEPT.md) lesen.
 3. `python Tools/verify.py` prueft Struktur; `python Tools/verify.py --compile` auch reines C# (.NET SDK).
 4. Unity: Tools > TerraLoom > Validate Project Settings oder Batch-ExecuteMethod aus der Uebergabe.
 

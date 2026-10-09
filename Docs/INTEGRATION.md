@@ -1,5 +1,18 @@
 # Gemeinsames Testprojekt, 09.10.2026
 
+Gemeinsamer Ablauf und Invalidierung: Core `Docs/GENERATION-ORDER.md`.
+Core-Schedule prueft Requires/Provides vor Mutation. Die Komposition zeigt die
+abgeschlossenen Schritte und bietet eine explizite Freshness-Pruefung. Nach
+Erdarbeits-Publikationsfehler bleiben keine veralteten Paths-Collider aktiv.
+Vollstaendige Seed-Regeneration ueber die Rezeptkarte; einzelne Modulbuttons
+innerhalb einer Komposition sind kein Ersatz fuer den gemeinsamen Aufbau.
+
+Zusaetzlich `Generated/TerraLoomLandscape.unity` testen: gerichtetes Talrelief v2,
+vier verbundene Wegabschnitte mit Abzweig und separate Habitatprofile. Kein
+gebackenes Terrain; Play baut alles. Native Teststand: Core69+2, Paths14+2,
+Rivers7+1, Integration2+3 =100. Windows-Landschaftsplayer prueft drei Seeds
+mit je Fern-/Nah-/Spielerbild. Technischer Nachweis, Bildgestaltung weiterhin offen.
+
 ## v0.3: zuerst die dynamische Welt testen
 
 `Assets/TerraLoom/Integration/Generated/TerraLoomDynamic.unity` enthaelt nur

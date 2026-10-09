@@ -25,6 +25,7 @@ namespace TerraLoom.Tests
                 Assert.That(AssetDatabase.Contains(instance.Rivers.OriginalTerrainData),Is.True);
                 Assert.That(AssetDatabase.Contains(instance.Rivers.CarvedTerrainData),Is.True);
                 Assert.That(instance.World.Terrain.terrainData==instance.Rivers.CarvedTerrainData,Is.True);
+                Assert.That(instance.ValidateCurrent(out var freshness),Is.True,freshness);
                 Assert.That(instance.Rivers.OriginalTerrainData.GetAlphamaps(64,100,1,1)[0,0,1],Is.GreaterThan(.95f),"Original regional snow paint persisted.");
                 Assert.That(instance.Rivers.CarvedTerrainData.GetAlphamaps(64,100,1,1)[0,0,1],Is.GreaterThan(.95f),"Carved terrain snow paint persisted.");
                 Assert.That(instance.Paths.GroundMaterial.GetColor("_BaseColor").r,Is.EqualTo(.55f).Within(.001));

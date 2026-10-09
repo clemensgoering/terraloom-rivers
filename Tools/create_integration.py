@@ -28,6 +28,8 @@ for name in ('Core', 'Paths', 'Rivers'):
 
 Open this project in Unity 6000.3.9f1. Tools > TerraLoom > Integration > Build Test Scene.
 Open Assets/TerraLoom/Integration/Generated/TerraLoomDynamic.unity and enter Play Mode.
+TerraLoomLandscape.unity adds stronger valley relief, connected road bends/branch and habitat profiles.
+The composition/seed inspectors expose ordered stages and input/output freshness checks.
 Same seed / Next seed rebuilds terrain, seed targets, regions, rivers, paths and regional assets at runtime.
 Tab switches to walking; WASD moves, mouse looks, Space jumps, Esc returns to the overview.
 The baked example works without generating on Start. Rebuild through the composition inspector.
