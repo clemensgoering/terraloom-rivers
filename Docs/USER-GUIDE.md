@@ -1,5 +1,11 @@
 # Rivers: Editor und Sample
 
+Der Planer rundet die Suchroute vor Bett-/Ufer-/Wasserplanung tangential und
+validiert den ganzen finalen Korridor erneut, einschliesslich Abflussgefaelle.
+Unmoegliche Kurven werden diagnostiziert statt als rohe Rasterkette publiziert.
+Gerade Taeler erhalten keine kuenstlichen Maeander. Inspector/Workbench zeigt
+Laenge, Punktzahl, Steigung und Richtungswechsel der finalen Wasserlinie.
+
 Ein `TerraLoomWorld` mit zugewiesenem Unity Terrain und zwei unterschiedlichen Zielen genÃ¼gt. Der Core-Terraingenerator ist optional; fremdes Terrain und Landschaftsbereiche ohne Biome sind zulÃ¤ssig. Terrain benÃ¶tigt EinheitsmaÃŸstab und unverÃ¤nderte Weltrotation. Im `TerraLoomRivers`-Inspector World sowie eigene Water-, Bed- und Bank-Materialien zuweisen. Automatische Quell-/MÃ¼ndungswahl nutzt Core-Ziele; alternativ `Automatic Source And Mouth` ausschalten und Verbindungen Ã¼ber stabile Ziel-IDs eintragen.
 
 `Generate` verwendet den Runtime-Planer. `Carve Terrain Copy` erzeugt eine TerrainData-Kopie und verbindet Terrain und TerrainCollider damit; das Originalasset bleibt unverÃ¤ndert. Wasser liegt bei GelÃ¤nde + 0,02 m, das Bett bei Wasser âˆ’ Depth. `Clear` entfernt die erzeugte Geometrie und stellt das Original wieder her. Ohne Copy-Carving bleibt das GelÃ¤nde unverÃ¤ndert: die Geometrie ist ein Overlay und kann vom GelÃ¤nde verdeckt werden. Wasser ist eine sichtbare OberflÃ¤che, keine StrÃ¶mungssimulation.

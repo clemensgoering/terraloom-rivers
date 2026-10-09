@@ -135,7 +135,9 @@ namespace TerraLoom.Integration
                     if(LandscapeMode)
                     {
                         world.ManualAnchors=new[] {
-                            Anchor("source",riverX,origin.z+4),Anchor("mouth",riverX,origin.z+92),
+                            // An offset source demonstrates a terrain-validated curved river instead
+                            // of adding visual noise to an otherwise straight valley-floor plan.
+                            Anchor("source",riverX+6,origin.z+4),Anchor("mouth",riverX,origin.z+92),
                             Anchor("west",origin.x+8,roadZ-16),Anchor("bend-west",origin.x+28,roadZ-8),
                             Anchor("bend-east",origin.x+72,roadZ+8),Anchor("east",origin.x+88,roadZ+16),
                             Anchor("hill",origin.x+12,origin.z+82) };

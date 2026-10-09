@@ -9,8 +9,10 @@ innerhalb einer Komposition sind kein Ersatz fuer den gemeinsamen Aufbau.
 
 Zusaetzlich `Generated/TerraLoomLandscape.unity` testen: gerichtetes Talrelief v2,
 vier verbundene Wegabschnitte mit Abzweig und separate Habitatprofile. Kein
-gebackenes Terrain; Play baut alles. Native Teststand: Core69+2, Paths14+2,
-Rivers7+1, Integration2+3 =100. Windows-Landschaftsplayer prueft drei Seeds
+gebackenes Terrain; Play baut alles. Finale Kurvenplanung samt geprueften
+Bruecken-Bodenanschluessen und versetzter Flussquelle ist aktiv.
+Native Teststand: Core74+2, Paths27+2, Rivers13+1, Integration2+3 =124.
+Windows-Kurvenplayer prueft drei Seeds
 mit je Fern-/Nah-/Spielerbild. Technischer Nachweis, Bildgestaltung weiterhin offen.
 
 ## v0.3: zuerst die dynamische Welt testen

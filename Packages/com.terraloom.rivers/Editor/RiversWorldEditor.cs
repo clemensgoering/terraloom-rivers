@@ -77,6 +77,12 @@ namespace TerraLoom.Rivers.Editor
             }
             if (!string.IsNullOrEmpty(message)) EditorGUILayout.HelpBox(message, MessageType.Info);
             if (!string.IsNullOrEmpty(rivers.Diagnostics)) EditorGUILayout.HelpBox(rivers.Diagnostics, MessageType.None);
+            if (rivers.LastPlan != null)
+            {
+                EditorGUILayout.LabelField("Final planned water centrelines", EditorStyles.boldLabel);
+                foreach (var route in rivers.LastPlan.Routes) RouteInspectionGUI.Draw(route.Request.Id, route.WaterPolyline);
+                EditorGUILayout.HelpBox("Measurements read the final water plan, not a separate smoothed preview. Full bed/bank validation remains the planner's responsibility.", MessageType.None);
+            }
         }
 
         private void Run(Action action)

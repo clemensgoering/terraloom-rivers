@@ -32,6 +32,10 @@ namespace TerraLoom.Tests
                     var routes=recipe.Composition.Paths.LastPlan.Routes;
                     Assert.That(routes,Has.Count.EqualTo(4));Assert.That(routes.Any(r=>r.Connection.Id=="hill-trail"),Is.True);
                     Assert.That(routes.Any(r=>r.Surfaces.Contains(PathSurface.Bridge)),Is.True);
+                    foreach(var route in routes)AssertNoRasterCorners(route.Waypoints,route.Connection.Id);
+                    var water=recipe.Composition.Rivers.LastPlan.Routes.Single().WaterPolyline;
+                    AssertNoRasterCorners(water,"river");
+                    for(int i=1;i<water.Count;i++)Assert.That(water[i].Y,Is.LessThanOrEqualTo(water[i-1].Y),"Final river rises after rounding.");
                     Assert.That(recipe.Decoration.PlacedCount,Is.GreaterThan(250));Assert.That(recipe.Decoration.RejectedCount,Is.GreaterThan(0));
                     Assert.That(recipe.Decoration.Profiles.All(p=>p.UseHabitat),Is.True);
                     Assert.That(recipe.Decoration.GeneratedRoot.GetComponentsInChildren<RegionalDecorationInstance>().All(m=>m.HabitatApplied),Is.True);
@@ -47,6 +51,18 @@ namespace TerraLoom.Tests
             }
             finally{if(scene.IsValid())SceneManager.UnloadSceneAsync(scene);}
             yield return null;yield return null;
+        }
+        private static void AssertNoRasterCorners(System.Collections.Generic.IReadOnlyList<WorldPoint> points,string name)
+        {
+            Assert.That(PlanarCurve.IsSimple(points),Is.True,name+" final centreline self-intersects.");
+            for(int i=1;i+1<points.Count;i++)
+            {
+                var a=points[i-1];var b=points[i];var c=points[i+1];
+                double ux=b.X-a.X,uz=b.Z-a.Z,vx=c.X-b.X,vz=c.Z-b.Z;
+                double product=System.Math.Sqrt((ux*ux+uz*uz)*(vx*vx+vz*vz));
+                Assert.That(product,Is.GreaterThan(1e-12),name+" duplicate samples.");
+                Assert.That((ux*vx+uz*vz)/product,Is.GreaterThanOrEqualTo(System.Math.Cos(15*System.Math.PI/180)-1e-9),name+" retained a raster corner.");
+            }
         }
     }
 }

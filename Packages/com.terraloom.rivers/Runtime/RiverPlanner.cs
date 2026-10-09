@@ -12,7 +12,8 @@ namespace TerraLoom.Rivers
     /// a read-only point sampler cannot prove the absence of arbitrarily narrow unsampled terrain features.</summary>
     public static class RiverPlanner
     {
-        public const string AlgorithmVersion = "rivers-grid-v1";
+        public const string AlgorithmVersion = "rivers-rounded-v2";
+        private const int MaximumCurvePoints = 16384;
 
         /// <summary>Selects one main river from manual or seeded Core anchors. Highest bed to lowest bed;
         /// equal mouth heights prefer greatest horizontal distance, then ordinal ID. Other anchors are not tributary requests.</summary>
@@ -98,7 +99,7 @@ namespace TerraLoom.Rivers
                     else
                     {
                         routes.Add(route); field.Add(route);
-                        outcome = RiverOutcome.Connected; detail = "Connected source to mouth; sampled full bed footprint, downhill water/bed and hard exclusions validated. Terrain unchanged.";
+                        outcome = RiverOutcome.Connected; detail = "Connected source to mouth with rounded authoritative geometry; final full bed/bank footprint, downhill water/bed and hard exclusions validated. Terrain unchanged.";
                     }
                 }
                 catch (Stop stop) { outcome = stop.Outcome; detail = stop.Message; }
@@ -127,7 +128,7 @@ namespace TerraLoom.Rivers
                     var chain = new List<Edge>();
                     for (int n = mouth; n != source; n = parents[n]) chain.Add(edges[n]);
                     chain.Reverse();
-                    return Build(request, chain, best[mouth], core, domain, f);
+                    return RoundAndBuild(request, chain, core, domain, f);
                 }
                 IEnumerable<int> neighbors = current.Node == source ? startLinks : f.Neighbors(current.Node);
                 if ((current.Node == source && Distance(start, end) <= f.Profile.CellSize * 2) || endLinks.Contains(current.Node))
@@ -150,6 +151,72 @@ namespace TerraLoom.Rivers
             return null;
         }
 
+        private static RiverRoute RoundAndBuild(RiverRequest request, List<Edge> chain, PlanIdentity core, string domain, Field field)
+        {
+            var work = field.Work; var p = field.Profile;
+            // Search links may coincide with anchors. Keep only geometric edges and their exact endpoints.
+            chain = chain.Where(e => e.Points.Length > 1).ToList();
+            var controls = new List<WorldPoint> { chain[0].Points[0] };
+            // At most sixteen candidate shortcuts per retained control. Full footprint validation and
+            // cost comparison preserve protection and the search's landscape/soft-reservation preference.
+            for (int first = 0; first < chain.Count;)
+            {
+                work.Check(); int chosen = first; double originalCost = 0;
+                int limit = Math.Min(chain.Count, first + 16);
+                for (int j = first; j < limit; j++) originalCost += chain[j].Cost;
+                for (int last = limit - 1; last > first; last--)
+                {
+                    var shortcut = field.TryEdge(controls[controls.Count - 1], chain[last].Points.Last());
+                    if (shortcut != null && shortcut.Cost <= originalCost + 1e-10 * Math.Max(1, originalCost))
+                    { chosen = last; break; }
+                    originalCost -= chain[last].Cost;
+                }
+                controls.Add(chain[chosen].Points.Last()); first = chosen + 1;
+                if (controls.Count > MaximumCurvePoints)
+                    throw new Stop(RiverOutcome.BudgetExceeded, "Rounded river control point budget exhausted.");
+            }
+            double spacing = Math.Min(p.SampleSpacing, Math.Min(p.Width / 4, p.CellSize / 4));
+            double radius = Math.Max((p.Width / 2 + p.BankWidth) * 3, p.CellSize);
+            if (!RiverHash.Positive(spacing))
+                throw new Stop(RiverOutcome.BudgetExceeded, "Rounded river spacing is below finite sampling resolution.");
+            for (int attempt = 0; attempt < 5; attempt++, radius *= .5)
+            {
+                work.Check();
+                IReadOnlyList<WorldPoint> curve;
+                bool rounded;
+                try
+                {
+                    rounded = PlanarCurve.TryRound(controls, radius, spacing, out curve, MaximumCurvePoints, work.Cancellation);
+                    if (rounded && !PlanarCurve.IsSimple(curve, 1000000, work.Cancellation))
+                    { field.Reject("rounded curve self intersection or comparison budget"); continue; }
+                }
+                catch (OperationCanceledException) { work.Check(); throw; }
+                work.Check();
+                if (!rounded)
+                { field.Reject("rounded curve sampling or geometry limits"); continue; }
+                if (curve.Count < 2 || curve.Count > MaximumCurvePoints
+                    || curve[0].X != controls[0].X || curve[0].Z != controls[0].Z
+                    || curve[curve.Count - 1].X != controls[controls.Count - 1].X
+                    || curve[curve.Count - 1].Z != controls[controls.Count - 1].Z)
+                { field.Reject("rounded curve invalid endpoints or point count"); continue; }
+                // Core's Y interpolation is not authoritative: TryEdge resamples actual terrain and
+                // validates every final bed/bank rectangle, downhill water/bed and excavation limits.
+                var final = new List<Edge>(); double cost = 0;
+                for (int i = 1; i < curve.Count; i++)
+                {
+                    work.Check(); var edge = field.TryEdge(curve[i - 1], curve[i]);
+                    if (edge == null) { final.Clear(); break; }
+                    final.Add(edge); cost += edge.Cost;
+                }
+                if (final.Count == curve.Count - 1 && RiverHash.Finite(cost))
+                {
+                    var built = Build(request, final, cost, core, domain, field);
+                    if (built != null) return built;
+                }
+            }
+            throw new Stop(RiverOutcome.NoRoute, "Rounded river rejected after five radius attempts; no sharp-corner fallback. " + field.Diagnostics);
+        }
+
         private static RiverRoute Build(RiverRequest request, List<Edge> edges, double cost, PlanIdentity core,
             string domain, Field field)
         {
@@ -162,8 +229,20 @@ namespace TerraLoom.Rivers
                 {
                     if (terrain.Count != 0 && Distance(terrain[terrain.Count - 1], point) == 0)
                     { bank[bank.Count - 1] = Math.Max(bank[bank.Count - 1], edge.BankHeight); continue; }
+                    if (terrain.Count >= MaximumCurvePoints)
+                        throw new Stop(RiverOutcome.BudgetExceeded, "Final river point budget exhausted.");
                     terrain.Add(point); bank.Add(edge.BankHeight);
                 }
+            }
+            // Check the actual authoritative samples, including joins between simplified straight
+            // spans and arcs. Numeric subdivision must never reintroduce a visible sharp heading.
+            for (int i = 2; i < terrain.Count; i++)
+            {
+                work.Check(); var a = terrain[i - 2]; var b = terrain[i - 1]; var c = terrain[i];
+                double cosine = ((b.X - a.X) * (c.X - b.X) + (b.Z - a.Z) * (c.Z - b.Z))
+                    / (Distance(a, b) * Distance(b, c));
+                if (!RiverHash.Finite(cosine) || cosine < Math.Cos(Math.PI / 12))
+                    throw new Stop(RiverOutcome.NoRoute, "Rounded river final heading exceeds 15 degrees; no sharp-corner fallback.");
             }
             var spans = new List<(int First, int Last)>();
             for (int first = 0; first < terrain.Count - 1;)
@@ -194,6 +273,12 @@ namespace TerraLoom.Rivers
                 left[i] = new WorldPoint(point.X - dz * radius, Math.Max(bank[i], level), point.Z + dx * radius);
                 right[i] = new WorldPoint(point.X + dz * radius, Math.Max(bank[i], level), point.Z - dx * radius);
             }
+            try
+            {
+                if (!RiverFootprint.IsValid(water, left, right, work.Cancellation))
+                { field.Reject("folded or self-overlapping river footprint"); return null; }
+            }
+            catch (OperationCanceledException) { work.Check(); throw; }
             var identity = new PlanIdentity(core.Seed, core.Revision, AlgorithmVersion, domain,
                 RiverHash.Digest(w => { RiverHash.Identity(w, core); w.Write(domain); }));
             var offers = new List<RiverOffer>();
@@ -252,6 +337,7 @@ namespace TerraLoom.Rivers
         {
             private readonly RiverProfile profile;
             private readonly CancellationToken cancellation;
+            internal CancellationToken Cancellation => cancellation;
             internal int Nodes, Samples;
             internal Work(RiverProfile profile, CancellationToken cancellation) { this.profile = profile; this.cancellation = cancellation; }
             internal void Check() { if (cancellation.IsCancellationRequested) throw new Stop(RiverOutcome.Cancelled, "Planning cancelled; no partial route published."); }

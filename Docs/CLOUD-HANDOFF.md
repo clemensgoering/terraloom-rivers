@@ -7,7 +7,7 @@ Aktueller Stand 09.10.2026: lokale Testversion v0.2. Siehe USER-GUIDE.md und INT
 Zuerst Flusskorridor, Wasserhoehen, Bett/Ufer, Schutzflaechen und Querungskandidaten mit Paths abstimmen. Dann einen minimalen Flussplaner bauen. Keine eigene Kopie des Core-Hoehen-/Regionsvertrags.
 Zunaechst Grundlagen/Vertraege und einen gemeinsamen kleinen Nachweis erarbeiten,
 keine vollstaendige Epos-Extraktion und keine Marketing-Reife behaupten.
-Die verbindliche Entscheidungssammlung liegt im [Core-Konzept](https://github.com/clemensgoering/terraloom-core/blob/972282d69b295d0fc3c816f5de50800ea487690a/Docs/CONCEPT.md); Epos-Herkunft dort in Docs/EPOS-TRANSFER.md. Core ist im Projektmanifest auf `972282d69b295d0fc3c816f5de50800ea487690a` gepinnt.
+Die verbindliche Entscheidungssammlung liegt im [Core-Konzept](https://github.com/clemensgoering/terraloom-core/blob/094e511a9dcf10abdbeb37b87aa85caa89317407/Docs/CONCEPT.md); Epos-Herkunft dort in Docs/EPOS-TRANSFER.md. Core ist im Projektmanifest auf `094e511a9dcf10abdbeb37b87aa85caa89317407` gepinnt.
 
 ## Verbindliche Entscheidungen aus dem lokalen Chat
 - Kostenloses Core = Hauptprojekt + Foundation; kein separates Pflicht-Foundation-Produkt.

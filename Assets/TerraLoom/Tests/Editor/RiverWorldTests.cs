@@ -73,6 +73,53 @@ namespace TerraLoom.Tests
             }
             var route=rivers.LastPlan.Routes.Single();
             for(int i=1;i<route.WaterPolyline.Count;i++) Assert.That(route.WaterPolyline[i].Y,Is.LessThanOrEqualTo(route.WaterPolyline[i-1].Y+1e-8));
+            AssertMeshesMatchPlan();
+        }
+        [Test] public void CurvedMeshesUseExactPlannedBanksAndTheirInterpolatedInnerRows()
+        {
+            rivers.Width=1; rivers.BankWidth=.25f; rivers.CarveTerrainCopy=false;
+            rivers.ProtectedAreas.Add(new RiverProtectionSettings { Id="curve-obstacle",Center=new Vector2(32,32),Size=new Vector2(8,8) });
+            host.transform.SetPositionAndRotation(new Vector3(3,2,-5),Quaternion.Euler(0,17,0));
+            host.transform.localScale=new Vector3(1.2f,1.1f,.9f);
+            Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics);
+            var route=rivers.LastPlan.Routes.Single();
+            Assert.That(route.WaterPolyline.Any(p=>Math.Abs(p.X-32)>4),Is.True,"Expected a curved obstacle detour.");
+            AssertMeshesMatchPlan();
+            Assert.Throws<ArgumentException>(()=>RiverGeometry.Build(route,rivers.Width,rivers.BankWidth,RiverGeometryRole.Banks,3));
+            Assert.Throws<OperationCanceledException>(()=>RiverGeometry.Build(route,rivers.Width,rivers.BankWidth,RiverGeometryRole.Water,cancellation:new CancellationToken(true)));
+        }
+
+        private void AssertMeshesMatchPlan()
+        {
+            var route=rivers.LastPlan.Routes.Single();
+            double half=(double)rivers.Width/2, ratio=half/(half+rivers.BankWidth);
+            foreach(var marker in rivers.GeneratedRoot.GetComponentsInChildren<RiverGeneratedGeometry>())
+            {
+                var vertices=marker.GetComponent<MeshFilter>().sharedMesh.vertices;
+                int columns=marker.Role==RiverGeometryRole.Banks?4:2;
+                Assert.That(vertices.Length,Is.EqualTo(route.WaterPolyline.Count*columns));
+                for(int i=0;i<route.WaterPolyline.Count;i++)
+                for(int c=0;c<columns;c++)
+                {
+                    var center=route.WaterPolyline[i];
+                    var bankPoint=c<columns/2?route.RightBankPolyline[i]:route.LeftBankPolyline[i];
+                    bool outer=marker.Role==RiverGeometryRole.Banks&&(c==0||c==3);
+                    var expected=outer?bankPoint:new WorldPoint(center.X+(bankPoint.X-center.X)*ratio,
+                        marker.Role==RiverGeometryRole.Water?center.Y:route.BedPolyline[i].Y,
+                        center.Z+(bankPoint.Z-center.Z)*ratio);
+                    var actual=marker.transform.TransformPoint(vertices[i*columns+c]);
+                    Assert.That(actual.x,Is.EqualTo((float)expected.X).Within(2e-5f),marker.Role+" X");
+                    Assert.That(actual.y,Is.EqualTo((float)expected.Y).Within(2e-5f),marker.Role+" Y");
+                    Assert.That(actual.z,Is.EqualTo((float)expected.Z).Within(2e-5f),marker.Role+" Z");
+                    if(!outer) continue;
+                    Assert.That(actual.y,Is.GreaterThanOrEqualTo((float)center.Y-2e-5f));
+                    if(i>0)
+                    {
+                        var previous=marker.transform.TransformPoint(vertices[(i-1)*columns+c]);
+                        Assert.That(actual.y,Is.LessThanOrEqualTo(previous.y+2e-5f),"Rendered bank rises downstream.");
+                    }
+                }
+            }
         }
         [Test] public void SeedTargetsUseSamePlannerAndRepeatExactly()
         {

@@ -9,9 +9,68 @@ namespace TerraLoom.Rivers.Unity
 {
     public enum RiverGeometryRole { Water, Bed, Banks }
 
-    /// <summary>Continuous mitered cross-sections, shared by runtime and editor. UVs are metres.</summary>
+    /// <summary>Continuous cross-sections, shared by runtime and editor. UVs are metres.</summary>
     public static class RiverGeometry
     {
+        /// <summary>Builds authoritative planned cross-sections without terrain resampling. Outer banks
+        /// retain their exact planned XYZ; inner rows interpolate bank XZ offsets at the bed/water ratio.
+        /// Width and bankWidth must match the profile used to validate this route.</summary>
+        public static Mesh Build(RiverRoute route, float width, float bankWidth, RiverGeometryRole role,
+            int vertexBudget = 1000000, CancellationToken cancellation = default)
+        {
+            if (route == null || !Finite(width) || width <= 0 || !Finite(bankWidth) || bankWidth < 0
+                || !Enum.IsDefined(typeof(RiverGeometryRole), role))
+                throw new ArgumentException("A planned river and finite dimensions required.");
+            var water = route.WaterPolyline; var bed = route.BedPolyline;
+            var left = route.LeftBankPolyline; var right = route.RightBankPolyline;
+            if (water.Count < 2 || bed.Count != water.Count || left.Count != water.Count || right.Count != water.Count)
+                throw new ArgumentException("Planned cross-section indices must align.");
+            int columns = role == RiverGeometryRole.Banks ? 4 : 2;
+            if ((long)water.Count * columns > vertexBudget || vertexBudget > 8000000)
+                throw new ArgumentException("River geometry exceeds its vertex budget.");
+            double half = (double)width / 2, outer = half + bankWidth, ratio = half / outer, along = 0;
+            var vertices = new List<Vector3>(); var uv = new List<Vector2>(); var indices = new List<int>();
+            for (int i = 0; i < water.Count; i++)
+            {
+                cancellation.ThrowIfCancellationRequested();
+                if (left[i].Y < water[i].Y || right[i].Y < water[i].Y
+                    || (i > 0 && (left[i].Y > left[i - 1].Y || right[i].Y > right[i - 1].Y)))
+                    throw new ArgumentException("Planned banks must stay above water and cannot rise downstream.");
+                if (i > 0)
+                {
+                    double dx = water[i].X - water[i - 1].X, dz = water[i].Z - water[i - 1].Z;
+                    double run = Math.Sqrt(dx * dx + dz * dz);
+                    if (double.IsNaN(run) || double.IsInfinity(run) || run <= 0)
+                        throw new ArgumentException("Invalid planned river segment.");
+                    along += run;
+                }
+                for (int c = 0; c < columns; c++)
+                {
+                    bool outerBank = role == RiverGeometryRole.Banks && (c == 0 || c == 3);
+                    var bank = c < columns / 2 ? right[i] : left[i];
+                    var point = outerBank ? bank : new WorldPoint(
+                        water[i].X + (bank.X - water[i].X) * ratio,
+                        role == RiverGeometryRole.Water ? water[i].Y : bed[i].Y,
+                        water[i].Z + (bank.Z - water[i].Z) * ratio);
+                    var vertex = V(point);
+                    if (!Finite(vertex.x) || !Finite(vertex.y) || !Finite(vertex.z) || !Finite((float)along))
+                        throw new ArgumentException("Planned river exceeds mesh numeric range.");
+                    float offset = (float)((c < columns / 2 ? -1 : 1) * (outerBank ? outer : half));
+                    vertices.Add(vertex); uv.Add(new Vector2(offset, (float)along));
+                }
+                if (i == 0) continue;
+                for (int c = 0; c < columns - 1; c++)
+                {
+                    if (role == RiverGeometryRole.Banks && c == 1) continue;
+                    int a = (i - 1) * columns + c, b = a + 1, d = i * columns + c, e = d + 1;
+                    indices.AddRange(new[] { a, b, d, b, e, d });
+                }
+            }
+            return Finish(vertices, uv, indices, role);
+        }
+
+        /// <summary>Legacy unplanned geometry helper. Reconstructs offsets and samples bank terrain;
+        /// provides no planner footprint or hydraulic guarantees. Production plans use the route overload.</summary>
         public static Mesh Build(IReadOnlyList<WorldPoint> points, IHeightSource terrain, float width,
             float depth, float bankWidth, RiverGeometryRole role, int vertexBudget = 1000000,
             CancellationToken cancellation = default)
@@ -61,6 +120,10 @@ namespace TerraLoom.Rivers.Unity
                     indices.AddRange(new[] { a, b, d, b, e, d });
                 }
             }
+            return Finish(vertices, uv, indices, role);
+        }
+        private static Mesh Finish(List<Vector3> vertices, List<Vector2> uv, List<int> indices, RiverGeometryRole role)
+        {
             var mesh = new Mesh { name = "River " + role, hideFlags = HideFlags.DontSave, indexFormat = vertices.Count > 65535 ? IndexFormat.UInt32 : IndexFormat.UInt16 };
             mesh.SetVertices(vertices); mesh.SetUVs(0, uv); mesh.SetUVs(1, uv);
             var colors = new Color[vertices.Count]; for (int i = 0; i < colors.Length; i++) colors[i] = Color.white;

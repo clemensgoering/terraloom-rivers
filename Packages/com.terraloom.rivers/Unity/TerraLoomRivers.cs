@@ -109,7 +109,7 @@ namespace TerraLoom.Rivers.Unity
                 foreach (var route in plan.Routes)
                 foreach (RiverGeometryRole role in Enum.GetValues(typeof(RiverGeometryRole)))
                 {
-                    var mesh = RiverGeometry.Build(route.WaterPolyline, input.Terrain.Heights, Width, Depth, BankWidth, role,
+                    var mesh = RiverGeometry.Build(route, Width, BankWidth, role,
                         MaximumGeometryVertices - vertices, cancellation); vertices += mesh.vertexCount;
                     var child = new GameObject(route.Request.Id + " " + role); child.transform.SetParent(staged.transform, false);
                     var marker = child.AddComponent<RiverGeneratedGeometry>();
