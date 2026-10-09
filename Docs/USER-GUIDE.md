@@ -1,5 +1,19 @@
 # Rivers: Editor und Sample
 
+Water, Bed und Banks sind gerenderte Meshes, Bed/Banks auch Collider. Sie
+verschwinden nach Carving nicht. CarveTerrainCopy senkt eine eigene Terrainkopie
+unter die geplanten Faces; Clear stellt die Quelle wieder her. Wasser liegt
+derzeit auf erfasster Mittenterrainhoehe+2cm; Depth senkt nur das Bett. Eine
+sichtbare Uferkante oberhalb des Wassers erfordert zusaetzliche Querschnitts-
+planung. Die einfache geneigte Demo zeigt noch keine landschaftliche Qualitaet.
+
+Rivers-v4 erzwingt einen abgetasteten Mindestradius auf finalen Terrain-Samples
+inkl. innerer Endzonen. MinimumBendRadius0=max(0.25m,Breite/2+BankWidth), positiv
+= Meter. Messarm=max(1m,Breite/2+BankWidth), nahe Enden symmetrisch gekuerzt.
+Fuenf bestehende Filletvorschlaege muessen Radius, Terrain, Downhill und Ufer-
+pruefung bestehen. Kein neuer Suchretry und keine kontinuierliche Garantie.
+Profil-v2/neue Algorithmusversion: alte Plaene aus dem Rezept neu generieren.
+
 Lokale Uferplanung (`rivers-local-banks-v3`): sichtbare Bankpunkte folgen dem
 erfassten Terrain, waehrend Querungen eine separate konservative Hoehenhuelle
 verwenden. Wasser/Bett fallen stromabwaerts; lokale Ufer duerfen steigen.

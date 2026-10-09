@@ -1,6 +1,6 @@
 {
   "module": "Rivers",
   "coreRepository": "https://github.com/clemensgoering/terraloom-core.git",
-  "coreCommit": "ac37d9b5c4fd6aa429d64f046dfdcb7094562831",
-  "corePackageUrl": "https://github.com/clemensgoering/terraloom-core.git?path=/Packages/com.terraloom.core#ac37d9b5c4fd6aa429d64f046dfdcb7094562831"
+  "coreCommit": "2d35ab21401870692fde11028e71147cc2327e2f",
+  "corePackageUrl": "https://github.com/clemensgoering/terraloom-core.git?path=/Packages/com.terraloom.core#2d35ab21401870692fde11028e71147cc2327e2f"
 }

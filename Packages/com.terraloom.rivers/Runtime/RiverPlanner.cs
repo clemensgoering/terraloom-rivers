@@ -12,7 +12,7 @@ namespace TerraLoom.Rivers
     /// a read-only point sampler cannot prove the absence of arbitrarily narrow unsampled terrain features.</summary>
     public static class RiverPlanner
     {
-        public const string AlgorithmVersion = "rivers-local-banks-v3";
+        public const string AlgorithmVersion = "rivers-sampled-radius-v4";
         private const int MaximumCurvePoints = 16384;
 
         /// <summary>Selects one main river from manual or seeded Core anchors. Highest bed to lowest bed;
@@ -176,7 +176,7 @@ namespace TerraLoom.Rivers
                     throw new Stop(RiverOutcome.BudgetExceeded, "Rounded river control point budget exhausted.");
             }
             double spacing = Math.Min(p.SampleSpacing, Math.Min(p.Width / 4, p.CellSize / 4));
-            double radius = Math.Max((p.Width / 2 + p.BankWidth) * 3, p.CellSize);
+            double radius = Math.Max(p.MinimumBendRadius * 2, Math.Max((p.Width / 2 + p.BankWidth) * 3, p.CellSize));
             if (!RiverHash.Positive(spacing))
                 throw new Stop(RiverOutcome.BudgetExceeded, "Rounded river spacing is below finite sampling resolution.");
             for (int attempt = 0; attempt < 5; attempt++, radius *= .5)
@@ -243,6 +243,22 @@ namespace TerraLoom.Rivers
                     / (Distance(a, b) * Distance(b, c));
                 if (!RiverHash.Finite(cosine) || cosine < Math.Cos(Math.PI / 12))
                     throw new Stop(RiverOutcome.NoRoute, "Rounded river final heading exceeds 15 degrees; no sharp-corner fallback.");
+            }
+            // Use final terrain-resampled XZ stations, including end zones; no unknown external directions.
+            if (terrain.Count > 2)
+            {
+                double arm = Math.Max(1, p.Width / 2 + p.BankWidth);
+                RouteBendMeasurement bend; bool measured;
+                try { measured = RouteBendInspection.TryMeasureWithEndpoints(terrain, arm, out bend,
+                    MaximumCurvePoints, work.Cancellation); }
+                catch (OperationCanceledException) { work.Check(); throw; }
+                if (!measured)
+                { field.Reject("sampled bend radius measurement failed"); return null; }
+                if (bend.MinimumRadius + 1e-8 * Math.Max(1, p.MinimumBendRadius) < p.MinimumBendRadius)
+                {
+                    field.Reject(FormattableString.Invariant($"sampled bend radius {bend.MinimumRadius:R} m at vertex {bend.MinimumRadiusVertex} below required {p.MinimumBendRadius:R} m"));
+                    return null;
+                }
             }
             var spans = new List<(int First, int Last)>();
             for (int first = 0; first < terrain.Count - 1;)

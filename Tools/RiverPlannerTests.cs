@@ -225,6 +225,21 @@ internal static class RiverPlannerTests
             var spy = new Writer(); var input = Input(terrainOverride: new TerrainSnapshot("world", 1, "metres", new FlatHeightSource(0), spy));
             var plan = Plan(input); Require(plan.Complete && spy.Calls == 0, "Planner modified terrain.");
         });
+        Check("sampled radius profile and final detour are enforced without a sharp fallback", () =>
+        {
+            var p=new RiverProfile(); Near(p.MinimumBendRadius,2);
+            Require(p.Fingerprint==new RiverProfile(minimumBendRadius:2).Fingerprint,"Effective identity differs.");
+            Require(p.Fingerprint!=new RiverProfile(minimumBendRadius:3).Fingerprint,"Radius omitted from identity.");
+            foreach(double invalid in new[]{-1,double.NaN,double.PositiveInfinity})
+                Throws<ArgumentException>(()=>new RiverProfile(minimumBendRadius:invalid));
+            var area=new AreaReservation("radius-obstacle","world",new WorldBounds(-1,-1,1,1),ReservationStrength.Hard,ReservationPurpose.ProtectedArea);
+            var input=Input(areas:new[]{area}); var plan=Plan(input,p); Require(plan.Complete,Detail(plan));
+            var points=plan.Routes.Single().WaterPolyline;
+            Require(RouteBendInspection.TryMeasureWithEndpoints(points,2,out var bend),"No final radius measurement.");
+            Require(bend.MeasuredVertices==points.Count-2 && bend.MinimumRadius>=p.MinimumBendRadius-1e-8,"Final radius gate violated.");
+            var impossible=Plan(input,new RiverProfile(minimumBendRadius:1000));
+            Require(!impossible.Complete && impossible.Routes.Count==0 && Detail(impossible).Contains("sampled bend radius"),Detail(impossible));
+        });
         Console.WriteLine("RiverPlanner: " + passed + " passed, " + failed + " failed.");
         return failed == 0 ? 0 : 1;
     }

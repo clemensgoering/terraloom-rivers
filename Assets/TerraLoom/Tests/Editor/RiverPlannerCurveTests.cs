@@ -147,6 +147,39 @@ namespace TerraLoom.Tests
             }
         }
 
+        [Test] public void RadiusProfileHasAutomaticEffectiveIdentityAndRejectsInvalidLimits()
+        {
+            Assert.That(new RiverProfile().MinimumBendRadius,Is.EqualTo(2));
+            Assert.That(new RiverProfile(width:.1,bankWidth:0).MinimumBendRadius,Is.EqualTo(.25));
+            Assert.That(new RiverProfile().Fingerprint,Is.EqualTo(new RiverProfile(minimumBendRadius:2).Fingerprint));
+            Assert.That(new RiverProfile().Fingerprint,Is.Not.EqualTo(new RiverProfile(minimumBendRadius:3).Fingerprint));
+            foreach(double invalid in new[]{-1,double.NaN,double.PositiveInfinity})
+                Assert.Throws<ArgumentException>(()=>new RiverProfile(minimumBendRadius:invalid));
+        }
+
+        [Test] public void FinalObstacleRoutePassesTheConfiguredRadiusAtEveryInteriorStation()
+        {
+            var p=new RiverProfile(allowExcavation:true);
+            var plan=RiverPlanner.Plan(Input(new Height(Terrain),true).BaseSnapshot,p,Bounds,Requests);
+            Assert.That(plan.Complete,Is.True,Detail(plan));
+            var points=plan.Routes.Single().WaterPolyline;
+            Assert.That(RouteBendInspection.TryMeasureWithEndpoints(points,Math.Max(1,p.Width/2+p.BankWidth),out var bend),Is.True);
+            Assert.That(bend.MeasuredVertices,Is.EqualTo(points.Count-2));
+            Assert.That(bend.MinimumRadius,Is.GreaterThanOrEqualTo(p.MinimumBendRadius-1e-8));
+        }
+
+        [Test] public void ImpossibleRadiusRejectsAllFiveProposalsWithoutSharpFallback()
+        {
+            var p=new RiverProfile(allowExcavation:true,minimumBendRadius:1000);
+            var input=Input(new Height(Terrain),true);
+            var plan=RiverPlanner.Plan(input.BaseSnapshot,p,Bounds,Requests);
+            Assert.That(plan.Routes,Is.Empty); Assert.That(plan.Complete,Is.False);
+            Assert.That(plan.Reports.Single().Outcome,Is.EqualTo(RiverOutcome.NoRoute));
+            Assert.That(Detail(plan),Does.Contain("sampled bend radius").And.Contain("five radius attempts"));
+            var repeat=RiverPlanner.Plan(input.BaseSnapshot,p,Bounds,Requests);
+            Assert.That(Detail(repeat),Is.EqualTo(Detail(plan)));
+        }
+
         private static double Terrain(double x, double z) => 2 - .02 * x - .0005 * x * x;
         private static double Distance(WorldPoint a, WorldPoint b) => Math.Sqrt((b.X - a.X) * (b.X - a.X) + (b.Z - a.Z) * (b.Z - a.Z));
         private static string Detail(RiverPlan plan) => string.Join(" | ", plan.Reports.Select(r => r.Outcome + ": " + r.Detail));

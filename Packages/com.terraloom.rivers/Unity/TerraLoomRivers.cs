@@ -30,6 +30,8 @@ namespace TerraLoom.Rivers.Unity
         public bool AutomaticSourceAndMouth = true;
         public List<RiverConnectionSettings> Connections = new List<RiverConnectionSettings>();
         [Min(.1f)] public float Width = 4, Depth = .6f, BankWidth = 2, CellSize = 2;
+        [Tooltip("Minimum sampled XZ centreline radius in metres. Zero selects max(0.25 m, half width + bank width). External endpoint directions and continuous curvature are not certified.")]
+        [Min(0)] public float MinimumBendRadius;
         [Min(0)] public float MaximumSlope = .3f, BridgeClearance = 1;
         [Min(.05f)] public float SampleSpacing = .5f;
         public int MaximumNodes = 65536, TotalSearchBudget = 250000, TotalSampleBudget = 4000000;
@@ -53,7 +55,8 @@ namespace TerraLoom.Rivers.Unity
 
         public RiverProfile CaptureProfile() => new RiverProfile(Width, Depth, BankWidth, CellSize, MaximumSlope,
             SampleSpacing, MaximumNodes, TotalSearchBudget, TotalSampleBudget, bridgeClearance: BridgeClearance,
-            regionCosts: RegionCosts.Select(r => new RiverRegionCost(r.RegionId, r.CostPerMetre)), allowExcavation: CarveTerrainCopy);
+            regionCosts: RegionCosts.Select(r => new RiverRegionCost(r.RegionId, r.CostPerMetre)), allowExcavation: CarveTerrainCopy,
+            minimumBendRadius: MinimumBendRadius);
 
         public PlanSnapshot CaptureInput(out WorldBounds bounds, out IReadOnlyList<RiverRequest> requests)
         {

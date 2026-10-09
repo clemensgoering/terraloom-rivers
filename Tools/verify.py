@@ -38,10 +38,18 @@ def run():
     assert assembly['noEngineReferences'] is True
     if module != 'Core':
         core_dep = manifest['dependencies']['com.terraloom.core']
-        assert core_dep == cfg['corePackageUrl'], 'Core pin mismatch'
-        assert re.search(r'#[a-f0-9]{40}$', core_dep), 'Core must be pinned to a commit'
+        assert re.search(r'#[a-f0-9]{40}$', cfg['corePackageUrl']), 'Published Core must be pinned to a commit'
+        if core_dep.startswith('file:') and args.development_core:
+            actual = (root / 'Packages' / core_dep[5:]).resolve()
+            expected = args.development_core.resolve() / 'Packages/com.terraloom.core'
+            assert actual == expected, 'Local manifest must match the explicit development Core'
+        else:
+            assert core_dep == cfg['corePackageUrl'], 'Core pin mismatch'
         locked_core = json.loads((root / 'Packages/packages-lock.json').read_text())['dependencies']['com.terraloom.core']
-        assert locked_core['hash'] == cfg['coreCommit'] and locked_core['version'] == core_dep, 'Core lockfile pin mismatch'
+        if core_dep.startswith('file:') and args.development_core:
+            assert locked_core.get('source') == 'local' and locked_core['version'] == core_dep, 'Local Core lockfile mismatch; resolve packages in Unity'
+        else:
+            assert locked_core.get('hash') == cfg['coreCommit'] and locked_core['version'] == core_dep, 'Core lockfile pin mismatch'
         assert 'TerraLoom.Core.Runtime' in assembly['references']
         assert 'com.terraloom.paths' not in manifest['dependencies']
         assert 'com.terraloom.rivers' not in manifest['dependencies']

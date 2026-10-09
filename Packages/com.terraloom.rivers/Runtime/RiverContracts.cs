@@ -29,6 +29,8 @@ namespace TerraLoom.Rivers
     public sealed class RiverProfile
     {
         public double Width { get; }
+        /// <summary>Minimum sampled XZ centreline radius; zero constructor input selects half width plus bank width, at least 0.25 m.</summary>
+        public double MinimumBendRadius { get; }
         public double Depth { get; }
         public double BankWidth { get; }
         public double CellSize { get; }
@@ -48,12 +50,13 @@ namespace TerraLoom.Rivers
             double maximumSlope = .5, double sampleSpacing = .5, int maximumNodes = 100000,
             int totalSearchBudget = 250000, int totalSampleBudget = 2000000, double bankTransitionCost = 2,
             double bridgeClearance = 1, IEnumerable<RiverRegionCost> regionCosts = null, double surfaceOffset = .02,
-            bool allowExcavation = false)
+            bool allowExcavation = false, double minimumBendRadius = 0)
         {
             if (!RiverHash.Positive(width) || !RiverHash.Positive(depth) || !RiverHash.Nonnegative(bankWidth)
                 || !RiverHash.Positive(cellSize) || !RiverHash.Nonnegative(maximumSlope) || !RiverHash.Positive(sampleSpacing)
                 || !RiverHash.Nonnegative(bankTransitionCost) || !RiverHash.Nonnegative(bridgeClearance) || !RiverHash.Nonnegative(surfaceOffset)
-                || !RiverHash.Finite(width / 2 + bankWidth) || maximumNodes < 4 || maximumNodes > 2000000
+                || !RiverHash.Finite(width / 2 + bankWidth) || !RiverHash.Nonnegative(minimumBendRadius)
+                || maximumNodes < 4 || maximumNodes > 2000000
                 || totalSearchBudget < 1 || totalSearchBudget > 5000000 || totalSampleBudget < 1 || totalSampleBudget > 100000000)
                 throw new ArgumentException("Invalid river profile or bounded work limits.");
             Width = width; Depth = depth; BankWidth = bankWidth; CellSize = cellSize; MaximumSlope = maximumSlope;
@@ -61,13 +64,14 @@ namespace TerraLoom.Rivers
             TotalSampleBudget = totalSampleBudget; BankTransitionCost = bankTransitionCost; BridgeClearance = bridgeClearance;
             SurfaceOffset = surfaceOffset;
             AllowExcavation = allowExcavation;
+            MinimumBendRadius = minimumBendRadius == 0 ? Math.Max(.25, width / 2 + bankWidth) : minimumBendRadius;
             var costs = (regionCosts ?? Array.Empty<RiverRegionCost>()).ToArray();
             if (costs.Any(c => c == null) || costs.Select(c => c.RegionId).Distinct(StringComparer.Ordinal).Count() != costs.Length)
                 throw new ArgumentException("Unique nonnull region costs required.");
             RegionCosts = Array.AsReadOnly(costs.OrderBy(c => c.RegionId, StringComparer.Ordinal).ToArray());
             Fingerprint = RiverHash.Digest(w =>
             {
-                w.Write("rivers-profile-v1");
+                w.Write("rivers-profile-v2"); RiverHash.Number(w, MinimumBendRadius);
                 foreach (double n in new[] { Width, Depth, BankWidth, CellSize, MaximumSlope, SampleSpacing, BankTransitionCost, BridgeClearance, SurfaceOffset }) RiverHash.Number(w, n);
                 w.Write(AllowExcavation);
                 w.Write(MaximumNodes); w.Write(TotalSearchBudget); w.Write(TotalSampleBudget); w.Write(RegionCosts.Count);

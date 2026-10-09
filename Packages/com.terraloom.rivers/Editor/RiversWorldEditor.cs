@@ -25,11 +25,13 @@ namespace TerraLoom.Rivers.Editor
             }
             WorldInspectorSections.Draw(serializedObject, "rivers.core", "Core link / startup", true, "World", "GenerateOnStart");
             WorldInspectorSections.Draw(serializedObject, "rivers.targets", "Targets / network", true, "AutomaticSourceAndMouth", "Connections");
-            WorldInspectorSections.Draw(serializedObject, "rivers.shape", "Shape / grade", true, "Width", "Depth", "BankWidth", "MaximumSlope", "BridgeClearance", "CarveTerrainCopy");
+            WorldInspectorSections.Draw(serializedObject, "rivers.shape", "Shape / grade", true, "Width", "Depth", "BankWidth", "MinimumBendRadius", "MaximumSlope", "BridgeClearance", "CarveTerrainCopy");
             WorldInspectorSections.Draw(serializedObject, "rivers.regions", "Regions / protected", true, "RegionCosts", "ProtectedAreas");
             WorldInspectorSections.Draw(serializedObject, "rivers.materials", "Materials", true, "WaterMaterial", "BedMaterial", "BankMaterial");
             WorldInspectorSections.Draw(serializedObject, "rivers.budgets", "Budgets", false, "CellSize", "SampleSpacing", "MaximumNodes", "TotalSearchBudget", "TotalSampleBudget", "MaximumGeometryVertices");
             serializedObject.ApplyModifiedProperties();
+            EditorGUILayout.HelpBox("Rendered output: Water is the water surface. Bed and Banks are visible channel meshes with colliders; they are not temporary carving guides. Depth lowers the bed below water. Water level currently follows captured centre terrain + 2 cm; Depth does not lower the water surface. This does not create bank freeboard by itself.", MessageType.Info);
+            EditorGUILayout.LabelField("Terrain mode", rivers.CarveTerrainCopy ? "Excavation on an owned terrain copy; Clear restores the source" : "Mesh overlay; source terrain heights remain unchanged");
             EditorGUILayout.HelpBox("Assign a Core world and Terrain (foreign Terrain supported). Generate carves a copy when enabled; Clear restores the original. Bake before saving generated content.", MessageType.Info);
             EditorGUILayout.HelpBox("Visible bank seams follow local captured terrain; crossing offers keep a separate conservative clearance envelope. Excavation follows the final channel triangles, never fills terrain, and is capped at twice Depth plus 2 cm clearance. Brown live scene lines show the actual planned bank seams.", MessageType.Info);
             using (new EditorGUI.DisabledScope(EditorApplication.isPlayingOrWillChangePlaymode))
