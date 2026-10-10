@@ -52,8 +52,15 @@ namespace TerraLoom.Rivers
             double siteStation=sx*fx+sz*fz,offAxis=Math.Abs(sx*ax+sz*az);
             double support=Math.Max(.125,Math.Min(.25,profile.SampleSpacing));
             double poolStation=profile.Width,outletStation=2*profile.Width,lowerMin=profile.Width;
-            double poolStepsRaw=Math.Ceiling((outletStation+lowerMin-support)/Math.Min(profile.SampleSpacing,.5));
-            if(!RiverHash.Finite(poolStepsRaw)||poolStepsRaw>profile.TotalSampleBudget)
+            double poolExtent=outletStation+lowerMin-support;
+            // A valid ordinary river can be arbitrarily narrow. A fall additionally needs
+            // resolvable lip support and distinct physical pool/sill stations.
+            if(!RiverHash.Finite(poolExtent)||!RiverHash.Finite(profile.Width*1.35)
+                ||profile.Width<2*support||poolStation<=.01||outletStation<=poolStation+.01
+                ||poolExtent<=0)
+            {diagnostic="Fall minimum footprint: lip support and ordered pool/outlet stations need more width.";return false;}
+            double poolStepsRaw=Math.Ceiling(poolExtent/Math.Min(profile.SampleSpacing,.5));
+            if(!RiverHash.Finite(poolStepsRaw)||poolStepsRaw<1||poolStepsRaw>profile.TotalSampleBudget)
             {diagnostic="Fall pool/outlet inspection exceeds the terrain sample budget.";return false;}
             if(offAxis>1e-6||siteStation<profile.Width+support||length-siteStation<outletStation+lowerMin)
             {diagnostic="Fall site is off the straight request axis or lacks upstream/pool/outlet/lower reach space.";return false;}
@@ -100,9 +107,15 @@ namespace TerraLoom.Rivers
             double high=upper+profile.SurfaceOffset-profile.WaterInset;
             double low=lower+profile.SurfaceOffset-profile.WaterInset;
             WorldPoint OnAxis(double station,double y)=>new WorldPoint(centre.X+fx*station,y,centre.Z+fz*station);
-            var recipe=new WaterfallRecipe(OnAxis(0,high),OnAxis(0,low),OnAxis(poolStation,low),OnAxis(outletStation,low),
-                fx,fz,profile.Width,profile.Width*1.35,profile.Depth,profile.Depth*1.3,profile.Depth*.7,
-                upstreamSlope:0,downstreamSlope:0,outletTransitionLength:profile.Width);
+            WaterfallRecipe recipe;
+            try
+            {
+                recipe=new WaterfallRecipe(OnAxis(0,high),OnAxis(0,low),OnAxis(poolStation,low),OnAxis(outletStation,low),
+                    fx,fz,profile.Width,profile.Width*1.35,profile.Depth,profile.Depth*1.3,profile.Depth*.7,
+                    upstreamSlope:0,downstreamSlope:0,outletTransitionLength:profile.Width);
+            }
+            catch(ArgumentException error)
+            {diagnostic="Fall recipe is outside bounded geometry: "+error.Message;return false;}
             candidate=new RiverFallCandidate(source.Identity,request,
                 new WorldPoint(start.Position.X,high,start.Position.Z),
                 new WorldPoint(end.Position.X,low,end.Position.Z),recipe);

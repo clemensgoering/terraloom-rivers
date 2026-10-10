@@ -158,6 +158,27 @@ internal static class RiverPlannerTests
             Require(!RiverFallCandidatePlanner.TryCreate(input.BaseSnapshot,stale,Bounds,request,p,out var candidate,out var reason)
                 && candidate==null&&reason.Contains("Stale"),"Stale revision accepted.");
         });
+        Check("valid narrow river profiles reject undersized fall pool without exception or zero-step division", () =>
+        {
+            var input=FallInput();var request=FallRequest();
+            foreach(double width in new[]{.0001,.01,.02,.1,.49})
+            {
+                var profile=new RiverProfile(width:width,maximumSlope:.5,allowExcavation:true);
+                Require(!RiverFallCandidatePlanner.TryCreate(input.BaseSnapshot,input.Identity,Bounds,request,profile,
+                    out var candidate,out var reason)&&candidate==null&&reason.Contains("minimum footprint"),
+                    "Narrow fall width "+width+" lacked deterministic footprint diagnosis: "+reason);
+                var plan=Plan(input,profile,new[]{request});
+                Require(!plan.Complete&&plan.FallCandidates.Count==0&&plan.Reports.Single().Outcome==RiverOutcome.NoRoute
+                    &&Detail(plan).Contains("minimum footprint"),"Narrow fall entered publication: "+Detail(plan));
+            }
+            var supported=new RiverProfile(width:.5,maximumSlope:.5,allowExcavation:true);
+            Require(RiverFallCandidatePlanner.TryCreate(input.BaseSnapshot,input.Identity,Bounds,request,supported,
+                out var accepted,out var detail)&&accepted!=null, "Minimum supported fall width rejected: "+detail);
+            var tinyBudget=new RiverProfile(width:2,maximumSlope:.5,allowExcavation:true,totalSampleBudget:1);
+            Require(!RiverFallCandidatePlanner.TryCreate(input.BaseSnapshot,input.Identity,Bounds,request,tinyBudget,
+                out var budgetCandidate,out var budgetReason)&&budgetCandidate==null&&budgetReason.Contains("sample budget"),
+                "Pool sample budget did not reject before iteration/division: "+budgetReason);
+        });
         Check("water is checked across bed width, not merely along centre", () =>
         {
             var input = Input(new Height((x, z) => Math.Abs(z) > .4 ? 3 : 0));

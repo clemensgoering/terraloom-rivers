@@ -7,6 +7,7 @@ PASS uphill, excessive slope and interior ridge never become successful rivers
 PASS explicit fall anchor at six-metre vertical step cannot enter current RiverRoute
 PASS opt-in fall creates one typed non-publishable six-metre candidate with stable identity
 PASS fall candidate rejects unsupported bank, blocked pool, short lower reach and stale source
+PASS valid narrow river profiles reject undersized fall pool without exception or zero-step division
 PASS water is checked across bed width, not merely along centre
 PASS explicit excavation permits bounded diagonal cross slopes without weakening hydraulics
 PASS missing target, missing terrain, outside endpoint and full bank bounds report separately
@@ -19,4 +20,4 @@ PASS height writers are never invoked, even when terrain exposes write capabilit
 PASS sampled radius profile and final detour are enforced without a sharp fallback
 PASS inset water intersects the banks and exports conservative wet protection
 PASS terrain brush shares masks, identity and conservative raster support offers
-RiverPlanner: 21 passed, 0 failed.
+RiverPlanner: 22 passed, 0 failed.
