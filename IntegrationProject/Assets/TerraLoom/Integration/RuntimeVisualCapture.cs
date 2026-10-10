@@ -103,11 +103,11 @@ namespace TerraLoom.Integration
             if(!result.Acceptable)Debug.LogWarning("TERRALOOM_WATER_TERRAIN_NOT_ACCEPTED "+result);
         }
 
-        public static void Save(Camera camera,string path)
+        public static void Save(Camera camera,string path,int width=1440,int height=900)
         {
             if(!camera)throw new InvalidOperationException("A runtime camera is required.");
-            var target=new RenderTexture(1440,900,24,RenderTextureFormat.ARGB32);
-            var pixels=new Texture2D(1440,900,TextureFormat.RGB24,false);var previous=RenderTexture.active;
+            var target=new RenderTexture(width,height,24,RenderTextureFormat.ARGB32);
+            var pixels=new Texture2D(width,height,TextureFormat.RGB24,false);var previous=RenderTexture.active;
             try
             {
                 target.Create();var request=new UniversalRenderPipeline.SingleCameraRequest{destination=target};

@@ -19,6 +19,11 @@ namespace TerraLoom.Integration.Editor
             WaterfallLandscapeBuilder.BuildBatch();
             Build("TerraLoomWaterfallPrototype","PlayerWaterfallPrototype");
         }
+        public static void BuildWaterfallComparisonBatch()
+        {
+            WaterfallLandscapeBuilder.BuildComparisonBatch();
+            Build("TerraLoomWaterfallComparison","PlayerWaterfallComparison");
+        }
         public static void BuildBrushCrossingBatch()
         {
             IntegrationSampleBuilder.BuildBrushBatch();

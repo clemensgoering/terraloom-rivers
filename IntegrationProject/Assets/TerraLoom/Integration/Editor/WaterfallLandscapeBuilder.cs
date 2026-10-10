@@ -17,6 +17,18 @@ namespace TerraLoom.Integration.Editor
         public const string Scene=IntegrationSampleBuilder.Root+"/TerraLoomWaterfallPrototype.unity";
         [MenuItem("Tools/TerraLoom/Integration/Build Waterfall Landscape Prototype")]
         public static void Interactive(){if(EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())BuildBatch();}
+        [MenuItem("Tools/TerraLoom/Integration/Build Anchored Waterfall Comparison")]
+        public static void ComparisonInteractive(){if(EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())BuildComparisonBatch();}
+        public static void BuildComparisonBatch()
+        {
+            BuildBatch();
+            var recipe=UnityEngine.Object.FindFirstObjectByType<WaterfallLandscapePrototype>();recipe.ComparisonRecipe=true;
+            recipe.WaterMaterial=Save(new Material(recipe.WaterMaterial){name="V1 comparison pool water"},"ComparisonWater.mat");
+            recipe.FallMaterial=Save(new Material(recipe.FallMaterial){name="V1 comparison fall water"},"ComparisonFall.mat");
+            recipe.WaterMaterial.SetFloat("_ImpactZ",86.7f);recipe.FallMaterial.SetFloat("_ImpactZ",86.7f);
+            Camera.main.fieldOfView=55;AssetDatabase.SaveAssets();
+            EditorSceneManager.SaveScene(recipe.gameObject.scene,IntegrationSampleBuilder.Root+"/TerraLoomWaterfallComparison.unity");
+        }
         public static void BuildBatch()
         {
             Directory.CreateDirectory(Root);AssetDatabase.Refresh();

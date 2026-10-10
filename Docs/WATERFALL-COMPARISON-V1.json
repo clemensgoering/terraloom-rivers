@@ -1,0 +1,4203 @@
+{
+    "schemaVersion": 1,
+    "profileVersion": 1,
+    "seed": 4102026,
+    "imageWidth": 1600,
+    "imageHeight": 1000,
+    "recipeRevision": "anchored-waterfall-v1-r2",
+    "terrainPatch": "waterfall-comparison-v1-4102026-terrain.json",
+    "units": "metres",
+    "status": "Proposed common V1 profile; not renderer selection, rights, navigation or art acceptance",
+    "stationConvention": "Station0 at lip localZ=-1; station=localZ+1 increases downstream",
+    "fallBasis": "Monotone cubic Hermite Y over horizontal station; derivative at lip=-upstreamSlope, impact=0",
+    "originWorld": [
+        80.0,
+        12.4,
+        89.0
+    ],
+    "yawDegrees": 180.0,
+    "lipLocal": [
+        0.0,
+        3.1999999999999995,
+        -1.0
+    ],
+    "impactLocal": [
+        0.0,
+        0.0,
+        2.299999999999997
+    ],
+    "poolLocal": [
+        0.0,
+        0.0,
+        4.0
+    ],
+    "outletSillLocal": [
+        0.0,
+        0.0,
+        8.0
+    ],
+    "receivingJoinLocal": [
+        0.0,
+        0.0,
+        17.0
+    ],
+    "upperLevel": 15.6,
+    "lowerLevel": 12.4,
+    "upperLevelLocal": 3.1999999999999995,
+    "lowerLevelLocal": 0.0,
+    "channelWidth": 3.0,
+    "poolWidth": 4.2,
+    "channelDepth": 0.75,
+    "poolDepth": 1.1,
+    "sillDepth": 0.5,
+    "upstreamSlope": 0.012,
+    "downstreamSlope": 0.0,
+    "outletTransitionLength": 3.0,
+    "impactStation": 3.299999999999997,
+    "poolStation": 5.0,
+    "sillStation": 9.0,
+    "receivingJoinStation": 18.0,
+    "stations": [
+        {
+            "station": -18.0,
+            "surfaceLocal": [
+                0.0,
+                3.4159999999999988,
+                -19.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -17.9,
+            "surfaceLocal": [
+                0.0,
+                3.4147999999999998,
+                -18.900000000000007
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -17.8,
+            "surfaceLocal": [
+                0.0,
+                3.413599999999999,
+                -18.799999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -17.7,
+            "surfaceLocal": [
+                0.0,
+                3.4124,
+                -18.700000000000004
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -17.6,
+            "surfaceLocal": [
+                0.0,
+                3.411199999999999,
+                -18.599999999999996
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -17.5,
+            "surfaceLocal": [
+                0.0,
+                3.41,
+                -18.5
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -17.4,
+            "surfaceLocal": [
+                0.0,
+                3.4087999999999996,
+                -18.400000000000007
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -17.3,
+            "surfaceLocal": [
+                0.0,
+                3.4075999999999988,
+                -18.299999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -17.2,
+            "surfaceLocal": [
+                0.0,
+                3.4063999999999998,
+                -18.200000000000004
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -17.1,
+            "surfaceLocal": [
+                0.0,
+                3.405199999999999,
+                -18.099999999999996
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -17.0,
+            "surfaceLocal": [
+                0.0,
+                3.404,
+                -18.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -16.9,
+            "surfaceLocal": [
+                0.0,
+                3.402799999999999,
+                -17.900000000000007
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -16.8,
+            "surfaceLocal": [
+                0.0,
+                3.4016,
+                -17.799999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -16.7,
+            "surfaceLocal": [
+                0.0,
+                3.4003999999999996,
+                -17.700000000000004
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -16.6,
+            "surfaceLocal": [
+                0.0,
+                3.3991999999999988,
+                -17.599999999999996
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -16.5,
+            "surfaceLocal": [
+                0.0,
+                3.3979999999999999,
+                -17.5
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -16.4,
+            "surfaceLocal": [
+                0.0,
+                3.396799999999999,
+                -17.400000000000007
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -16.3,
+            "surfaceLocal": [
+                0.0,
+                3.3956,
+                -17.299999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -16.2,
+            "surfaceLocal": [
+                0.0,
+                3.394399999999999,
+                -17.200000000000004
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -16.1,
+            "surfaceLocal": [
+                0.0,
+                3.3931999999999986,
+                -17.099999999999996
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -16.0,
+            "surfaceLocal": [
+                0.0,
+                3.3919999999999996,
+                -17.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -15.9,
+            "surfaceLocal": [
+                0.0,
+                3.3907999999999989,
+                -16.900000000000007
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -15.8,
+            "surfaceLocal": [
+                0.0,
+                3.3895999999999999,
+                -16.799999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -15.7,
+            "surfaceLocal": [
+                0.0,
+                3.388399999999999,
+                -16.700000000000004
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -15.6,
+            "surfaceLocal": [
+                0.0,
+                3.3872,
+                -16.599999999999996
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -15.5,
+            "surfaceLocal": [
+                0.0,
+                3.3859999999999994,
+                -16.5
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -15.4,
+            "surfaceLocal": [
+                0.0,
+                3.3847999999999986,
+                -16.400000000000007
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -15.3,
+            "surfaceLocal": [
+                0.0,
+                3.3835999999999997,
+                -16.299999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -15.2,
+            "surfaceLocal": [
+                0.0,
+                3.3823999999999989,
+                -16.200000000000004
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -15.1,
+            "surfaceLocal": [
+                0.0,
+                3.3811999999999999,
+                -16.099999999999996
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -15.0,
+            "surfaceLocal": [
+                0.0,
+                3.379999999999999,
+                -16.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -14.9,
+            "surfaceLocal": [
+                0.0,
+                3.3788,
+                -15.900000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -14.8,
+            "surfaceLocal": [
+                0.0,
+                3.3775999999999994,
+                -15.799999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -14.7,
+            "surfaceLocal": [
+                0.0,
+                3.3763999999999987,
+                -15.700000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -14.6,
+            "surfaceLocal": [
+                0.0,
+                3.3751999999999997,
+                -15.599999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -14.5,
+            "surfaceLocal": [
+                0.0,
+                3.3739999999999989,
+                -15.5
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -14.4,
+            "surfaceLocal": [
+                0.0,
+                3.3728,
+                -15.400000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -14.3,
+            "surfaceLocal": [
+                0.0,
+                3.371599999999999,
+                -15.299999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -14.2,
+            "surfaceLocal": [
+                0.0,
+                3.3704,
+                -15.200000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -14.1,
+            "surfaceLocal": [
+                0.0,
+                3.3691999999999995,
+                -15.099999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -14.0,
+            "surfaceLocal": [
+                0.0,
+                3.3679999999999987,
+                -15.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -13.9,
+            "surfaceLocal": [
+                0.0,
+                3.3667999999999997,
+                -14.900000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -13.8,
+            "surfaceLocal": [
+                0.0,
+                3.365599999999999,
+                -14.799999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -13.7,
+            "surfaceLocal": [
+                0.0,
+                3.3644,
+                -14.700000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -13.6,
+            "surfaceLocal": [
+                0.0,
+                3.363199999999999,
+                -14.599999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -13.5,
+            "surfaceLocal": [
+                0.0,
+                3.362,
+                -14.5
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -13.4,
+            "surfaceLocal": [
+                0.0,
+                3.3607999999999995,
+                -14.400000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -13.3,
+            "surfaceLocal": [
+                0.0,
+                3.3595999999999988,
+                -14.299999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -13.2,
+            "surfaceLocal": [
+                0.0,
+                3.3583999999999998,
+                -14.200000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -13.1,
+            "surfaceLocal": [
+                0.0,
+                3.357199999999999,
+                -14.099999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -13.0,
+            "surfaceLocal": [
+                0.0,
+                3.356,
+                -14.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -12.9,
+            "surfaceLocal": [
+                0.0,
+                3.354799999999999,
+                -13.900000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -12.8,
+            "surfaceLocal": [
+                0.0,
+                3.3536,
+                -13.799999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -12.7,
+            "surfaceLocal": [
+                0.0,
+                3.3523999999999996,
+                -13.700000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -12.6,
+            "surfaceLocal": [
+                0.0,
+                3.3511999999999988,
+                -13.599999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -12.5,
+            "surfaceLocal": [
+                0.0,
+                3.3499999999999998,
+                -13.5
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -12.4,
+            "surfaceLocal": [
+                0.0,
+                3.348799999999999,
+                -13.400000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -12.3,
+            "surfaceLocal": [
+                0.0,
+                3.3476,
+                -13.299999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -12.2,
+            "surfaceLocal": [
+                0.0,
+                3.346399999999999,
+                -13.200000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -12.1,
+            "surfaceLocal": [
+                0.0,
+                3.3452,
+                -13.099999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -12.0,
+            "surfaceLocal": [
+                0.0,
+                3.3439999999999996,
+                -13.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -11.9,
+            "surfaceLocal": [
+                0.0,
+                3.3427999999999988,
+                -12.900000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -11.8,
+            "surfaceLocal": [
+                0.0,
+                3.3415999999999999,
+                -12.799999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -11.7,
+            "surfaceLocal": [
+                0.0,
+                3.340399999999999,
+                -12.700000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -11.6,
+            "surfaceLocal": [
+                0.0,
+                3.3392,
+                -12.599999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -11.5,
+            "surfaceLocal": [
+                0.0,
+                3.337999999999999,
+                -12.5
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -11.4,
+            "surfaceLocal": [
+                0.0,
+                3.3367999999999986,
+                -12.400000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -11.3,
+            "surfaceLocal": [
+                0.0,
+                3.3355999999999996,
+                -12.299999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -11.2,
+            "surfaceLocal": [
+                0.0,
+                3.3343999999999989,
+                -12.200000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -11.1,
+            "surfaceLocal": [
+                0.0,
+                3.3331999999999999,
+                -12.099999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -11.0,
+            "surfaceLocal": [
+                0.0,
+                3.331999999999999,
+                -12.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -10.9,
+            "surfaceLocal": [
+                0.0,
+                3.3308,
+                -11.900000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -10.8,
+            "surfaceLocal": [
+                0.0,
+                3.3295999999999994,
+                -11.799999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -10.7,
+            "surfaceLocal": [
+                0.0,
+                3.3283999999999986,
+                -11.700000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -10.6,
+            "surfaceLocal": [
+                0.0,
+                3.3271999999999997,
+                -11.599999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -10.5,
+            "surfaceLocal": [
+                0.0,
+                3.3259999999999989,
+                -11.5
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -10.4,
+            "surfaceLocal": [
+                0.0,
+                3.3247999999999999,
+                -11.400000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -10.3,
+            "surfaceLocal": [
+                0.0,
+                3.323599999999999,
+                -11.299999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -10.2,
+            "surfaceLocal": [
+                0.0,
+                3.3224,
+                -11.200000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -10.1,
+            "surfaceLocal": [
+                0.0,
+                3.3211999999999994,
+                -11.099999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -10.0,
+            "surfaceLocal": [
+                0.0,
+                3.3199999999999987,
+                -11.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -9.9,
+            "surfaceLocal": [
+                0.0,
+                3.3187999999999997,
+                -10.900000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -9.8,
+            "surfaceLocal": [
+                0.0,
+                3.3175999999999989,
+                -10.799999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -9.7,
+            "surfaceLocal": [
+                0.0,
+                3.3164,
+                -10.700000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -9.6,
+            "surfaceLocal": [
+                0.0,
+                3.315199999999999,
+                -10.599999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -9.5,
+            "surfaceLocal": [
+                0.0,
+                3.314,
+                -10.5
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -9.4,
+            "surfaceLocal": [
+                0.0,
+                3.3127999999999995,
+                -10.400000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -9.3,
+            "surfaceLocal": [
+                0.0,
+                3.3115999999999987,
+                -10.299999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -9.2,
+            "surfaceLocal": [
+                0.0,
+                3.3103999999999997,
+                -10.200000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -9.1,
+            "surfaceLocal": [
+                0.0,
+                3.309199999999999,
+                -10.099999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -9.0,
+            "surfaceLocal": [
+                0.0,
+                3.308,
+                -10.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -8.9,
+            "surfaceLocal": [
+                0.0,
+                3.306799999999999,
+                -9.900000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -8.8,
+            "surfaceLocal": [
+                0.0,
+                3.3056,
+                -9.799999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -8.7,
+            "surfaceLocal": [
+                0.0,
+                3.3043999999999995,
+                -9.700000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -8.6,
+            "surfaceLocal": [
+                0.0,
+                3.3031999999999988,
+                -9.599999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -8.5,
+            "surfaceLocal": [
+                0.0,
+                3.3019999999999998,
+                -9.5
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -8.4,
+            "surfaceLocal": [
+                0.0,
+                3.300799999999999,
+                -9.400000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -8.3,
+            "surfaceLocal": [
+                0.0,
+                3.2996,
+                -9.299999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -8.2,
+            "surfaceLocal": [
+                0.0,
+                3.298399999999999,
+                -9.200000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -8.1,
+            "surfaceLocal": [
+                0.0,
+                3.2972,
+                -9.099999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -8.0,
+            "surfaceLocal": [
+                0.0,
+                3.2959999999999995,
+                -9.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -7.9,
+            "surfaceLocal": [
+                0.0,
+                3.2947999999999988,
+                -8.900000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -7.8,
+            "surfaceLocal": [
+                0.0,
+                3.2935999999999998,
+                -8.799999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -7.7,
+            "surfaceLocal": [
+                0.0,
+                3.292399999999999,
+                -8.700000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -7.6,
+            "surfaceLocal": [
+                0.0,
+                3.2912,
+                -8.599999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -7.5,
+            "surfaceLocal": [
+                0.0,
+                3.289999999999999,
+                -8.5
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -7.4,
+            "surfaceLocal": [
+                0.0,
+                3.2888,
+                -8.400000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -7.3,
+            "surfaceLocal": [
+                0.0,
+                3.2875999999999996,
+                -8.299999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -7.2,
+            "surfaceLocal": [
+                0.0,
+                3.2863999999999988,
+                -8.200000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -7.1,
+            "surfaceLocal": [
+                0.0,
+                3.2851999999999998,
+                -8.099999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -7.0,
+            "surfaceLocal": [
+                0.0,
+                3.283999999999999,
+                -8.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -6.9,
+            "surfaceLocal": [
+                0.0,
+                3.2828,
+                -7.900000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -6.8,
+            "surfaceLocal": [
+                0.0,
+                3.281599999999999,
+                -7.799999999999997
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -6.7,
+            "surfaceLocal": [
+                0.0,
+                3.2803999999999986,
+                -7.700000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -6.6,
+            "surfaceLocal": [
+                0.0,
+                3.2791999999999996,
+                -7.599999999999994
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -6.5,
+            "surfaceLocal": [
+                0.0,
+                3.2779999999999989,
+                -7.5
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -6.4,
+            "surfaceLocal": [
+                0.0,
+                3.2767999999999999,
+                -7.400000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -6.3,
+            "surfaceLocal": [
+                0.0,
+                3.275599999999999,
+                -7.299999999999997
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -6.2,
+            "surfaceLocal": [
+                0.0,
+                3.2744,
+                -7.200000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -6.1,
+            "surfaceLocal": [
+                0.0,
+                3.273199999999999,
+                -7.099999999999994
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -6.0,
+            "surfaceLocal": [
+                0.0,
+                3.2719999999999986,
+                -7.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -5.9,
+            "surfaceLocal": [
+                0.0,
+                3.2707999999999997,
+                -6.900000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -5.8,
+            "surfaceLocal": [
+                0.0,
+                3.2695999999999989,
+                -6.799999999999997
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -5.7,
+            "surfaceLocal": [
+                0.0,
+                3.2683999999999999,
+                -6.700000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -5.6,
+            "surfaceLocal": [
+                0.0,
+                3.267199999999999,
+                -6.599999999999994
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -5.5,
+            "surfaceLocal": [
+                0.0,
+                3.266,
+                -6.5
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -5.4,
+            "surfaceLocal": [
+                0.0,
+                3.2647999999999994,
+                -6.400000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -5.3,
+            "surfaceLocal": [
+                0.0,
+                3.2635999999999987,
+                -6.299999999999997
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -5.2,
+            "surfaceLocal": [
+                0.0,
+                3.2623999999999997,
+                -6.200000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -5.1,
+            "surfaceLocal": [
+                0.0,
+                3.2611999999999989,
+                -6.099999999999994
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -5.0,
+            "surfaceLocal": [
+                0.0,
+                3.26,
+                -6.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -4.9,
+            "surfaceLocal": [
+                0.0,
+                3.258799999999999,
+                -5.900000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -4.8,
+            "surfaceLocal": [
+                0.0,
+                3.2576,
+                -5.799999999999997
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -4.7,
+            "surfaceLocal": [
+                0.0,
+                3.2563999999999995,
+                -5.700000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -4.6,
+            "surfaceLocal": [
+                0.0,
+                3.2551999999999987,
+                -5.599999999999994
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -4.5,
+            "surfaceLocal": [
+                0.0,
+                3.2539999999999997,
+                -5.5
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -4.4,
+            "surfaceLocal": [
+                0.0,
+                3.252799999999999,
+                -5.400000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -4.3,
+            "surfaceLocal": [
+                0.0,
+                3.2516,
+                -5.299999999999997
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -4.2,
+            "surfaceLocal": [
+                0.0,
+                3.250399999999999,
+                -5.200000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -4.1,
+            "surfaceLocal": [
+                0.0,
+                3.2492,
+                -5.099999999999994
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -4.0,
+            "surfaceLocal": [
+                0.0,
+                3.2479999999999995,
+                -5.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -3.9,
+            "surfaceLocal": [
+                0.0,
+                3.2467999999999987,
+                -4.900000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -3.8,
+            "surfaceLocal": [
+                0.0,
+                3.2455999999999998,
+                -4.799999999999997
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -3.7,
+            "surfaceLocal": [
+                0.0,
+                3.244399999999999,
+                -4.700000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -3.6,
+            "surfaceLocal": [
+                0.0,
+                3.2432,
+                -4.599999999999994
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -3.5,
+            "surfaceLocal": [
+                0.0,
+                3.241999999999999,
+                -4.5
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -3.4,
+            "surfaceLocal": [
+                0.0,
+                3.2408,
+                -4.400000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -3.3,
+            "surfaceLocal": [
+                0.0,
+                3.2395999999999995,
+                -4.299999999999997
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -3.2,
+            "surfaceLocal": [
+                0.0,
+                3.2383999999999988,
+                -4.200000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -3.1,
+            "surfaceLocal": [
+                0.0,
+                3.2371999999999998,
+                -4.099999999999994
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -3.0,
+            "surfaceLocal": [
+                0.0,
+                3.235999999999999,
+                -4.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -2.9,
+            "surfaceLocal": [
+                0.0,
+                3.2348,
+                -3.9000000000000059
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -2.8,
+            "surfaceLocal": [
+                0.0,
+                3.233599999999999,
+                -3.799999999999997
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -2.7,
+            "surfaceLocal": [
+                0.0,
+                3.2324,
+                -3.700000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -2.6,
+            "surfaceLocal": [
+                0.0,
+                3.2311999999999996,
+                -3.5999999999999945
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -2.5,
+            "surfaceLocal": [
+                0.0,
+                3.2299999999999988,
+                -3.5
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -2.4,
+            "surfaceLocal": [
+                0.0,
+                3.2287999999999998,
+                -3.4000000000000059
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -2.3,
+            "surfaceLocal": [
+                0.0,
+                3.227599999999999,
+                -3.299999999999997
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -2.2,
+            "surfaceLocal": [
+                0.0,
+                3.2264,
+                -3.200000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -2.1,
+            "surfaceLocal": [
+                0.0,
+                3.225199999999999,
+                -3.0999999999999945
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -2.0,
+            "surfaceLocal": [
+                0.0,
+                3.2239999999999986,
+                -3.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -1.9,
+            "surfaceLocal": [
+                0.0,
+                3.2227999999999996,
+                -2.9000000000000059
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -1.8,
+            "surfaceLocal": [
+                0.0,
+                3.2215999999999989,
+                -2.799999999999997
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -1.7,
+            "surfaceLocal": [
+                0.0,
+                3.2203999999999999,
+                -2.700000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -1.6,
+            "surfaceLocal": [
+                0.0,
+                3.219199999999999,
+                -2.5999999999999945
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -1.5,
+            "surfaceLocal": [
+                0.0,
+                3.218,
+                -2.5
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -1.4,
+            "surfaceLocal": [
+                0.0,
+                3.216799999999999,
+                -2.4000000000000059
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -1.3,
+            "surfaceLocal": [
+                0.0,
+                3.2155999999999986,
+                -2.299999999999997
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -1.2,
+            "surfaceLocal": [
+                0.0,
+                3.2143999999999997,
+                -2.200000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -1.1,
+            "surfaceLocal": [
+                0.0,
+                3.2131999999999989,
+                -2.0999999999999945
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -1.0,
+            "surfaceLocal": [
+                0.0,
+                3.2119999999999999,
+                -2.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -0.9,
+            "surfaceLocal": [
+                0.0,
+                3.210799999999999,
+                -1.9000000000000057
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -0.8,
+            "surfaceLocal": [
+                0.0,
+                3.2096,
+                -1.7999999999999972
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -0.7,
+            "surfaceLocal": [
+                0.0,
+                3.2083999999999994,
+                -1.7000000000000029
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -0.6,
+            "surfaceLocal": [
+                0.0,
+                3.2071999999999987,
+                -1.5999999999999944
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -0.5,
+            "surfaceLocal": [
+                0.0,
+                3.2059999999999997,
+                -1.5
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -0.4,
+            "surfaceLocal": [
+                0.0,
+                3.2047999999999989,
+                -1.4000000000000057
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -0.3,
+            "surfaceLocal": [
+                0.0,
+                3.2036,
+                -1.2999999999999972
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -0.2,
+            "surfaceLocal": [
+                0.0,
+                3.202399999999999,
+                -1.2000000000000029
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": -0.1,
+            "surfaceLocal": [
+                0.0,
+                3.2012,
+                -1.0999999999999944
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Upstream"
+        },
+        {
+            "station": 0.0,
+            "surfaceLocal": [
+                0.0,
+                3.1999999999999995,
+                -1.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Fall"
+        },
+        {
+            "station": 0.1,
+            "surfaceLocal": [
+                0.0,
+                3.1902342877813956,
+                -0.9000000000000057
+            ],
+            "width": 3.0,
+            "depth": 0.7509447087959484,
+            "section": "Fall"
+        },
+        {
+            "station": 0.2,
+            "surfaceLocal": [
+                0.0,
+                3.164045101149231,
+                -0.7999999999999972
+            ],
+            "width": 3.0,
+            "depth": 0.7537009210562929,
+            "section": "Fall"
+        },
+        {
+            "station": 0.3,
+            "surfaceLocal": [
+                0.0,
+                3.1224943651389926,
+                -0.7000000000000028
+            ],
+            "width": 3.0,
+            "depth": 0.7581517655897822,
+            "section": "Fall"
+        },
+        {
+            "station": 0.4,
+            "surfaceLocal": [
+                0.0,
+                3.0666440047861505,
+                -0.5999999999999943
+            ],
+            "width": 3.0,
+            "depth": 0.7641803712051646,
+            "section": "Fall"
+        },
+        {
+            "station": 0.5,
+            "surfaceLocal": [
+                0.0,
+                2.9975559451261928,
+                -0.5
+            ],
+            "width": 3.0,
+            "depth": 0.7716698667111891,
+            "section": "Fall"
+        },
+        {
+            "station": 0.6,
+            "surfaceLocal": [
+                0.0,
+                2.916292111194588,
+                -0.4000000000000057
+            ],
+            "width": 3.0,
+            "depth": 0.7805033809166041,
+            "section": "Fall"
+        },
+        {
+            "station": 0.7,
+            "surfaceLocal": [
+                0.0,
+                2.823914428026823,
+                -0.29999999999999718
+            ],
+            "width": 3.0,
+            "depth": 0.7905640426301585,
+            "section": "Fall"
+        },
+        {
+            "station": 0.8,
+            "surfaceLocal": [
+                0.0,
+                2.7214848206583754,
+                -0.20000000000000285
+            ],
+            "width": 3.0,
+            "depth": 0.8017349806606006,
+            "section": "Fall"
+        },
+        {
+            "station": 0.9,
+            "surfaceLocal": [
+                0.0,
+                2.6100652141247169,
+                -0.09999999999999432
+            ],
+            "width": 3.0,
+            "depth": 0.8138993238166793,
+            "section": "Fall"
+        },
+        {
+            "station": 1.0,
+            "surfaceLocal": [
+                0.0,
+                2.490717533461334,
+                0.0
+            ],
+            "width": 3.0,
+            "depth": 0.8269402009071432,
+            "section": "Fall"
+        },
+        {
+            "station": 1.1,
+            "surfaceLocal": [
+                0.0,
+                2.3645037037037026,
+                0.09999999999999432
+            ],
+            "width": 3.0,
+            "depth": 0.8407407407407409,
+            "section": "Fall"
+        },
+        {
+            "station": 1.2,
+            "surfaceLocal": [
+                0.0,
+                2.2324856498873038,
+                0.20000000000000285
+            ],
+            "width": 3.0,
+            "depth": 0.855184072126221,
+            "section": "Fall"
+        },
+        {
+            "station": 1.3,
+            "surfaceLocal": [
+                0.0,
+                2.0957252970476096,
+                0.29999999999999718
+            ],
+            "width": 3.0,
+            "depth": 0.8701533238723324,
+            "section": "Fall"
+        },
+        {
+            "station": 1.4,
+            "surfaceLocal": [
+                0.0,
+                1.9552845702201065,
+                0.4000000000000057
+            ],
+            "width": 3.0,
+            "depth": 0.8855316247878233,
+            "section": "Fall"
+        },
+        {
+            "station": 1.5,
+            "surfaceLocal": [
+                0.0,
+                1.8122253944402687,
+                0.5
+            ],
+            "width": 3.0,
+            "depth": 0.9012021036814427,
+            "section": "Fall"
+        },
+        {
+            "station": 1.6,
+            "surfaceLocal": [
+                0.0,
+                1.667609694743577,
+                0.5999999999999943
+            ],
+            "width": 3.0,
+            "depth": 0.9170478893619393,
+            "section": "Fall"
+        },
+        {
+            "station": 1.7,
+            "surfaceLocal": [
+                0.0,
+                1.5224993961655092,
+                0.7000000000000028
+            ],
+            "width": 3.0,
+            "depth": 0.9329521106380613,
+            "section": "Fall"
+        },
+        {
+            "station": 1.8,
+            "surfaceLocal": [
+                0.0,
+                1.377956423741546,
+                0.7999999999999972
+            ],
+            "width": 3.0,
+            "depth": 0.9487978963185578,
+            "section": "Fall"
+        },
+        {
+            "station": 1.9,
+            "surfaceLocal": [
+                0.0,
+                1.2350427025071636,
+                0.9000000000000057
+            ],
+            "width": 3.0,
+            "depth": 0.9644683752121772,
+            "section": "Fall"
+        },
+        {
+            "station": 2.0,
+            "surfaceLocal": [
+                0.0,
+                1.094820157497841,
+                1.0
+            ],
+            "width": 3.0,
+            "depth": 0.9798466761276683,
+            "section": "Fall"
+        },
+        {
+            "station": 2.1,
+            "surfaceLocal": [
+                0.0,
+                0.9583507137490575,
+                1.0999999999999944
+            ],
+            "width": 3.0,
+            "depth": 0.9948159278737795,
+            "section": "Fall"
+        },
+        {
+            "station": 2.2,
+            "surfaceLocal": [
+                0.0,
+                0.8266962962962925,
+                1.2000000000000029
+            ],
+            "width": 3.0,
+            "depth": 1.0092592592592596,
+            "section": "Fall"
+        },
+        {
+            "station": 2.3,
+            "surfaceLocal": [
+                0.0,
+                0.7009188301750271,
+                1.2999999999999972
+            ],
+            "width": 3.0,
+            "depth": 1.0230597990928572,
+            "section": "Fall"
+        },
+        {
+            "station": 2.4,
+            "surfaceLocal": [
+                0.0,
+                0.5820802404207353,
+                1.4000000000000057
+            ],
+            "width": 3.0,
+            "depth": 1.0361006761833212,
+            "section": "Fall"
+        },
+        {
+            "station": 2.5,
+            "surfaceLocal": [
+                0.0,
+                0.47124245206889628,
+                1.5
+            ],
+            "width": 3.0,
+            "depth": 1.0482650193393999,
+            "section": "Fall"
+        },
+        {
+            "station": 2.6,
+            "surfaceLocal": [
+                0.0,
+                0.3694673901549912,
+                1.5999999999999944
+            ],
+            "width": 3.0,
+            "depth": 1.059435957369842,
+            "section": "Fall"
+        },
+        {
+            "station": 2.7,
+            "surfaceLocal": [
+                0.0,
+                0.2778169797144976,
+                1.7000000000000029
+            ],
+            "width": 3.0,
+            "depth": 1.0694966190833964,
+            "section": "Fall"
+        },
+        {
+            "station": 2.8,
+            "surfaceLocal": [
+                0.0,
+                0.19735314578289477,
+                1.7999999999999972
+            ],
+            "width": 3.0,
+            "depth": 1.0783301332888114,
+            "section": "Fall"
+        },
+        {
+            "station": 2.9,
+            "surfaceLocal": [
+                0.0,
+                0.12913781339566378,
+                1.9000000000000057
+            ],
+            "width": 3.0,
+            "depth": 1.0858196287948357,
+            "section": "Fall"
+        },
+        {
+            "station": 3.0,
+            "surfaceLocal": [
+                0.0,
+                0.07423290758827861,
+                2.0
+            ],
+            "width": 3.0,
+            "depth": 1.091848234410218,
+            "section": "Fall"
+        },
+        {
+            "station": 3.1,
+            "surfaceLocal": [
+                0.0,
+                0.03370035339622035,
+                2.0999999999999945
+            ],
+            "width": 3.0,
+            "depth": 1.0962990789437073,
+            "section": "Fall"
+        },
+        {
+            "station": 3.2,
+            "surfaceLocal": [
+                0.0,
+                0.008602075854966529,
+                2.200000000000003
+            ],
+            "width": 3.0,
+            "depth": 1.0990552912040517,
+            "section": "Fall"
+        },
+        {
+            "station": 3.299999999999997,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                2.299999999999997
+            ],
+            "width": 3.0,
+            "depth": 1.1,
+            "section": "Pool"
+        },
+        {
+            "station": 3.3,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                2.299999999999997
+            ],
+            "width": 3.0,
+            "depth": 1.1,
+            "section": "Pool"
+        },
+        {
+            "station": 3.4,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                2.4000000000000059
+            ],
+            "width": 3.0119682475066158,
+            "depth": 1.1,
+            "section": "Pool"
+        },
+        {
+            "station": 3.5,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                2.5
+            ],
+            "width": 3.045918990433545,
+            "depth": 1.1,
+            "section": "Pool"
+        },
+        {
+            "station": 3.6,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                2.5999999999999945
+            ],
+            "width": 3.098921229391412,
+            "depth": 1.1,
+            "section": "Pool"
+        },
+        {
+            "station": 3.7,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                2.700000000000003
+            ],
+            "width": 3.1680439649908425,
+            "depth": 1.1,
+            "section": "Pool"
+        },
+        {
+            "station": 3.8,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                2.799999999999997
+            ],
+            "width": 3.25035619784246,
+            "depth": 1.1,
+            "section": "Pool"
+        },
+        {
+            "station": 3.9,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                2.9000000000000059
+            ],
+            "width": 3.3429269285568918,
+            "depth": 1.1,
+            "section": "Pool"
+        },
+        {
+            "station": 4.0,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                3.0
+            ],
+            "width": 3.4428251577447606,
+            "depth": 1.1,
+            "section": "Pool"
+        },
+        {
+            "station": 4.1,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                3.0999999999999945
+            ],
+            "width": 3.5471198860166917,
+            "depth": 1.1,
+            "section": "Pool"
+        },
+        {
+            "station": 4.2,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                3.200000000000003
+            ],
+            "width": 3.6528801139833115,
+            "depth": 1.1,
+            "section": "Pool"
+        },
+        {
+            "station": 4.3,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                3.299999999999997
+            ],
+            "width": 3.7571748422552426,
+            "depth": 1.1,
+            "section": "Pool"
+        },
+        {
+            "station": 4.4,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                3.4000000000000059
+            ],
+            "width": 3.8570730714431118,
+            "depth": 1.1,
+            "section": "Pool"
+        },
+        {
+            "station": 4.5,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                3.5
+            ],
+            "width": 3.949643802157542,
+            "depth": 1.1,
+            "section": "Pool"
+        },
+        {
+            "station": 4.6,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                3.5999999999999945
+            ],
+            "width": 4.03195603500916,
+            "depth": 1.1,
+            "section": "Pool"
+        },
+        {
+            "station": 4.7,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                3.700000000000003
+            ],
+            "width": 4.10107877060859,
+            "depth": 1.1,
+            "section": "Pool"
+        },
+        {
+            "station": 4.8,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                3.799999999999997
+            ],
+            "width": 4.154081009566457,
+            "depth": 1.1,
+            "section": "Pool"
+        },
+        {
+            "station": 4.9,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                3.9000000000000059
+            ],
+            "width": 4.188031752493385,
+            "depth": 1.1,
+            "section": "Pool"
+        },
+        {
+            "station": 5.0,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                4.0
+            ],
+            "width": 4.2,
+            "depth": 1.1,
+            "section": "Pool"
+        },
+        {
+            "station": 5.1,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                4.099999999999994
+            ],
+            "width": 4.1977875000000008,
+            "depth": 1.0988937500000003,
+            "section": "Pool"
+        },
+        {
+            "station": 5.2,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                4.200000000000003
+            ],
+            "width": 4.1913,
+            "depth": 1.09565,
+            "section": "Pool"
+        },
+        {
+            "station": 5.3,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                4.299999999999997
+            ],
+            "width": 4.1807625,
+            "depth": 1.09038125,
+            "section": "Pool"
+        },
+        {
+            "station": 5.4,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                4.400000000000006
+            ],
+            "width": 4.1664,
+            "depth": 1.0832000000000002,
+            "section": "Pool"
+        },
+        {
+            "station": 5.5,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                4.5
+            ],
+            "width": 4.1484375,
+            "depth": 1.07421875,
+            "section": "Pool"
+        },
+        {
+            "station": 5.6,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                4.599999999999994
+            ],
+            "width": 4.1271,
+            "depth": 1.0635500000000003,
+            "section": "Pool"
+        },
+        {
+            "station": 5.7,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                4.700000000000003
+            ],
+            "width": 4.1026125,
+            "depth": 1.05130625,
+            "section": "Pool"
+        },
+        {
+            "station": 5.8,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                4.799999999999997
+            ],
+            "width": 4.075200000000001,
+            "depth": 1.0376000000000004,
+            "section": "Pool"
+        },
+        {
+            "station": 5.9,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                4.900000000000006
+            ],
+            "width": 4.0450875,
+            "depth": 1.02254375,
+            "section": "Pool"
+        },
+        {
+            "station": 6.0,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                5.0
+            ],
+            "width": 4.0125,
+            "depth": 1.00625,
+            "section": "Pool"
+        },
+        {
+            "station": 6.1,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                5.099999999999994
+            ],
+            "width": 3.9776625,
+            "depth": 0.98883125,
+            "section": "Pool"
+        },
+        {
+            "station": 6.2,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                5.200000000000003
+            ],
+            "width": 3.9408000000000005,
+            "depth": 0.9704,
+            "section": "Pool"
+        },
+        {
+            "station": 6.3,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                5.299999999999997
+            ],
+            "width": 3.9021375000000004,
+            "depth": 0.9510687500000001,
+            "section": "Pool"
+        },
+        {
+            "station": 6.4,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                5.400000000000006
+            ],
+            "width": 3.8619,
+            "depth": 0.9309499999999999,
+            "section": "Pool"
+        },
+        {
+            "station": 6.5,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                5.5
+            ],
+            "width": 3.8203125,
+            "depth": 0.91015625,
+            "section": "Pool"
+        },
+        {
+            "station": 6.6,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                5.599999999999994
+            ],
+            "width": 3.7776000000000007,
+            "depth": 0.8888000000000002,
+            "section": "Pool"
+        },
+        {
+            "station": 6.7,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                5.700000000000003
+            ],
+            "width": 3.7339875,
+            "depth": 0.86699375,
+            "section": "Pool"
+        },
+        {
+            "station": 6.8,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                5.799999999999997
+            ],
+            "width": 3.6897,
+            "depth": 0.8448500000000001,
+            "section": "Pool"
+        },
+        {
+            "station": 6.9,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                5.900000000000006
+            ],
+            "width": 3.6449625,
+            "depth": 0.8224812499999999,
+            "section": "Pool"
+        },
+        {
+            "station": 7.0,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                6.0
+            ],
+            "width": 3.6,
+            "depth": 0.8,
+            "section": "Pool"
+        },
+        {
+            "station": 7.1,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                6.099999999999994
+            ],
+            "width": 3.5550375,
+            "depth": 0.77751875,
+            "section": "Pool"
+        },
+        {
+            "station": 7.2,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                6.200000000000003
+            ],
+            "width": 3.5103,
+            "depth": 0.75515,
+            "section": "Pool"
+        },
+        {
+            "station": 7.3,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                6.299999999999997
+            ],
+            "width": 3.4660125,
+            "depth": 0.7330062500000001,
+            "section": "Pool"
+        },
+        {
+            "station": 7.4,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                6.400000000000006
+            ],
+            "width": 3.4223999999999998,
+            "depth": 0.7111999999999999,
+            "section": "Pool"
+        },
+        {
+            "station": 7.5,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                6.5
+            ],
+            "width": 3.3796875,
+            "depth": 0.6898437500000001,
+            "section": "Pool"
+        },
+        {
+            "station": 7.6,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                6.599999999999994
+            ],
+            "width": 3.3381000000000005,
+            "depth": 0.6690500000000002,
+            "section": "Pool"
+        },
+        {
+            "station": 7.7,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                6.700000000000003
+            ],
+            "width": 3.2978625,
+            "depth": 0.64893125,
+            "section": "Pool"
+        },
+        {
+            "station": 7.8,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                6.799999999999997
+            ],
+            "width": 3.2592,
+            "depth": 0.6296,
+            "section": "Pool"
+        },
+        {
+            "station": 7.9,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                6.900000000000006
+            ],
+            "width": 3.2223375,
+            "depth": 0.6111687499999999,
+            "section": "Pool"
+        },
+        {
+            "station": 8.0,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                7.0
+            ],
+            "width": 3.1875,
+            "depth": 0.59375,
+            "section": "Pool"
+        },
+        {
+            "station": 8.1,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                7.099999999999994
+            ],
+            "width": 3.1549125,
+            "depth": 0.57745625,
+            "section": "Pool"
+        },
+        {
+            "station": 8.2,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                7.200000000000003
+            ],
+            "width": 3.1248,
+            "depth": 0.5624000000000001,
+            "section": "Pool"
+        },
+        {
+            "station": 8.3,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                7.299999999999997
+            ],
+            "width": 3.0973875,
+            "depth": 0.5486937499999999,
+            "section": "Pool"
+        },
+        {
+            "station": 8.4,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                7.400000000000006
+            ],
+            "width": 3.0728999999999999,
+            "depth": 0.53645,
+            "section": "Pool"
+        },
+        {
+            "station": 8.5,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                7.5
+            ],
+            "width": 3.0515625,
+            "depth": 0.52578125,
+            "section": "Pool"
+        },
+        {
+            "station": 8.6,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                7.599999999999994
+            ],
+            "width": 3.0336,
+            "depth": 0.5168,
+            "section": "Pool"
+        },
+        {
+            "station": 8.7,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                7.700000000000003
+            ],
+            "width": 3.0192375,
+            "depth": 0.50961875,
+            "section": "Pool"
+        },
+        {
+            "station": 8.8,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                7.799999999999997
+            ],
+            "width": 3.0087,
+            "depth": 0.50435,
+            "section": "Pool"
+        },
+        {
+            "station": 8.9,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                7.900000000000006
+            ],
+            "width": 3.0022125,
+            "depth": 0.50110625,
+            "section": "Pool"
+        },
+        {
+            "station": 9.0,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                8.0
+            ],
+            "width": 3.0,
+            "depth": 0.5,
+            "section": "Pool"
+        },
+        {
+            "station": 9.1,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                8.099999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.5008148148148148,
+            "section": "Outlet"
+        },
+        {
+            "station": 9.2,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                8.200000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.5031851851851852,
+            "section": "Outlet"
+        },
+        {
+            "station": 9.3,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                8.299999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.507,
+            "section": "Outlet"
+        },
+        {
+            "station": 9.4,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                8.400000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.5121481481481481,
+            "section": "Outlet"
+        },
+        {
+            "station": 9.5,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                8.5
+            ],
+            "width": 3.0,
+            "depth": 0.5185185185185185,
+            "section": "Outlet"
+        },
+        {
+            "station": 9.6,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                8.599999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.526,
+            "section": "Outlet"
+        },
+        {
+            "station": 9.7,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                8.700000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.5344814814814815,
+            "section": "Outlet"
+        },
+        {
+            "station": 9.8,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                8.799999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.5438518518518519,
+            "section": "Outlet"
+        },
+        {
+            "station": 9.9,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                8.900000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.554,
+            "section": "Outlet"
+        },
+        {
+            "station": 10.0,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                9.0
+            ],
+            "width": 3.0,
+            "depth": 0.5648148148148148,
+            "section": "Outlet"
+        },
+        {
+            "station": 10.1,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                9.099999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.5761851851851851,
+            "section": "Outlet"
+        },
+        {
+            "station": 10.2,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                9.200000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.588,
+            "section": "Outlet"
+        },
+        {
+            "station": 10.3,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                9.299999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.6001481481481482,
+            "section": "Outlet"
+        },
+        {
+            "station": 10.4,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                9.400000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.6125185185185186,
+            "section": "Outlet"
+        },
+        {
+            "station": 10.5,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                9.5
+            ],
+            "width": 3.0,
+            "depth": 0.625,
+            "section": "Outlet"
+        },
+        {
+            "station": 10.6,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                9.599999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.6374814814814814,
+            "section": "Outlet"
+        },
+        {
+            "station": 10.7,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                9.700000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.6498518518518518,
+            "section": "Outlet"
+        },
+        {
+            "station": 10.8,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                9.799999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.6620000000000001,
+            "section": "Outlet"
+        },
+        {
+            "station": 10.9,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                9.900000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.6738148148148149,
+            "section": "Outlet"
+        },
+        {
+            "station": 11.0,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                10.0
+            ],
+            "width": 3.0,
+            "depth": 0.6851851851851851,
+            "section": "Outlet"
+        },
+        {
+            "station": 11.1,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                10.099999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.696,
+            "section": "Outlet"
+        },
+        {
+            "station": 11.2,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                10.200000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.7061481481481481,
+            "section": "Outlet"
+        },
+        {
+            "station": 11.3,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                10.299999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.7155185185185186,
+            "section": "Outlet"
+        },
+        {
+            "station": 11.4,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                10.400000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.724,
+            "section": "Outlet"
+        },
+        {
+            "station": 11.5,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                10.5
+            ],
+            "width": 3.0,
+            "depth": 0.7314814814814815,
+            "section": "Outlet"
+        },
+        {
+            "station": 11.6,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                10.599999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.7378518518518519,
+            "section": "Outlet"
+        },
+        {
+            "station": 11.7,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                10.700000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.743,
+            "section": "Outlet"
+        },
+        {
+            "station": 11.8,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                10.799999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.7468148148148148,
+            "section": "Outlet"
+        },
+        {
+            "station": 11.9,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                10.900000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.7491851851851852,
+            "section": "Outlet"
+        },
+        {
+            "station": 12.0,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                11.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 12.1,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                11.099999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 12.2,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                11.200000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 12.3,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                11.299999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 12.4,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                11.400000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 12.5,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                11.5
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 12.6,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                11.599999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 12.7,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                11.700000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 12.8,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                11.799999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 12.9,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                11.900000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 13.0,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                12.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 13.1,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                12.099999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 13.2,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                12.200000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 13.3,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                12.299999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 13.4,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                12.400000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 13.5,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                12.5
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 13.6,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                12.599999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 13.7,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                12.700000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 13.8,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                12.799999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 13.9,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                12.900000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 14.0,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                13.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 14.1,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                13.099999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 14.2,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                13.200000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 14.3,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                13.299999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 14.4,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                13.400000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 14.5,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                13.5
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 14.6,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                13.599999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 14.7,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                13.700000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 14.8,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                13.799999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 14.9,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                13.900000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 15.0,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                14.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 15.1,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                14.099999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 15.2,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                14.200000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 15.3,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                14.299999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 15.4,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                14.400000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 15.5,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                14.5
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 15.6,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                14.599999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 15.7,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                14.700000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 15.8,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                14.799999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 15.9,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                14.900000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 16.0,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                15.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 16.1,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                15.099999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 16.2,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                15.200000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 16.3,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                15.299999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 16.4,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                15.400000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 16.5,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                15.5
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 16.6,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                15.599999999999995
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 16.7,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                15.700000000000003
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 16.8,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                15.799999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 16.9,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                15.900000000000006
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 17.0,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                16.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 17.1,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                16.099999999999996
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 17.2,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                16.200000000000004
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 17.3,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                16.299999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 17.4,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                16.400000000000007
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 17.5,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                16.5
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 17.6,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                16.599999999999996
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 17.7,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                16.700000000000004
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 17.8,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                16.799999999999998
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 17.9,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                16.900000000000007
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        },
+        {
+            "station": 18.0,
+            "surfaceLocal": [
+                0.0,
+                0.0,
+                17.0
+            ],
+            "width": 3.0,
+            "depth": 0.75,
+            "section": "Outlet"
+        }
+    ],
+    "cameras": [
+        {
+            "name": "overview",
+            "eyeWorld": [
+                69.0,
+                21.399999618530275,
+                71.0
+            ],
+            "eyeLocal": [
+                11.0,
+                9.0,
+                18.0
+            ],
+            "targetLocal": [
+                0.0,
+                1.0,
+                1.0
+            ],
+            "rotationWorld": [
+                21.55857276916504,
+                32.90523910522461,
+                0.0
+            ],
+            "footLocal": [],
+            "eyeAboveTerrain": 0.0,
+            "fov": 55.0,
+            "groundedIntent": false
+        },
+        {
+            "name": "upper-lip",
+            "eyeWorld": [
+                76.0,
+                18.572124481201173,
+                94.0
+            ],
+            "eyeLocal": [
+                4.0,
+                6.172124862670898,
+                -5.0
+            ],
+            "targetLocal": [
+                0.0,
+                1.6000003814697266,
+                1.0
+            ],
+            "rotationWorld": [
+                32.376319885253909,
+                146.3099365234375,
+                0.0
+            ],
+            "footLocal": [
+                4.0,
+                4.472124099731445,
+                -5.0
+            ],
+            "eyeAboveTerrain": 1.7000000476837159,
+            "fov": 55.0,
+            "groundedIntent": true
+        },
+        {
+            "name": "foot-pool",
+            "eyeWorld": [
+                73.0,
+                16.46738052368164,
+                84.0
+            ],
+            "eyeLocal": [
+                7.0,
+                4.067380905151367,
+                5.0
+            ],
+            "targetLocal": [
+                0.0,
+                2.8000001907348635,
+                0.0
+            ],
+            "rotationWorld": [
+                8.381094932556153,
+                54.462318420410159,
+                -2.157475051944857e-7
+            ],
+            "footLocal": [
+                7.0,
+                2.367380142211914,
+                5.0
+            ],
+            "eyeAboveTerrain": 1.7000000476837159,
+            "fov": 55.0,
+            "groundedIntent": true
+        },
+        {
+            "name": "outflow",
+            "eyeWorld": [
+                73.0,
+                16.486608505249025,
+                80.0
+            ],
+            "eyeLocal": [
+                7.0,
+                4.08660888671875,
+                9.0
+            ],
+            "targetLocal": [
+                0.0,
+                2.6000003814697267,
+                0.5
+            ],
+            "rotationWorld": [
+                7.688831806182861,
+                39.47246170043945,
+                2.15379841961294e-7
+            ],
+            "footLocal": [
+                7.0,
+                2.386608123779297,
+                9.0
+            ],
+            "eyeAboveTerrain": 1.7000000476837159,
+            "fov": 55.0,
+            "groundedIntent": true
+        }
+    ],
+    "finalTerrain": [
+        {
+            "anchor": "lip",
+            "station": 0.0,
+            "waterLocal": 3.1999999999999995,
+            "designBedLocal": 2.4499999999999995,
+            "actualBedLocal": 2.4498443603515627
+        },
+        {
+            "anchor": "impact",
+            "station": 3.299999999999997,
+            "waterLocal": 0.0,
+            "designBedLocal": -1.1,
+            "actualBedLocal": -1.098907470703125
+        },
+        {
+            "anchor": "pool",
+            "station": 5.0,
+            "waterLocal": 0.0,
+            "designBedLocal": -1.1,
+            "actualBedLocal": -1.1007871627807618
+        },
+        {
+            "anchor": "outlet-sill",
+            "station": 9.0,
+            "waterLocal": 0.0,
+            "designBedLocal": -0.5,
+            "actualBedLocal": -0.5004692077636719
+        },
+        {
+            "anchor": "receiving-join",
+            "station": 18.0,
+            "waterLocal": 0.0,
+            "designBedLocal": -0.75,
+            "actualBedLocal": -0.7504234313964844
+        }
+    ]
+}

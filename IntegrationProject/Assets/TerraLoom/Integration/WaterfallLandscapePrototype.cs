@@ -17,6 +17,8 @@ namespace TerraLoom.Integration
     public sealed class WaterfallLandscapePrototype : MonoBehaviour
     {
         public int Seed=4102026;
+        [Tooltip("Consumes the anchored V1 level-pool comparison recipe. Off preserves the historical V0 picture recipe.")]
+        public bool ComparisonRecipe;
         public Material TerrainMaterial,RockMaterial,BarkMaterial,LeafMaterial,GrassMaterial,WaterMaterial,FallMaterial;
         public TerrainLayer[] GroundLayers=Array.Empty<TerrainLayer>();
         private GameObject generated;
@@ -48,7 +50,7 @@ namespace TerraLoom.Integration
         public void Generate()
         {
             Clear();if(GroundLayers.Length!=4||!TerrainMaterial||!WaterMaterial||!FallMaterial||!LeafMaterial)throw new InvalidOperationException("Prototype material recipe missing.");
-            var watch=System.Diagnostics.Stopwatch.StartNew();Plan=new WaterfallLandscapePlan(Seed);
+            var watch=System.Diagnostics.Stopwatch.StartNew();Plan=new WaterfallLandscapePlan(Seed,ComparisonRecipe);
             generated=new GameObject("Generated waterfall landscape (bounded prototype)");generated.transform.SetParent(transform,false);
             var data=Own(new TerrainData{name="Runtime rocky valley / lip / pool",heightmapResolution=1025,
                 size=new Vector3(WaterfallLandscapePlan.Size,WaterfallLandscapePlan.Height,WaterfallLandscapePlan.Size),alphamapResolution=512,baseMapResolution=512});
@@ -93,18 +95,23 @@ namespace TerraLoom.Integration
             {
                 var w=new PrototypeMeshRecipe.Writer();float along=0;Vector3 previous=Plan.CentrePoint(.5f);
                 const float dz=.125f;const int columns=32;
-                for(float z=.5f;z<159.5f;z+=dz)
+                var stops=new SortedSet<float>();for(float z=.5f;z<=159.5f;z+=dz)stops.Add(z);
+                if(ComparisonRecipe)foreach(var anchor in new[]{Plan.Profile.Lip,Plan.Profile.Impact,Plan.Profile.Pool,Plan.Profile.Outlet})stops.Add((float)anchor.Z);
+                var zs=stops.ToArray();
+                for(int row=0;row<zs.Length-1;row++)
                 {
-                    bool isFall=z>=WaterfallLandscapePlan.FootZ&&z<WaterfallLandscapePlan.LipZ;
-                    float next=z+dz;along+=Vector3.Distance(previous,Plan.CentrePoint(next));previous=Plan.CentrePoint(next);
+                    float z=zs[row],next=zs[row+1];
+                    bool isFall=Plan.At(ComparisonRecipe?(z+next)*.5f:z).Section==TerraLoom.Rivers.WaterfallSection.Fall;
+                    float distance=Vector3.Distance(previous,Plan.CentrePoint(next));
+                    float startAlong=ComparisonRecipe?along:along+distance;along+=distance;previous=Plan.CentrePoint(next);
                     if(isFall!=fall)continue;
                     for(int i=0;i<columns;i++)
                     {
                         float a=(i/(float)columns*2-1),b=((i+1)/(float)columns*2-1);
                         Vector3 P(float zz,float u)=>new Vector3(Plan.Centre(zz)+Plan.HalfWidth(zz)*u,Plan.Water(zz)+.012f,zz);
                         int start=w.U.Count;w.Quad(P(z,a),P(next,a),P(next,b),P(z,b));
-                        w.U[start]=new Vector2(a,along);w.U[start+1]=new Vector2(a,along+dz);
-                        w.U[start+2]=new Vector2(b,along+dz);w.U[start+3]=new Vector2(b,along);
+                        w.U[start]=new Vector2(a,startAlong);w.U[start+1]=new Vector2(a,startAlong+(ComparisonRecipe?distance:dz));
+                        w.U[start+2]=new Vector2(b,startAlong+(ComparisonRecipe?distance:dz));w.U[start+3]=new Vector2(b,startAlong);
                     }
                 }
                 var mesh=Own(w.Finish(fall?"Fall lip to pool, shared continuous profile":"Upper / lower water and small pool"));
@@ -151,6 +158,14 @@ namespace TerraLoom.Integration
             foreach(var tree in trees){Own(tree.trunk);Own(tree.leaves);}
             bool ObservationClear(float x,float z)
             {
+                // Keep the fixed comparison overview's whole foliage corridor open.
+                // Trunk/capsule raycasts alone miss non-colliding leaf geometry.
+                if(ComparisonRecipe)
+                {
+                    var a=new Vector2(69,71);var b=new Vector2(80,88);var point=new Vector2(x,z);
+                    float t=Mathf.Clamp01(Vector2.Dot(point-a,b-a)/(b-a).sqrMagnitude);
+                    if((point-Vector2.Lerp(a,b,t)).sqrMagnitude<36)return false;
+                }
                 for(int i=0;i<3;i++){var p=Plan.Observation(i);if((p-new Vector2(x,z)).sqrMagnitude<12)return false;}return true;
             }
             for(int i=0;i<330;i++)
@@ -178,7 +193,10 @@ namespace TerraLoom.Integration
         public void Capture(string path)
         {
             string stem=Path.Combine(Path.GetDirectoryName(path),Path.GetFileNameWithoutExtension(path));
-            Overview();RuntimeVisualCapture.Save(view,path);
+            var evidence=new WaterfallComparisonManifest(Plan.Profile,Seed);
+            int width=ComparisonRecipe?1600:1440,height=ComparisonRecipe?1000:900;
+            Overview();RuntimeVisualCapture.Save(view,path,width,height);
+            evidence.RecordCamera("overview",view,null,0,ComparisonRecipe?new Vector3(80,13.4f,88):new Vector3(78,12,86));
             for(int i=0;i<3;i++)
             {
                 Observe(i);Physics.SyncTransforms();var eye=view.transform.position;var foot=Plan.Observation(i);
@@ -189,9 +207,18 @@ namespace TerraLoom.Integration
                 if(blocked)throw new InvalidOperationException("Observation capsule blocked at "+i);
                 if(Physics.Linecast(eye,Plan.Look(i),out var obstruction,~(1<<2)))
                     throw new InvalidOperationException("Observation sight corridor blocked at "+i+": "+obstruction.collider.name);
-                RuntimeVisualCapture.Save(view,stem+"-"+new[]{"upper-lip","foot-pool","outflow"}[i]+".png");
+                string name=new[]{"upper-lip","foot-pool","outflow"}[i];
+                RuntimeVisualCapture.Save(view,stem+"-"+name+".png",width,height);
+                evidence.RecordCamera(name,view,new Vector3(foot.x,ground,foot.y),1.7f,Plan.Look(i));
                 Debug.Log("TERRALOOM_WATERFALL_CAMERA "+i+" eye="+eye.ToString("F4")+" ground="+ground.ToString("R",CultureInfo.InvariantCulture)+" eyeAboveFinalTerrain=1.7000m fov="+view.fieldOfView+" dryCapsuleClear=true targetSightLineClear=true; line test is not full frustum visibility proof");
                 walker.enabled=true;
+            }
+            if(ComparisonRecipe)
+            {
+                evidence.RecordBed(Plan.Profile,Ground);
+                evidence.terrainPatch=Path.GetFileName(stem+"-terrain.json");
+                WaterfallTerrainPatch.Measure(Ground).Save(stem+"-terrain.json");
+                File.WriteAllText(stem+"-profile.json",JsonUtility.ToJson(evidence,true));
             }
             Overview();
         }
@@ -201,7 +228,9 @@ namespace TerraLoom.Integration
             view.transform.SetParent(null);view.transform.position=new Vector3(p.x,Ground.SampleHeight(new Vector3(p.x,0,p.y))+1.7f,p.y);view.transform.LookAt(Plan.Look(i));
         }
         private void Overview()
-        {walking=false;Cursor.lockState=CursorLockMode.None;view.transform.SetParent(null);view.transform.position=new Vector3(140,73,32);view.transform.LookAt(new Vector3(78,12,86));}
+        {walking=false;Cursor.lockState=CursorLockMode.None;view.transform.SetParent(null);
+            view.transform.position=ComparisonRecipe?new Vector3(69,21.4f,71):new Vector3(140,73,32);
+            view.transform.LookAt(ComparisonRecipe?new Vector3(80,13.4f,88):new Vector3(78,12,86));}
         private void Update()
         {
             if(!Ground||Keyboard.current==null)return;var k=Keyboard.current;

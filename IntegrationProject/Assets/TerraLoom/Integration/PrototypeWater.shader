@@ -5,6 +5,7 @@ Shader "TerraLoom/Prototype/WaterfallLandscapeWater"
   _BaseColor("Deep water",Color)=(.025,.18,.16,1)
   _WaveColor("Surface light",Color)=(.22,.43,.36,1)
   _Fall("Falling strip",Float)=0
+  _ImpactZ("Planned impact world Z",Float)=85.8
  }
  SubShader
  {
@@ -22,7 +23,7 @@ Shader "TerraLoom/Prototype/WaterfallLandscapeWater"
    #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
    #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
    CBUFFER_START(UnityPerMaterial)
-    half4 _BaseColor,_WaveColor;float _Fall;
+    half4 _BaseColor,_WaveColor;float _Fall,_ImpactZ;
    CBUFFER_END
    struct A{float4 p:POSITION;float3 n:NORMAL;float2 uv:TEXCOORD0;};
    struct V{float4 p:SV_POSITION;float3 world:TEXCOORD0;float3 n:TEXCOORD1;float2 uv:TEXCOORD2;float fog:TEXCOORD3;};
@@ -37,7 +38,7 @@ Shader "TerraLoom/Prototype/WaterfallLandscapeWater"
     float foam=smoothstep(.61,.91,n)*_Fall*.8;
     // Narrow bank fringe instead of broad white rails; falling water keeps streaks.
     foam=max(foam,smoothstep(.94,1,abs(i.uv.x))*.28);
-    float impact=exp(-pow((i.world.z-85.8)*1.2,2))*exp(-i.uv.x*i.uv.x*1.8);
+    float impact=exp(-pow((i.world.z-_ImpactZ)*1.2,2))*exp(-i.uv.x*i.uv.x*1.8);
     foam=max(foam,impact*(.18+n*.42)*(1-_Fall));
     half3 color=lerp(_BaseColor.rgb,_WaveColor.rgb,.18+ripple*.16+n*.2);
     color=lerp(color,half3(.69,.80,.75),foam);

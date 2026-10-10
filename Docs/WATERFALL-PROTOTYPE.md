@@ -1,5 +1,9 @@
 # Runtime landscape / waterfall prototype
 
+Follow-up: [versioned anchored profile and shared comparison](WATERFALL-PROFILE.md).
+Default V0 remains separate; V1 corrects level pool/scour/sill and exports actual
+terrain/cameras for a same-recipe Epos comparison. Vertical falls remain unsupported.
+
 Early direction evaluation requested by Clemens, 10 October2026. This isolated
 explicit recipe is NOT the general Rivers waterfall API, a hydrology solution,
 crossing-rights integration, tile streaming or art acceptance. It does not replace

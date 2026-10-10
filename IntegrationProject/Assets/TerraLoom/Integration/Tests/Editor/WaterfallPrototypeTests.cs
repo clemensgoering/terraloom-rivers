@@ -37,12 +37,12 @@ namespace TerraLoom.Integration.Tests
             }
             finally{Object.DestroyImmediate(rock);Object.DestroyImmediate(tree.trunk);Object.DestroyImmediate(tree.leaves);}
         }
-        [Test] public void ConfigurationRebuildOwnsTransientTerrainAndKeepsSourceMaterials()
+        [TestCase(false)][TestCase(true)] public void ConfigurationRebuildOwnsTransientTerrainAndKeepsSourceMaterials(bool comparison)
         {
             var setup=EditorSceneManager.GetSceneManagerSetup();
             try
             {
-                EditorSceneManager.OpenScene("Assets/TerraLoom/Integration/Generated/TerraLoomWaterfallPrototype.unity");
+                EditorSceneManager.OpenScene("Assets/TerraLoom/Integration/Generated/"+(comparison?"TerraLoomWaterfallComparison":"TerraLoomWaterfallPrototype")+".unity");
                 var recipe=Object.FindFirstObjectByType<WaterfallLandscapePrototype>();Assert.That(recipe.Ground,Is.Null);
                 var material=recipe.RockMaterial;var layer=recipe.GroundLayers[0];
                 recipe.Generate();var first=recipe.Ground.terrainData;float sample=first.GetHeight(260,400);
@@ -51,12 +51,43 @@ namespace TerraLoom.Integration.Tests
                 Assert.That(recipe.Ground.terrainData.GetHeight(260,400),Is.EqualTo(sample));
                 Assert.That(recipe.transform.childCount,Is.EqualTo(1));Assert.That(recipe.RockMaterial,Is.SameAs(material));
                 Assert.That(AssetDatabase.Contains(layer),Is.True);
+                if(comparison)
+                {
+                    var profile=recipe.Plan.Profile;
+                    var patch=WaterfallTerrainPatch.Measure(recipe.Ground);
+                    Assert.That(patch.maximumColliderCentreError,Is.LessThan(.003f));
+                    Assert.That(System.Convert.FromBase64String(patch.heightsBase64).Length,Is.EqualTo(225*225*2));
+                    foreach(double station in new[]{0,profile.ImpactStation,profile.PoolStation,profile.OutletStation,18})
+                    {
+                        var samplePoint=profile.Sample(station);
+                        float actual=recipe.Ground.SampleHeight(new Vector3((float)samplePoint.Surface.X,0,(float)samplePoint.Surface.Z));
+                        Assert.That(actual,Is.EqualTo(samplePoint.Surface.Y-samplePoint.CentreDepth).Within(.003),"Final raster bed must retain pool scour and submerged outlet sill.");
+                    }
+                }
             }
             finally
             {
                 if(System.Array.Exists(setup,s=>s.isActive&&!string.IsNullOrEmpty(s.path)))EditorSceneManager.RestoreSceneManagerSetup(setup);
                 else EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
             }
+        }
+        [Test] public void ConsumerUsesAnchoredContractForFlatPoolAndRealBedSill()
+        {
+            var plan=new WaterfallLandscapePlan(4102026,true);
+            Assert.That(plan.Profile.Version,Is.EqualTo(TerraLoom.Rivers.WaterfallProfileVersion.AnchoredPoolV1));
+            Assert.That(plan.Water(85),Is.EqualTo(plan.Water(81)));
+            Assert.That(plan.Ground(80,85),Is.LessThan(plan.Ground(80,81)-.5f));
+            Assert.That(plan.Water(75),Is.EqualTo(plan.Water(85)),"Receiving reach is level in the common recipe.");
+            Assert.That(plan.HalfWidth(85)*2,Is.EqualTo(4.2f).Within(.00001));
+        }
+        [Test] public void BaselineObservedCameraTerrainHeightsRemainFrozen()
+        {
+            var plan=new WaterfallLandscapePlan(4102026);
+            var a=plan.Observation(0);var b=plan.Observation(1);var c=plan.Observation(2);
+            // Previous player used TerrainData interpolation, so small raster difference is expected.
+            Assert.That(plan.Ground(a.x,a.y),Is.EqualTo(16.6997318f).Within(.002));
+            Assert.That(plan.Ground(b.x,b.y),Is.EqualTo(10.5557747f).Within(.002));
+            Assert.That(plan.Ground(c.x,c.y),Is.EqualTo(9.59434f).Within(.002));
         }
     }
 }
