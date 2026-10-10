@@ -1,5 +1,9 @@
 # Gemeinsames Testprojekt, 09.10.2026
 
+Fruehes visuelles Entwicklungsgate und erster begrenzter Material-/Playervergleich:
+[V0-SURFACES.md](V0-SURFACES.md). Kein V0-/M1-Abschluss: Tragwerk, natuerliche
+Ufer-/Wegkanten und gekruemmte gemeinsame Querungsfreigabe bleiben offen.
+
 Gemeinsamer Ablauf und Invalidierung: Core `Docs/GENERATION-ORDER.md`.
 Core-Schedule prueft Requires/Provides vor Mutation. Die Komposition zeigt die
 abgeschlossenen Schritte und bietet eine explizite Freshness-Pruefung. Nach

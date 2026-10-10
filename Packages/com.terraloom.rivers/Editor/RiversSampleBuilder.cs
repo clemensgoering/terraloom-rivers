@@ -60,43 +60,11 @@ namespace TerraLoom.Rivers.Editor
                     heights[z,x]=(6f-.03f*pz+hill)/16f;
                 }
             data.SetHeights(0, 0, heights);
-            var ground = new Texture2D(32, 32, TextureFormat.RGBA32, true) { name = "Original procedural meadow", wrapMode = TextureWrapMode.Repeat };
-            var pixels = new Color[32 * 32];
-            for (int i = 0; i < pixels.Length; i++)
-            {
-                uint hash=unchecked((uint)i*747796405u+2891336453u);hash=(hash^(hash>>16))*2246822519u;hash^=hash>>13;
-                pixels[i]=Color.Lerp(new Color(.22f,.3f,.12f),new Color(.4f,.43f,.22f),(hash&65535)/65535f);
-            }
-            ground.SetPixels(pixels); ground.Apply();
-            ground = Save(ground, SampleDirectory + "/MeadowTexture.asset", true);
-            var layer = Save(new TerrainLayer { name = "Original meadow layer", diffuseTexture = ground, tileSize = new Vector2(6, 6),
-                smoothnessSource = TerrainLayerSmoothnessSource.Constant, smoothness = .05f }, SampleDirectory + "/MeadowLayer.terrainlayer", true);
+            var layer = SurfaceLayer("Meadow", LandscapeSurfaceRecipe.Surface.Meadow);
             if(inset)
             {
-                var sediment=new Texture2D(32,32,TextureFormat.RGBA32,true){name="Original procedural river sediment",wrapMode=TextureWrapMode.Repeat};
-                var soil=new Color[32*32];
-                for(int i=0;i<soil.Length;i++)
-                {
-                    uint hash=unchecked((uint)i*747796405u+2891336453u);hash=(hash^(hash>>16))*2246822519u;hash^=hash>>13;
-                    float grain=(hash&65535)/65535f;
-                    float mottling=Mathf.PerlinNoise((i%32)*.16f,(i/32)*.16f);
-                    soil[i]=Color.Lerp(new Color(.43f,.15f,.06f),new Color(.78f,.47f,.17f),.3f*grain+.7f*mottling);
-                }
-                sediment.SetPixels(soil);sediment.Apply();
-                sediment=Save(sediment,SampleDirectory+"/SedimentTexture.asset",true);
-                var sedimentLayer=Save(new TerrainLayer{name="Original river sediment layer",diffuseTexture=sediment,tileSize=new Vector2(2,2),
-                    smoothnessSource=TerrainLayerSmoothnessSource.Constant,smoothness=.08f},SampleDirectory+"/SedimentLayer.terrainlayer",true);
-                var rock=new Texture2D(32,32,TextureFormat.RGBA32,true){name="Original procedural weathered rock",wrapMode=TextureWrapMode.Repeat};
-                var stone=new Color[32*32];
-                for(int i=0;i<stone.Length;i++)
-                {
-                    float grain=Mathf.PerlinNoise((i%32)*.25f,(i/32)*.25f);
-                    stone[i]=Color.Lerp(new Color(.23f,.24f,.22f),new Color(.55f,.53f,.46f),grain);
-                }
-                rock.SetPixels(stone);rock.Apply();
-                rock=Save(rock,SampleDirectory+"/RockTexture.asset",true);
-                var rockLayer=Save(new TerrainLayer{name="Original exposed rock layer",diffuseTexture=rock,tileSize=new Vector2(4,4),
-                    smoothnessSource=TerrainLayerSmoothnessSource.Constant,smoothness=.04f},SampleDirectory+"/RockLayer.terrainlayer",true);
+                var sedimentLayer=SurfaceLayer("Sediment",LandscapeSurfaceRecipe.Surface.DampSediment);
+                var rockLayer=SurfaceLayer("Rock",LandscapeSurfaceRecipe.Surface.WeatheredRock);
                 data.terrainLayers=new[]{layer,sedimentLayer,rockLayer};data.alphamapResolution=128;
                 var weights=new float[128,128,3];
                 for(int z=0;z<128;z++)for(int x=0;x<128;x++)
@@ -143,12 +111,23 @@ namespace TerraLoom.Rivers.Editor
             camera.fieldOfView = 48; camera.farClipPlane = 500; camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = new Color(.48f, .65f, .78f);
             SaveText(SampleDirectory + "/RiversPlan.json", rivers.PlanJson);
-            SaveText(SampleDirectory + "/Provenance.json", "{\n  \"owner\": \"TerraLoom.Rivers.SampleBuilder/v1\",\n  \"recipe\": \"129x129; size 96x16x96; height metres = 6 - 0.03*z; brush sample adds side hills outside abs(x-48)>22m; source meadow/rock weights use slope12-27deg and height8-12m; source (48,8); mouth (48,88); protected detour (48,48) size 8x12; seed 42; WaterInset and SedimentTerrainLayer see saved component\",\n  \"assets\": \"Original generated terrain, procedural meadow/sediment/rock textures and layers (brush sample), URP materials, baked terrain copy and river meshes. Brush habitat profiles and candidate budgets see saved child decorators; decoration follows final river carving and reservation exclusions. Original Core seasonal meshes/prefabs. No external art. Water uses TerraLoom/RiverWater when available, otherwise URP/Lit.\"\n}\n");
+            SaveText(SampleDirectory + "/Provenance.json", "{\n  \"owner\": \"TerraLoom.Rivers.SampleBuilder/v1\",\n  \"recipe\": \"129x129; size 96x16x96; height metres = 6 - 0.03*z; brush sample adds side hills outside abs(x-48)>22m; source meadow/rock weights use slope12-27deg and height8-12m; source (48,8); mouth (48,88); protected detour (48,48) size 8x12; seed 42; WaterInset and SedimentTerrainLayer see saved component\",\n  \"assets\": \"Original generated terrain, periodic 256px meadow/damp-sediment/rock albedo-smoothness and matched normals, two-metre tiles (brush sample); Core LandscapeSurfaceRecipe, URP materials, baked terrain copy and river meshes. Brush habitat profiles and candidate budgets see saved child decorators; decoration follows final river carving and reservation exclusions. Original Core seasonal meshes/prefabs. No external art. Water uses TerraLoom/RiverWater when available, otherwise URP/Lit.\"\n}\n");
             MarkDirty(rivers); EditorUtility.SetDirty(data); AssetDatabase.SaveAssets();
             if (File.Exists(SampleScene)) RequireOwned(SampleScene);
             if (!EditorSceneManager.SaveScene(scene, SampleScene)) throw new IOException("Cannot save Rivers sample scene.");
             Stamp(SampleScene);
             Debug.Log("Rivers sample ready: " + SampleScene + "\n" + rivers.Diagnostics + "\nNo rendering performed; parent may render the saved scene.");
+        }
+
+        // The same original surface recipe is available to Core and optional modules.
+        // Texture normal and albedo share a physical tile; alpha carries local smoothness.
+        private static TerrainLayer SurfaceLayer(string name, LandscapeSurfaceRecipe.Surface surface)
+        {
+            var diffuse=Save(LandscapeSurfaceRecipe.Create(surface,false),SampleDirectory+"/"+name+"Texture.asset",true);
+            var normal=Save(LandscapeSurfaceRecipe.Create(surface,true),SampleDirectory+"/"+name+"Normal.asset",true);
+            return Save(new TerrainLayer { name="Original "+name, diffuseTexture=diffuse,normalMapTexture=normal,
+                tileSize=new Vector2(LandscapeSurfaceRecipe.TileMetres,LandscapeSurfaceRecipe.TileMetres),normalScale=1,
+                metallic=0,smoothnessSource=TerrainLayerSmoothnessSource.DiffuseAlphaChannel },SampleDirectory+"/"+name+"Layer.terrainlayer",true);
         }
 
         /// <summary>Sample composition: generate decoration AFTER the final river terrain.

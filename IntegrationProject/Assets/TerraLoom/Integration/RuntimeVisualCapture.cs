@@ -45,7 +45,25 @@ namespace TerraLoom.Integration
                     Save(camera,stem+"-close.png");
                     var player=a-forward*6;player.y=composition.World.Terrain.SampleHeight(player)+composition.World.Terrain.transform.position.y+1.7f;
                     camera.transform.position=player;camera.transform.LookAt(center+Vector3.up*1.2f);
-                    Save(camera,stem+"-player.png");return;
+                    Save(camera,stem+"-player.png");
+                    // Additional evidence views expose both terrain joins and missing support
+                    // structure. Existing five cameras stay identical for before/after comparison.
+                    int end=i+1;
+                    while(end<route.Surfaces.Count&&route.Surfaces[end]==TerraLoom.Paths.PathSurface.Bridge)end++;
+                    var last=route.Waypoints[end];var far=new Vector3((float)last.X,(float)last.Y,(float)last.Z);
+                    var axis=(far-a).normalized;var side=new Vector3(-axis.z,0,axis.x);
+                    for(int landing=0;landing<2;landing++)
+                    {
+                        var foot=landing==0?a:far;var outward=landing==0?-axis:axis;
+                        var eye=foot+outward*3+side*2;
+                        eye.y=composition.World.Terrain.SampleHeight(eye)+composition.World.Terrain.transform.position.y+1.7f;
+                        camera.transform.position=eye;camera.transform.LookAt(foot+Vector3.up*.4f);
+                        Save(camera,stem+"-landing-"+landing+".png");
+                    }
+                    var span=(a+far)*.5f;
+                    camera.transform.position=span+side*(composition.Paths.Width+2)-Vector3.up*.65f;
+                    camera.transform.LookAt(span-Vector3.up*.3f);
+                    Save(camera,stem+"-underside.png");return;
                 }
                 throw new InvalidOperationException("Bridge viewpoints require a negotiated bridge.");
             }

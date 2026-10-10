@@ -26,6 +26,19 @@ namespace TerraLoom.Tests
                 Assert.That(instance.ValidateCurrent(out var reason),Is.True,reason);
                 Assert.That(AssetDatabase.Contains(instance.Rivers.OriginalTerrainData),Is.True);
                 Assert.That(AssetDatabase.Contains(instance.Rivers.CarvedTerrainData),Is.True);
+                foreach(var terrainData in new[]{instance.Rivers.OriginalTerrainData,instance.Rivers.CarvedTerrainData})
+                {
+                    Assert.That(terrainData.terrainLayers.Length,Is.EqualTo(3));
+                    foreach(var layer in terrainData.terrainLayers)
+                    {
+                        Assert.That(AssetDatabase.Contains(layer.diffuseTexture),Is.True);
+                        Assert.That(AssetDatabase.Contains(layer.normalMapTexture),Is.True);
+                        Assert.That(layer.diffuseTexture.width,Is.EqualTo(256));
+                        Assert.That(layer.normalMapTexture.width,Is.EqualTo(256));
+                        Assert.That(layer.tileSize,Is.EqualTo(new Vector2(2,2)));
+                        Assert.That(layer.smoothnessSource,Is.EqualTo(TerrainLayerSmoothnessSource.DiffuseAlphaChannel));
+                    }
+                }
                 var riverMeshes=instance.Rivers.GeneratedRoot.GetComponentsInChildren<MeshFilter>();
                 Assert.That(riverMeshes.Length,Is.EqualTo(1));Assert.That(AssetDatabase.Contains(riverMeshes[0].sharedMesh),Is.True);
                 Assert.That(instance.Paths.GeneratedRoot.GetComponentsInChildren<PathGeneratedGeometry>().Any(p=>p.Role==PathGeometryRole.BridgeDeck),Is.True);
