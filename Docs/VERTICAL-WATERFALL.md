@@ -105,3 +105,94 @@ TerraLoom.Integration.Tests.VerticalWaterfallTests(4). Seven previous V1 prototy
 tests rerun green after shared shader axis extension. Final invalid-NaN-join guard
 was added after successful Player captures and is checked natively; finite valid
 recipe output is unchanged.
+
+## Final-geometry import packets (2026-10-10)
+
+`VerticalWaterfallPacket.Save` now exports the actual published terrain and mesh
+buffers after native validation. `Capture` adds the actual three cameras and the
+three completed CharacterController probes from that Player run. It does not
+regenerate heights, cliff or water from another mathematical implementation.
+
+Packet directories under `Integration/.artifacts/Evidence`:
+
+- `vertical-packet-v2-packet`
+- `nearvertical-packet-v2-packet`
+- `rotatedvertical-packet-v2-packet`
+
+Each contains `manifest.json` plus19 binary payloads. Manifest is the completion
+marker, written last and removed before refreshing an existing export. A snapshot
+index including manifest hashes lives in `Docs/VERTICAL-WATERFALL-PACKETS.json`.
+Binary evidence stays ignored; rerun the three documented build methods and
+Player arguments with the corresponding screenshot prefix to reproduce exports.
+Hashes identify these measured snapshots, not promises of deterministic physics
+or byte-identical rendered frames across Unity/platform versions.
+
+Import rules (all payload hashes/lengths must pass before constructing objects):
+
+- 513² uint16 LE normalized native heights; worldY=code/65535*32. Terrain origin
+  (0,0,0), size64×32×64. X fastest, increasing worldZ. Coordinates are Unity metres.
+- 512² uint8 holemask, **0=hole,1=solid**. Exactly2400 holecells per case.
+- 512² uint8 native collider diagonals:0=SW-NE,1=NW-SE,255=hole. Skip holecells.
+  For SW=(x,z),SE=(x+1,z),NW=(x,z+1),NE=(x+1,z+1), upward triangle indices are
+  SW,NW,NE / SW,NE,SE for0; SW,NW,SE / SE,NW,NE for1. Equal-height diagonal
+  candidates choose0; either then represents the same planar cell. Maximum
+  measured native cell-centre reconstruction error1.4305115e-6m in all3cases.
+- Four final meshes: ClosedCliff, Upper, Fall, Pool. Positions/normals float32 LE
+  xyz, triangle indices int32 LE, UV float32 LE xy. Vertices are **already world
+  space**, object transform identity. Mesh bounds included. Cliff UV payload is
+  empty, **no hidden UV convention**. Water start/endContact arrays select the
+  actual17vertex boundary rows; upper end=fall start, fall end=pool start.
+- Quarter-turn already permutes heights/holes and rotates final mesh vertices
+  and frame: canonical(x,y,z)→(z,y,64-x). **Do not rotate imported payload again.**
+- Physical Lip/Impact differ from rendered mesh heights by explicit +.01m Y.
+  Offset is **already baked into exported water vertices**; do not add it twice.
+- Camera eye,target,rotation,ground,FOV55 and1600×1000 are measured at capture.
+  Controller start/end/forward/parameters/140fixedsteps/actualfixedDeltaTime and
+  grounded state are measured in Player, not inferred from editor ray probes.
+
+Unity-free consumer check:
+
+```text
+python Rivers/Tools/verify_vertical_packet.py <packet-directory> [more directories]
+```
+
+Validates lengths, SHA256, bounds on payload paths, mesh index ranges/finite
+buffers, actual full-width joins, masks, grounded camera heights and actual
+controller drops. All3Playerpackets pass. Deliberately corrupted/truncated height
+payload and directory escape each fail closed. Native fixture now roundtrips
+the exported buffers against actual terrain/mesh data in each of its3cases;
+4/4native tests pass (VerticalPacket-4.xml/.log). All3newbuilds/Players exit0;
+logs `{Vertical,NearVertical,RotatedVertical}Packet{Build,Player}.log`.
+
+Diagnostic captures use **unchanged cameras** and geometry: original image,
+`-side/-lip/-foot-flat.png`, `-side/-lip/-foot-normals.png`. Flat pass is opaque,
+unlit, no procedural foam/specular/fog; grey cliff, separate blue/cyan waterparts.
+Normals pass maps normalized worldnormal to RGB=.5+.5normal. Original materials
+are restored in finally and temporary instances disposed. Shader diagnostic
+default0 preserves ordinary rendering, including earlier V0/V1 recipes.
+
+Here all3lip flat/normal pairs plus normal-case original lip actually opened:
+large bright upper-water region disappears in flat pass; hard surface outlines,
+grey cliff top areas and small lip corner remain. This isolates a material
+contribution to brightness, **does not prove no interior overlap or visual seam**.
+27newPNGs generated; only those7opened images are claimed inspected this run.
+V2 remains a contact experiment, upper slope0/bed1.1m/pool max4.2m, **no r2 outlet
+sill**. World session received packet paths for separate Epos V2 import, keeping
+r2 and legacy pilots. No Epos product files or purchased assets modified here.
+
+The remaining small lip corner is now assigned to actual faces using
+`Tools/probe_vertical_packet.py <packet-directory> --pixel 1033 731` (pixels from
+top-left of the1600×1000image, samplecentre+.5). Measured camera projection and
+double-sided ray/triangle intersection over authenticated final mesh buffers:
+normal-case lip corner pixels1033,731 /1036,730 /1038,725 /1035,736 /1030,733
+hit **Fall** triangle IDs127/95/63/127/158 (zero-based). Example127indices67,83,84,
+worldX33.3125..33.5,Y11.11..11.135,Z32. Normal+Z is consistent, camera upstream
+sees its **backface** because shader CullOff. At upper planeY11.21 those rays
+crossX33.511..33.541, outside upper-water edgeX33.5: the rays peek around that
+side, then see the curtain. This is not an unmatched top boundary vertex or
+inverted individual triangle. All fall normals are checked against the expected
+frame normal in each native case. The prober excludes native terrain occlusion
+and is a geometry diagnostic, not a complete GPU pixel-ID pass. This explains
+these sampled corner pixels; no general contact/art acceptance is implied and
+no culling/camera/geometry change is made to hide the result. V0/V1 native
+WaterfallPrototypeTests regression7/7 rerun after diagnostic shader change.

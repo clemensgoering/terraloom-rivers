@@ -5,6 +5,7 @@ Shader "TerraLoom/Prototype/WaterfallLandscapeWater"
   _BaseColor("Deep water",Color)=(.025,.18,.16,1)
   _WaveColor("Surface light",Color)=(.22,.43,.36,1)
   _Fall("Falling strip",Float)=0
+  _Diagnostic("Diagnostic: 0 normal, 1 flat, 2 world normals",Float)=0
   _ImpactZ("Planned impact world Z",Float)=85.8
   _ImpactX("Planned impact world X",Float)=0
   _ImpactAxis("Horizontal flow axis XZ",Vector)=(0,1,0,0)
@@ -25,7 +26,7 @@ Shader "TerraLoom/Prototype/WaterfallLandscapeWater"
    #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
    #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
    CBUFFER_START(UnityPerMaterial)
-    half4 _BaseColor,_WaveColor;float _Fall,_ImpactZ,_ImpactX;float4 _ImpactAxis;
+    half4 _BaseColor,_WaveColor;float _Fall,_ImpactZ,_ImpactX,_Diagnostic;float4 _ImpactAxis;
    CBUFFER_END
    struct A{float4 p:POSITION;float3 n:NORMAL;float2 uv:TEXCOORD0;};
    struct V{float4 p:SV_POSITION;float3 world:TEXCOORD0;float3 n:TEXCOORD1;float2 uv:TEXCOORD2;float fog:TEXCOORD3;};
@@ -34,6 +35,8 @@ Shader "TerraLoom/Prototype/WaterfallLandscapeWater"
    float Noise(float2 p){float2 a=floor(p),b=frac(p);b=b*b*(3-2*b);return lerp(lerp(Hash(a),Hash(a+float2(1,0)),b.x),lerp(Hash(a+float2(0,1)),Hash(a+1),b.x),b.y);}
    half4 Frag(V i):SV_Target
    {
+    if(_Diagnostic>1.5)return half4(normalize(i.n)*.5+.5,1);
+    if(_Diagnostic>.5)return half4(_BaseColor.rgb,1);
     float speed=lerp(.8,3.2,_Fall),phase=i.uv.y+_Time.y*speed;
     float n=Noise(float2(i.uv.x*19,phase*lerp(2.3,.38,_Fall)));
     float ripple=sin(phase*13+sin(i.uv.x*23)*1.2)*.5+.5;

@@ -21,6 +21,7 @@ namespace TerraLoom.Integration
         public TerrainLayer[] Layers;
         private GameObject generated;
         private List<UnityEngine.Object> owned=new List<UnityEngine.Object>();
+        private readonly List<VerticalWaterfallPacket.ControllerProbe> measuredProbes=new List<VerticalWaterfallPacket.ControllerProbe>();
         public Terrain Ground {get;private set;}
         public MeshCollider Cliff {get;private set;}
         public WaterfallFallSurface Fall {get;private set;}
@@ -181,6 +182,7 @@ namespace TerraLoom.Integration
             try{Generate();}catch(Exception e){Debug.LogError("TERRALOOM_VERTICAL_FAILED "+e);if(smoke)Application.Quit(1);yield break;}
             for(int i=0;i<5;i++)yield return null;
             if(!smoke)yield break;
+            measuredProbes.Clear();
             // Explicit isolated gameplay rule: no water collider/barrier. A controller
             // crossing the lip must actually fall and land on the lower solid floor.
             foreach(float lateral in new[]{-1.25f,0,1.25f})
@@ -189,6 +191,7 @@ namespace TerraLoom.Integration
                 var cc=probe.AddComponent<CharacterController>();cc.height=1.8f;cc.radius=.16f;cc.center=new Vector3(0,.9f,0);cc.stepOffset=.1f;cc.slopeLimit=60;
                 cc.enabled=false;probe.transform.position=World(new Vector3(32+lateral,SurfaceGround(lateral,-.65f,true)+.05f,31.35f));cc.enabled=true;Physics.SyncTransforms();
                 float startY=probe.transform.position.y,velocity=0;
+                var measurement=new VerticalWaterfallPacket.ControllerProbe {lateral=lateral,start=probe.transform.position,forward=V(Fall.Forward),fixedDeltaTime=Time.fixedDeltaTime};
                 for(int step=0;step<140;step++)
                 {
                     if(cc.isGrounded&&velocity<0)velocity=-2;
@@ -198,6 +201,7 @@ namespace TerraLoom.Integration
                 if(probe.transform.position.y>startY-2.5f||!cc.isGrounded)
                 {Debug.LogError("TERRALOOM_VERTICAL_FAILED actual drop probe "+lateral+" final="+probe.transform.position+" startY="+startY+" grounded="+cc.isGrounded);Application.Quit(1);yield break;}
                 Debug.Log("TERRALOOM_VERTICAL_DROP actualController lateral="+lateral+" drop="+(startY-probe.transform.position.y)+" grounded=true; isolated fall rule, not swim/navigation acceptance");
+                measurement.end=probe.transform.position;measurement.grounded=cc.isGrounded;measuredProbes.Add(measurement);
                 probe.SetActive(false);Destroy(probe);
             }
             try
@@ -212,6 +216,7 @@ namespace TerraLoom.Integration
             var camera=Camera.main;camera.fieldOfView=55;string stem=Path.Combine(Path.GetDirectoryName(path),Path.GetFileNameWithoutExtension(path));
             var feet=new[]{new Vector2(36,34),new Vector2(35,30),new Vector2(36,38)};
             var names=new[]{"side","lip","foot"};
+            var observers=new List<VerticalWaterfallPacket.Observer>();
             for(int i=0;i<3;i++)
             {
                 var f=feet[i];var ray=new Ray(World(new Vector3(f.x,31,f.y)),Vector3.down);
@@ -220,7 +225,33 @@ namespace TerraLoom.Integration
                 camera.transform.LookAt(target);
                 if(Physics.CheckSphere(camera.transform.position,.1f)||Physics.Linecast(camera.transform.position,target))throw new InvalidOperationException("Observer sight blocked "+names[i]);
                 RuntimeVisualCapture.Save(camera,i==0?path:stem+"-"+names[i]+".png",1600,1000);
+                observers.Add(new VerticalWaterfallPacket.Observer {name=names[i],eye=camera.transform.position,target=target,ground=hit.point,rotation=camera.transform.rotation,fov=camera.fieldOfView});
+                CaptureDiagnostics(camera,stem+"-"+names[i]);
                 Debug.Log("TERRALOOM_VERTICAL_CAMERA "+names[i]+" eye="+camera.transform.position.ToString("F6")+" ground="+hit.point.y+" height=1.7m fov=55");
+            }
+            var packet=VerticalWaterfallPacket.Save(this,stem+"-packet",observers.ToArray(),measuredProbes.ToArray());
+            Debug.Log("TERRALOOM_VERTICAL_PACKET "+packet.caseName+" measuredColliderError="+packet.maximumColliderCentreError+" cameras="+packet.cameras.Length+" actualControllers="+packet.controllerProbes.Length);
+        }
+        private void CaptureDiagnostics(Camera camera,string stem)
+        {
+            var renderers=generated.GetComponentsInChildren<MeshRenderer>();
+            var originals=renderers.Select(r=>r.sharedMaterial).ToArray();
+            var diagnostics=new List<Material>();
+            var colors=new[]{new Color(.4f,.4f,.4f),new Color(.1f,.4f,.7f),new Color(.2f,.7f,.7f),new Color(.1f,.3f,.6f)};
+            try
+            {
+                for(int i=0;i<renderers.Length;i++)
+                {
+                    var m=new Material(WaterMaterial);diagnostics.Add(m);m.SetFloat("_Diagnostic",1);m.SetColor("_BaseColor",colors[i%colors.Length]);renderers[i].sharedMaterial=m;
+                }
+                RuntimeVisualCapture.Save(camera,stem+"-flat.png",1600,1000);
+                foreach(var m in diagnostics)m.SetFloat("_Diagnostic",2);
+                RuntimeVisualCapture.Save(camera,stem+"-normals.png",1600,1000);
+            }
+            finally
+            {
+                for(int i=0;i<renderers.Length;i++)renderers[i].sharedMaterial=originals[i];
+                foreach(var m in diagnostics)if(Application.isPlaying)Destroy(m);else DestroyImmediate(m);
             }
         }
         private void OnDestroy(){Release(generated,owned);generated=null;Ground=null;Cliff=null;Fall=null;owned.Clear();}

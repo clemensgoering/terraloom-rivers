@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "revision": "vertical-contact-v2",
+  "snapshotDate": "2026-10-10",
+  "note": "Generated evidence ignored; hashes identify measured snapshots, not deterministic physics promises. Source exporter and consumer verifier are versioned.",
+  "cases": [
+    {
+      "prefix": "vertical-packet-v2",
+      "manifestPath": "../Integration/.artifacts/Evidence/vertical-packet-v2-packet/manifest.json",
+      "manifestSha256": "4170362a986f7fa8c417c877e1689d0bfd9f74b37dae1f97357fe659a54a24cc"
+    },
+    {
+      "prefix": "nearvertical-packet-v2",
+      "manifestPath": "../Integration/.artifacts/Evidence/nearvertical-packet-v2-packet/manifest.json",
+      "manifestSha256": "d5f9fcb8f152e26875f8223334202cfb6e65842ebb56f2e93bc600c7cdcc0068"
+    },
+    {
+      "prefix": "rotatedvertical-packet-v2",
+      "manifestPath": "../Integration/.artifacts/Evidence/rotatedvertical-packet-v2-packet/manifest.json",
+      "manifestSha256": "c52ea54c5f725c624d6ccd3f7ba9b1432b577402339e3f67f85cc0a311631a84"
+    }
+  ]
+}
