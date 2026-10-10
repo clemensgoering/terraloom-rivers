@@ -1,0 +1,20 @@
+PASS flat terrain: channel overlay, exact endpoints, aligned immutable polylines
+PASS descending terrain: no rising water/bed/banks, seam depth and Core envelopes
+PASS existing RiverOffer integration: hard beds, soft banks, long bank-to-bank bridge offer
+PASS all hard footprints including banks and subcell obstacles are respected
+PASS long diagonal bridge envelopes are revalidated before merging
+PASS uphill, excessive slope and interior ridge never become successful rivers
+PASS explicit fall anchor at six-metre vertical step cannot enter current RiverRoute
+PASS water is checked across bed width, not merely along centre
+PASS explicit excavation permits bounded diagonal cross slopes without weakening hydraulics
+PASS missing target, missing terrain, outside endpoint and full bank bounds report separately
+PASS grid, search, sample and tiny-resolution budgets are bounded
+PASS shared batch budgets and cancellation preserve a report for every request
+PASS profiles, domains and requests hash canonically; shared Core capture stays independent
+PASS manual and seeded Core anchors use one deterministic request/planning path
+PASS landscape weights without biomes and soft reservation costs change route
+PASS height writers are never invoked, even when terrain exposes write capability
+PASS sampled radius profile and final detour are enforced without a sharp fallback
+PASS inset water intersects the banks and exports conservative wet protection
+PASS terrain brush shares masks, identity and conservative raster support offers
+RiverPlanner: 19 passed, 0 failed.

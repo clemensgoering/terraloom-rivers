@@ -103,6 +103,23 @@ internal static class RiverPlannerTests
             var basin = Plan(Input(new Height((x, z) => x * x * .01)));
             Require(basin.Reports[0].Outcome == RiverOutcome.NoRoute && Detail(basin).Contains("uphill"), "Basin escaped uphill.");
         });
+        Check("explicit fall anchor at six-metre vertical step cannot enter current RiverRoute", () =>
+        {
+            var anchors = new ManualAnchorSource("fall-anchors", 1, new[] {
+                new WorldAnchor("source", new WorldPoint(-8, 8, 0)),
+                new WorldAnchor("fall", new WorldPoint(0, 8, 0)),
+                new WorldAnchor("mouth", new WorldPoint(8, 2, 0)) });
+            var input = Input(new Height((x, z) => x < 0 ? 8 : 2), anchors: anchors,
+                fingerprint: "six-metre-vertical-step-at-zero");
+            var profile = new RiverProfile(maximumSlope: .5, allowExcavation: true);
+            var first = Plan(input, profile, new[] { new RiverRequest("main", "source", "mouth") });
+            var again = Plan(input, profile, new[] { new RiverRequest("main", "source", "mouth") });
+            Require(!first.Complete && first.Routes.Count == 0 && first.Reports.Single().Outcome == RiverOutcome.NoRoute,
+                "Planner published a continuous river over a vertical step: " + Detail(first));
+            Require(Detail(first).Contains("maximum slope"), "Vertical-step rejection did not expose the slope gate: " + Detail(first));
+            Require(Detail(first) == Detail(again) && first.Identity == again.Identity,
+                "Fall-site rejection changed under the same seed, source and request.");
+        });
         Check("water is checked across bed width, not merely along centre", () =>
         {
             var input = Input(new Height((x, z) => Math.Abs(z) > .4 ? 3 : 0));
