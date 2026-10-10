@@ -120,6 +120,44 @@ internal static class RiverPlannerTests
             Require(Detail(first) == Detail(again) && first.Identity == again.Identity,
                 "Fall-site rejection changed under the same seed, source and request.");
         });
+        Check("opt-in fall creates one typed non-publishable six-metre candidate with stable identity", () =>
+        {
+            var input = FallInput(); var profile = new RiverProfile(maximumSlope: .5, allowExcavation: true);
+            var request = FallRequest();
+            var plan = Plan(input, profile, new[] { request });
+            Require(!plan.Complete && plan.Routes.Count == 0 && plan.FallCandidates.Count == 1
+                && plan.Reports.Single().Outcome == RiverOutcome.FallCandidateOnly, Detail(plan));
+            var c = plan.FallCandidates.Single();
+            Require(c.RequestId == "main" && c.Site.Id == "main-fall" && c.CoreInputIdentity == input.Identity && !c.Publishable,
+                "Candidate lost request/source provenance or became publishable.");
+            Near(c.Lip.X,c.Impact.X); Near(c.Lip.Z,c.Impact.Z); Near(c.Lip.Y-c.Impact.Y,6);
+            Require(c.UpperStart.X < c.Lip.X && c.Pool.X > c.Impact.X && c.Outlet.X > c.Pool.X
+                && c.LowerEnd.X > c.Outlet.X, "Typed reach/fall/pool/outlet ordering broke.");
+            Require(c.Recipe.PoolWidth <= profile.Width*1.5, "Pool width escaped compact bound.");
+            Throws<InvalidOperationException>(() => plan.ToContribution(input.Identity));
+            var again = Plan(input,profile,new[]{FallRequest()});
+            Require(again.Identity == plan.Identity && again.FallCandidates.Single().Recipe.Fall.Lip.Y == c.Lip.Y,
+                "Fall intent replay changed under same seed/source.");
+            Require(RiverPlanner.ProfileVersion(profile,Bounds,new[]{request}) !=
+                RiverPlanner.ProfileVersion(profile,Bounds,new[]{new RiverRequest("main","source","mouth")}),
+                "Fall intent did not enter domain fingerprint.");
+        });
+        Check("fall candidate rejects unsupported bank, blocked pool, short lower reach and stale source", () =>
+        {
+            var p=new RiverProfile(maximumSlope:.5,allowExcavation:true);var request=FallRequest();
+            var weak=Plan(FallInput(new Height((x,z)=>x<0?(z>1?6:8):2)),p,new[]{request});
+            Require(weak.FallCandidates.Count==0&&Detail(weak).Contains("Upper bank"),Detail(weak));
+            var blocked=FallInput(areas:new[]{new AreaReservation("pool-block","user",new WorldBounds(1,-1,3,1),
+                ReservationStrength.Hard,ReservationPurpose.ProtectedArea)});
+            var noPool=Plan(blocked,p,new[]{request});
+            Require(noPool.FallCandidates.Count==0&&Detail(noPool).Contains("hard reservation"),Detail(noPool));
+            var shortReach=FallInput(mouthX:5);var noLower=Plan(shortReach,p,new[]{request});
+            Require(noLower.FallCandidates.Count==0&&Detail(noLower).Contains("lower reach space"),Detail(noLower));
+            var input=FallInput();var stale=new PlanIdentity(input.Identity.Seed,input.Identity.Revision+1,
+                input.Identity.AlgorithmVersion,input.Identity.ProfileVersion,input.Identity.InputFingerprint);
+            Require(!RiverFallCandidatePlanner.TryCreate(input.BaseSnapshot,stale,Bounds,request,p,out var candidate,out var reason)
+                && candidate==null&&reason.Contains("Stale"),"Stale revision accepted.");
+        });
         Check("water is checked across bed width, not merely along centre", () =>
         {
             var input = Input(new Height((x, z) => Math.Abs(z) > .4 ? 3 : 0));
@@ -308,6 +346,14 @@ internal static class RiverPlannerTests
         IAnchorSource anchors = null, IEnumerable<LandscapeSample> landscape = null, string fingerprint = "height-content-v1", TerrainSnapshot terrainOverride = null) =>
         new PlanningInput(42, 1, "shared-core-v1", "shared-profile-v1", terrainOverride ?? new TerrainSnapshot("world", 1, "metres", heights ?? new FlatHeightSource(0)),
             fingerprint, anchors ?? Anchors(), landscape ?? Array.Empty<LandscapeSample>(), areas ?? Array.Empty<AreaReservation>());
+    private static RiverRequest FallRequest()=>new RiverRequest("main","source","mouth",new RiverFallSite("main-fall","fall"));
+    private static PlanningInput FallInput(IHeightSource heights=null,IEnumerable<AreaReservation> areas=null,double mouthX=8)
+    {
+        var anchors=new ManualAnchorSource("fall-anchors",1,new[]{
+            new WorldAnchor("source",new WorldPoint(-8,8,0)),new WorldAnchor("fall",new WorldPoint(0,8,0)),
+            new WorldAnchor("mouth",new WorldPoint(mouthX,2,0))});
+        return Input(heights??new Height((x,z)=>x<0?8:2),areas,anchors,fingerprint:"six-metre-fall-v1");
+    }
     private static RiverPlan Plan(PlanningInput input, RiverProfile profile = null, IEnumerable<RiverRequest> requests = null) =>
         RiverPlanner.Plan(input.BaseSnapshot, profile ?? new RiverProfile(), Bounds, requests ?? Requests);
     private sealed class Height : IHeightSource

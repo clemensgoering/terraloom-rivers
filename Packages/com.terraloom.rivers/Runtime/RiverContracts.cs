@@ -8,7 +8,7 @@ using TerraLoom.Core;
 
 namespace TerraLoom.Rivers
 {
-    public enum RiverOutcome { Connected, NoRoute, MissingTerrain, OutsideBounds, BudgetExceeded, Cancelled, InvalidTarget }
+    public enum RiverOutcome { Connected, NoRoute, MissingTerrain, OutsideBounds, BudgetExceeded, Cancelled, InvalidTarget, FallCandidateOnly }
 
     public sealed class RiverRegionCost
     {
@@ -94,11 +94,13 @@ namespace TerraLoom.Rivers
         public string Id { get; }
         public string SourceId { get; }
         public string MouthId { get; }
-        public RiverRequest(string id, string sourceId, string mouthId)
+        /// <summary>Optional explicit fall intent. A candidate is never a publishable RiverRoute.</summary>
+        public RiverFallSite FallSite { get; }
+        public RiverRequest(string id, string sourceId, string mouthId, RiverFallSite fallSite = null)
         {
             RiverHash.Id(id); RiverHash.Id(sourceId); RiverHash.Id(mouthId);
             if (sourceId == mouthId) throw new ArgumentException("Distinct source and mouth IDs required.");
-            Id = id; SourceId = sourceId; MouthId = mouthId;
+            Id = id; SourceId = sourceId; MouthId = mouthId; FallSite = fallSite;
         }
     }
 
@@ -148,14 +150,17 @@ namespace TerraLoom.Rivers
         public string ProfileFingerprint { get; }
         public string DomainFingerprint { get; }
         public IReadOnlyList<RiverRoute> Routes { get; }
+        public IReadOnlyList<RiverFallCandidate> FallCandidates { get; }
         public IReadOnlyList<RiverReport> Reports { get; }
         public bool Complete => Reports.All(r => r.Outcome == RiverOutcome.Connected);
-        internal RiverPlan(PlanIdentity core, string domain, RiverProfile profile, IEnumerable<RiverRoute> routes, IEnumerable<RiverReport> reports)
+        internal RiverPlan(PlanIdentity core, string domain, RiverProfile profile, IEnumerable<RiverRoute> routes, IEnumerable<RiverReport> reports,
+            IEnumerable<RiverFallCandidate> fallCandidates = null)
         {
             CoreInputIdentity = core; ProfileFingerprint = profile.Fingerprint; DomainFingerprint = domain;
             Identity = new PlanIdentity(core.Seed, core.Revision, RiverPlanner.AlgorithmVersion, domain,
                 RiverHash.Digest(w => { RiverHash.Identity(w, core); w.Write(domain); }));
             Routes = Array.AsReadOnly(routes.ToArray()); Reports = Array.AsReadOnly(reports.ToArray());
+            FallCandidates = Array.AsReadOnly((fallCandidates ?? Array.Empty<RiverFallCandidate>()).ToArray());
         }
         public PlanContribution ToContribution(PlanIdentity coreInputIdentity) => ToContribution("rivers", coreInputIdentity);
         public PlanContribution ToContribution(string moduleInstanceId, PlanIdentity coreInputIdentity)

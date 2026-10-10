@@ -47,7 +47,10 @@ namespace TerraLoom.Rivers
                 w.Write("rivers-domain-v1"); w.Write(profile.Fingerprint);
                 foreach (double n in new[] { bounds.MinX, bounds.MinZ, bounds.MaxX, bounds.MaxZ }) RiverHash.Number(w, n);
                 w.Write(ordered.Length);
-                foreach (var r in ordered) { w.Write(r.Id); w.Write(r.SourceId); w.Write(r.MouthId); }
+                foreach (var r in ordered) { w.Write(r.Id); w.Write(r.SourceId); w.Write(r.MouthId);
+                    // Legacy requests retain their exact v1 fingerprint.
+                    if (r.FallSite != null) { w.Write("fall-site-v1"); w.Write(r.FallSite.Id); w.Write(r.FallSite.AnchorId); }
+                }
             });
         }
 
@@ -57,8 +60,10 @@ namespace TerraLoom.Rivers
             // Materialize at most the supported batch, even for an infinite enumerable.
             var copy = requests.Take(1025).ToArray();
             if (copy.Length > 1024 || copy.Any(r => r == null)
-                || copy.Select(r => r.Id).Distinct(StringComparer.Ordinal).Count() != copy.Length)
-                throw new ArgumentException("At most 1024 nonnull requests with unique IDs required.");
+                || copy.Select(r => r.Id).Distinct(StringComparer.Ordinal).Count() != copy.Length
+                || copy.Where(r => r.FallSite != null).Select(r => r.FallSite.Id).Distinct(StringComparer.Ordinal).Count()
+                    != copy.Count(r => r.FallSite != null))
+                throw new ArgumentException("At most 1024 nonnull requests with unique request and fall IDs required.");
             return copy.OrderBy(r => r.Id, StringComparer.Ordinal).ToArray();
         }
 
@@ -72,6 +77,7 @@ namespace TerraLoom.Rivers
             var identity = new PlanIdentity(snapshot.Identity.Seed, snapshot.Identity.Revision, AlgorithmVersion, domain,
                 RiverHash.Digest(w => { RiverHash.Identity(w, snapshot.Identity); w.Write(domain); }));
             var routes = new List<RiverRoute>(); var reports = new List<RiverReport>();
+            var fallCandidates = new List<RiverFallCandidate>();
             var work = new Work(profile, cancellation);
             double rawX = Math.Ceiling((bounds.MaxX - bounds.MinX) / profile.CellSize) + 1;
             double rawZ = Math.Ceiling((bounds.MaxZ - bounds.MinZ) / profile.CellSize) + 1;
@@ -94,6 +100,16 @@ namespace TerraLoom.Rivers
                     if (!field.TryPoint(source.Position.X, source.Position.Z, out var start)
                         || !field.TryPoint(mouth.Position.X, mouth.Position.Z, out var end))
                         throw new Stop(RiverOutcome.MissingTerrain, "Terrain height unavailable at source or mouth.");
+                    if (request.FallSite != null)
+                    {
+                        if (RiverFallCandidatePlanner.TryCreate(snapshot, snapshot.Identity, bounds, request, profile,
+                            out var candidate, out detail))
+                        { fallCandidates.Add(candidate); outcome = RiverOutcome.FallCandidateOnly; }
+                        else outcome = RiverOutcome.NoRoute;
+                        reports.Add(new RiverReport(request, outcome, detail, work.Nodes-beforeNodes, work.Samples-beforeSamples,
+                            identity, snapshot.Identity, profile.Fingerprint));
+                        continue;
+                    }
                     var route = Search(field, request, start, end, snapshot.Identity, domain);
                     if (route == null) { outcome = RiverOutcome.NoRoute; detail = "Hydraulic dead end; no full-footprint downhill route. " + field.Diagnostics; }
                     else
@@ -106,7 +122,7 @@ namespace TerraLoom.Rivers
                 reports.Add(new RiverReport(request, outcome, detail, work.Nodes - beforeNodes, work.Samples - beforeSamples,
                     identity, snapshot.Identity, profile.Fingerprint));
             }
-            return new RiverPlan(snapshot.Identity, domain, profile, routes, reports);
+            return new RiverPlan(snapshot.Identity, domain, profile, routes, reports, fallCandidates);
         }
 
         private static RiverRoute Search(Field f, RiverRequest request, WorldPoint start, WorldPoint end, PlanIdentity core, string domain)

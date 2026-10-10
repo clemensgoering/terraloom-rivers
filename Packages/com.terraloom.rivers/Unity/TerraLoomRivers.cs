@@ -11,7 +11,15 @@ namespace TerraLoom.Rivers.Unity
     [Serializable] public sealed class RiverConnectionSettings
     {
         public string Id = "river", SourceId = "source", MouthId = "mouth";
-        public RiverRequest Capture() => new RiverRequest(Id, SourceId, MouthId);
+        [Tooltip("Optional explicit fall ID and anchor. Candidate-only until terrain/contact publication is available.")]
+        public string FallId, FallAnchorId;
+        public RiverRequest Capture()
+        {
+            if (string.IsNullOrWhiteSpace(FallId) != string.IsNullOrWhiteSpace(FallAnchorId))
+                throw new ArgumentException("Fall ID and fall anchor must be set together.");
+            return new RiverRequest(Id, SourceId, MouthId,
+                string.IsNullOrWhiteSpace(FallId) ? null : new RiverFallSite(FallId, FallAnchorId));
+        }
     }
     [Serializable] public sealed class RiverRegionSettings
     { public string RegionId = "dry"; [Min(0)] public float CostPerMetre = 4; }
