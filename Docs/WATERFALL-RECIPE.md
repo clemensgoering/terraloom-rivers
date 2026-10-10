@@ -79,3 +79,68 @@ technical cliff panels, upper U appearance, foam rails and transitions remain
 visually unresolved. ShaderSource review from World reports **no TFD vertex
 displacement**; scene-colour/refraction appearance was the issue. Epos adapter
 tests belong to Epos; they are not TerraLoom tests or final art approval.
+
+## Combined Unity reference, revision combined-waterfall-v2-r1
+
+The next consumer step is now implemented in the shared Integration generator:
+`VerticalWaterfallPrototype.CombinedPoolSill` creates the combined case by consuming
+WaterfallRecipe. Existing flags defaultfalse and previous r2/V2 comparison scenes
+and exported snapshots remain separate. This reference owns fresh terrain/holes,
+replacement cliff and water meshes; it is not a foreign-terrain writer.
+
+Build `RuntimePlayerValidation.BuildCombinedWaterfallBatch` in the Integration
+project (canonical sources in Rivers/IntegrationProject). Generated scene:
+`Assets/TerraLoom/Integration/Generated/TerraLoomCombinedWaterfall.unity`.
+Menu: Tools > TerraLoom > Integration > Build Combined Waterfall Pool And Sill.
+Standalone `.artifacts/PlayerCombinedWaterfall/TerraLoom.exe` args:
+`-terraloomSmoke -terraloomScreenshot <absolute>/combined-waterfall-v2-r1.png`.
+
+Actual recipe: Lip(32,11.2,32),Impact(32,8,32),Forward+Z,Across+X,run0,width3m;
+poolstation1.7,width4.2/depth1.1, sillstation5.7/depth.5, transitionend8.7,
+outflow17/depth.75, upperSlope.012, downstreamSlope.035, transition3m.
+Pool and sill stations are inserted as exact watermesh rows. Water UVx=-1..1,
+UVy is cumulative3Dcentreline distance. Lower water level remains8m through the
+sill and falls to7.657m at station17. Bed cross-section is quadratic below the
+sampled water level, with sample.CentreDepth and HalfWidth; landscape shoulder
+blends into the surrounding terrain. Pool/sill longitudinal formulas are consumed
+from runtime and not copied into the sample. Upper bed uses recipe.ChannelDepth.
+
+Terrain uses the existing original landscape meadow/damp-sediment/weathered-rock/
+dry-gravel textures, blended by channel proximity and cliff vicinity. Cliff uses
+the original rock colour/normal material. Its per-face UVs are dominant-axis
+world projection divided by2m; normals/tangents rebuilt. Meshpacket includes UVs
+and normals; importers should recalculate tangents for normal mapping. Water uses
+the existing landscape shader/materials. No Epos art or new art series imported.
+
+Three unchanged canonical foot positions/targets/FOV/resolution are retained;
+actual eyes are recomputed from new final ground+1.7m and exported. Controller
+parameters/start-XZ/routes remain fixed, startY uses the new upper floor.
+Actual three drops3.527887..3.623734m all land grounded. Render offset remains
+exactly+.01Y once. Candidate validates before publication; failure/cancel keeps
+old generated subtree, successful rebuild disposes old owned meshes/terrain.
+
+15 probes at impact/pool/sill/transition-end/outflow, lateral fractions-.75/0/.75,
+measure **actual owned TerrainCollider/CliffCollider** and actual lower-water
+triangles through XZ barycentrics, with physical and rendered depths separated.
+No water collider is added. Measured centre physical depths: impact1.100000m,
+pool1.100164m, sill.500519m, transition.749796m, outflow.750329m. Max bed intent
+error2.022744mm across all15, actual rendered offset error.000229mm; native hole
+perimeter seam max.745773mm, terrain cell-centre reconstruction1.907349µm.
+All17actual boundary vertices at each lip/impact join validate; full fall-strip
+support checks retained. Closed cliff/lifecycle/export/depth assertions plus all
+prior fixture cases pass12/12; native CombinedReference-12.xml/.log. Windows
+build/Playerexit0, CombinedWaterfallBuild.log /CombinedWaterfallPlayer.log.
+
+New packet: `Integration/.artifacts/Evidence/combined-waterfall-v2-r1-packet`,
+manifestSHA256 `2619f72538a92eaad75e7fcc6f5fbdcd6c4d212f1649c4cb0d28803516debefd`.
+Same19hashedbinarypayloads/fourmeshes, now receivingRecipe and15bedProbes DTOs.
+3actual cameras/3actualcontrollerprobes and physical anchors/separate renderoffset
+included. `verify_vertical_packet.py` validates the new revision and measured
+depths, in addition to hashes/grid/holes/indices/fullwidthjoins/observations.
+World receives the actual buffers for separate combined Epos import.
+
+NinePNGscaptured; HERE actually opened only main side/lip/foot and lipflat/normals
+(5of9). Textured cliff replaces flat grey contact rendering and profile changes
+are visible, but steep technical panels, straight upper pane, bright lip area,
+small curtain corner and abrupt water-material transitions remain visually open.
+This is a tested combined reference, **not final natural-landscape/art approval**.

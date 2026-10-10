@@ -28,6 +28,8 @@ namespace TerraLoom.Integration.Editor
         {
             VerticalWaterfallBuilder.BuildBatch();Build("TerraLoomVertical","PlayerVertical");
         }
+        public static void BuildCombinedWaterfallBatch()
+        {VerticalWaterfallBuilder.BuildCombinedBatch();Build("TerraLoomCombinedWaterfall","PlayerCombinedWaterfall");}
         public static void BuildNearVerticalWaterfallBatch()
         {
             VerticalWaterfallBuilder.BuildNearBatch();Build("TerraLoomNearVertical","PlayerNearVertical");

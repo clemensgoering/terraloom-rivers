@@ -10,7 +10,7 @@ import sys
 def verify(directory):
     root = Path(directory).resolve()
     packet = json.loads((root / 'manifest.json').read_text(encoding='utf-8'))
-    assert packet['schemaVersion'] == 1 and packet['revision'] == 'vertical-contact-v2'
+    assert packet['schemaVersion'] == 1 and packet['revision'] in ('vertical-contact-v2', 'combined-waterfall-v2-r1')
 
     def read(payload):
         path = (root / payload['file']).resolve()
@@ -57,6 +57,16 @@ def verify(directory):
     for probe in packet['controllerProbes']:
         assert probe['grounded'] and probe['start']['y'] - probe['end']['y'] > 2.5
         assert probe['steps'] == 140 and probe['fixedDeltaTime'] > 0
+    if packet['revision'] == 'combined-waterfall-v2-r1':
+        assert packet['horizontalRun'] == 0 and len(packet['bedProbes']) == 15
+        assert packet['meshes'][0]['uvCount'] == packet['meshes'][0]['vertexCount']
+        for probe in packet['bedProbes']:
+            assert abs(probe['actualBedY']-probe['intendedBedY']) < .004
+            assert abs(probe['renderedWaterY']-probe['physicalWater']['y']-.01) < .00002
+            assert probe['physicalWetDepth'] > 0
+            if probe['lateral'] == 0:
+                target = {'impact': 1.1, 'pool': 1.1, 'sill': .5, 'transition-end': .75, 'outflow': .75}[probe['name']]
+                assert abs(probe['physicalWetDepth']-target) < .004
     return dict(case=packet['caseName'], files=19, holes=holes.count(0),
                 colliderCentreError=packet['maximumColliderCentreError'],
                 manifestSha256=hashlib.sha256((root/'manifest.json').read_bytes()).hexdigest())

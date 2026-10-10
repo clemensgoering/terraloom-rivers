@@ -11,12 +11,13 @@ namespace TerraLoom.Integration.Tests
 {
     public sealed class VerticalWaterfallTests
     {
-        [TestCase(false,false)][TestCase(true,false)][TestCase(false,true)] public void OwnedCliffHoleContactAndCancelledRebuild(bool near,bool rotated)
+        [TestCase(false,false,false)][TestCase(true,false,false)][TestCase(false,true,false)][TestCase(false,false,true)]
+        public void OwnedCliffHoleContactAndCancelledRebuild(bool near,bool rotated,bool combined)
         {
             var setup=EditorSceneManager.GetSceneManagerSetup();
             try
             {
-                EditorSceneManager.OpenScene("Assets/TerraLoom/Integration/Generated/"+(rotated?"TerraLoomRotatedVertical":near?"TerraLoomNearVertical":"TerraLoomVertical")+".unity");
+                EditorSceneManager.OpenScene("Assets/TerraLoom/Integration/Generated/"+(combined?"TerraLoomCombinedWaterfall":rotated?"TerraLoomRotatedVertical":near?"TerraLoomNearVertical":"TerraLoomVertical")+".unity");
                 var recipe=Object.FindFirstObjectByType<VerticalWaterfallPrototype>();recipe.Generate();
                 Assert.That(recipe.Fall.HorizontalRun,Is.EqualTo(near?.025:0).Within(1e-10));
                 Assert.That(recipe.MaximumSeamError,Is.LessThan(.004));
@@ -43,7 +44,21 @@ namespace TerraLoom.Integration.Tests
                     var packet=VerticalWaterfallPacket.Save(recipe,directory,new VerticalWaterfallPacket.Observer[0],new VerticalWaterfallPacket.ControllerProbe[0]);
                     Assert.That(packet.maximumColliderCentreError,Is.LessThan(.003f));
                     Assert.That(packet.heightResolution,Is.EqualTo(513));Assert.That(packet.holeResolution,Is.EqualTo(512));
-                    Assert.That(packet.meshes.Length,Is.EqualTo(4));Assert.That(packet.meshes[0].uvCount,Is.Zero);
+                    Assert.That(packet.meshes.Length,Is.EqualTo(4));Assert.That(packet.meshes[0].uvCount,Is.EqualTo(combined?packet.meshes[0].vertexCount:0));
+                    if(combined)
+                    {
+                        Assert.That(packet.revision,Is.EqualTo("combined-waterfall-v2-r1"));Assert.That(packet.bedProbes.Length,Is.EqualTo(15));
+                        foreach(var probe in packet.bedProbes)
+                        {
+                            Assert.That(Mathf.Abs(probe.actualBedY-probe.intendedBedY),Is.LessThan(.004f));
+                            Assert.That(probe.renderedWaterY-probe.physicalWater.y,Is.EqualTo(.01f).Within(.00002f));
+                            if(probe.lateral==0&&probe.name=="pool")Assert.That(probe.physicalWetDepth,Is.EqualTo(1.1).Within(.004));
+                            if(probe.lateral==0&&probe.name=="sill")Assert.That(probe.physicalWetDepth,Is.EqualTo(.5).Within(.004));
+                            if(probe.lateral==0&&probe.name=="outflow")Assert.That(probe.physicalWetDepth,Is.EqualTo(.75).Within(.004));
+                        }
+                        Assert.That(recipe.CombinedRecipe.SampleLowerReach(17).Surface.Y,Is.LessThan(8));
+                        Assert.That(oldData.GetAlphamaps(0,0,64,64)[32,32,1],Is.GreaterThan(0));
+                    }
                     var holeBytes=Read(packet.holes);int holeCount=0;foreach(byte b in holeBytes)if(b==0)holeCount++;
                     Assert.That(holeCount,Is.EqualTo(2400));var diagonals=Read(packet.diagonals);
                     for(int i=0;i<holeBytes.Length;i++)Assert.That(diagonals[i]==255,Is.EqualTo(holeBytes[i]==0));

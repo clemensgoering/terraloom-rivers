@@ -25,6 +25,19 @@ namespace TerraLoom.Integration
         public MeshPayload[] meshes;
         public Observer[] cameras;
         public ControllerProbe[] controllerProbes;
+        public ReceivingRecipe receivingRecipe;
+        public BedProbe[] bedProbes;
+        [Serializable] public sealed class ReceivingRecipe
+        {
+            public Vector3 pool,outletSill;
+            public double poolStation,outletStation,poolWidth,channelDepth,poolDepth,sillDepth,upstreamSlope,downstreamSlope,outletTransitionLength;
+            public string cliffUvRule="Per-face dominant world normal axis projection: Y dominant uses XZ, Z uses XY, X uses ZY; UV=world metres/2; tangents recalculated";
+        }
+        [Serializable] public sealed class BedProbe
+        {
+            public string name;public double station,lateral;public Vector3 physicalWater;
+            public float renderedWaterY,intendedBedY,actualBedY,physicalWetDepth,renderedWetDepth;
+        }
         [Serializable] public sealed class Payload { public string file,sha256,encoding; public int bytes; }
         [Serializable] public sealed class MeshPayload
         {
@@ -63,6 +76,13 @@ namespace TerraLoom.Integration
             if(recipe.Ground.transform.rotation!=Quaternion.identity||recipe.Ground.transform.lossyScale!=Vector3.one)
                 throw new InvalidOperationException("Terrain export requires an unrotated unit-scale native grid.");
             var packet=new VerticalWaterfallPacket {caseName=recipe.RotateQuarterTurn?"quarter-turn":recipe.NearVertical?"near-vertical":"vertical",lip=V(recipe.Fall.Lip),impact=V(recipe.Fall.Impact),forward=V(recipe.Fall.Forward),across=V(recipe.Fall.Across),width=recipe.Fall.Width,horizontalRun=recipe.Fall.HorizontalRun,arcLength=recipe.Fall.ArcLength,terrainOrigin=recipe.Ground.transform.position,terrainSize=data.size,heightResolution=n,holeResolution=h,cameras=observers,controllerProbes=probes};
+            if(recipe.CombinedRecipe!=null)
+            {
+                var r=recipe.CombinedRecipe;packet.revision="combined-waterfall-v2-r1";packet.caseName="combined-zero-run";
+                packet.limitations="Fresh owned terrain only; shared WaterfallRecipe upper/fall/pool/sill/outflow. Original landscape layers and rock textures; UV projection documented; no general terrain writer/site solver or final art acceptance.";
+                packet.receivingRecipe=new ReceivingRecipe {pool=V(r.Pool),outletSill=V(r.OutletSill),poolStation=r.PoolStation,outletStation=r.OutletStation,poolWidth=r.PoolWidth,channelDepth=r.ChannelDepth,poolDepth=r.PoolDepth,sillDepth=r.OutletSillDepth,upstreamSlope=r.UpstreamSlope,downstreamSlope=r.DownstreamSlope,outletTransitionLength=r.OutletTransitionLength};
+                packet.bedProbes=recipe.MeasureBed();
+            }
             var heights=data.GetHeights(0,0,n,n);var holes=data.GetHoles(0,0,h,h);
             packet.heights=Write("heights","uint16 LE",w=>{for(int z=0;z<n;z++)for(int x=0;x<n;x++)w.Write((ushort)Mathf.RoundToInt(heights[z,x]*65535));});
             packet.holes=Write("holes","uint8",w=>{for(int z=0;z<h;z++)for(int x=0;x<h;x++)w.Write((byte)(holes[z,x]?1:0));});
