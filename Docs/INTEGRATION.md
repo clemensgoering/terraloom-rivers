@@ -171,3 +171,9 @@ requirements and planned first gate: [design draft](WATERFALL-DESIGN.md).
 New early landscape request: [runtime waterfall prototype](WATERFALL-PROTOTYPE.md)
 provides an isolated reproducible scene and three1.7m player views plus overview.
 It is an explicit recipe, not general Rivers waterfall/module acceptance.
+
+10 October later update: Paths collective current-rights planning/publication is
+wired, and a separate6..12m side-truss construction now has real Player evidence
+at the frozen local9.511811m crossing. The original full road stays rejected at
+both hillside targets; the local construction does not replace that connection.
+See [frozen truss evidence and exact limits](FROZEN-TRUSS-CROSSING.md).

@@ -34,6 +34,12 @@ namespace TerraLoom.Integration
         public GenerationRunState GenerationState => generationState;
         public string ActiveStep => activeStep;
         public string GenerationTrace => generationTrace;
+        /// <summary>External example policy; recalculated at planning and each publication boundary.
+        /// A saved path plan never supplies this authority. Null preserves the legacy example.</summary>
+        public Func<PlanSnapshot,PathCrossingPermissions> CrossingPermissions;
+        public PlanSnapshot LastSharedInput { get; private set; }
+        public PlanSnapshot LastSourceInput { get; private set; }
+        public PathPlan LastPathAttempt { get; private set; }
         private static GenerationSchedule Schedule() => new GenerationSchedule(new[] {
             new GenerationStep("01-capture-source",Array.Empty<string>(),new[]{"source-snapshot"}),
             new GenerationStep("02-plan-water",new[]{"source-snapshot"},new[]{"river-plan","water-offers"}),
@@ -76,7 +82,7 @@ namespace TerraLoom.Integration
                 System.Collections.Generic.IReadOnlyList<PathConnection> graph=null;
                 System.Collections.Generic.IReadOnlyList<RiverRequest> requests=null;
                 RiverPlan riverPlan=null;PathPlan pathPlan=null;
-                Step("01-capture-source",()=>input=CaptureSource(out bounds,out graph));
+                Step("01-capture-source",()=>{input=CaptureSource(out bounds,out graph);LastSourceInput=input;});
                 Step("02-plan-water",()=>{
                     requests=Requests(input);riverPlan=RiverPlanner.Plan(input,Rivers.CaptureProfile(),bounds,requests,cancellation);
                     if(!riverPlan.Complete)throw new InvalidOperationException(string.Join("\n",riverPlan.Reports.Select(r=>r.Request.Id+": "+r.Outcome+" "+r.Detail)));
@@ -85,7 +91,9 @@ namespace TerraLoom.Integration
                         input.Landscape,input.Reservations.Concat(offer.Reservations),offer.Waters,offer.Crossings);
                 });
                 Step("03-plan-routes",()=>{
-                    pathPlan=PathPlanner.Plan(shared,Paths.CaptureProfile(),bounds,graph,cancellation);
+                    LastSharedInput=shared;
+                    pathPlan=PathPlanner.Plan(shared,Paths.CaptureProfile(),bounds,graph,cancellation,CrossingPermissions?.Invoke(shared));
+                    LastPathAttempt=pathPlan;
                     if(!pathPlan.Complete)throw new InvalidOperationException(string.Join("\n",pathPlan.Reports.Select(r=>r.Connection.Id+": "+r.Outcome+" "+r.Detail)));
                 });
                 Step("04-publish-earthworks",()=>{
@@ -96,7 +104,8 @@ namespace TerraLoom.Integration
                     if(!Rivers.GenerateFromSnapshot(input,bounds,requests,cancellation))throw new InvalidOperationException(Rivers.Diagnostics);
                     earthworksPublished=true;
                 });
-                Step("05-publish-walkable",()=>{if(!Paths.GenerateFromSnapshot(shared,bounds,graph,cancellation))throw new InvalidOperationException(Paths.Diagnostics);});
+                Step("05-publish-walkable",()=>{if(!Paths.GenerateFromSnapshot(shared,bounds,graph,cancellation,
+                    currentPermissions:CrossingPermissions==null?(Func<PathCrossingPermissions>)null:()=>CrossingPermissions?.Invoke(shared)))throw new InvalidOperationException(Paths.Diagnostics);});
                 builtInput=input.Identity.InputFingerprint;builtRiverProfile=RiverPlanner.ProfileVersion(Rivers.CaptureProfile(),bounds,requests);
                 builtTerrain=World.TerrainContentFingerprint;builtPathsJson=Digest(Paths.PlanJson);builtRiversJson=Digest(Rivers.PlanJson);activeStep="";
                 builtCarve=Rivers.CarveTerrainCopy;builtSpacing=Paths.MeshSpacing;builtMaterials=Materials();
@@ -157,6 +166,7 @@ namespace TerraLoom.Integration
                     ||builtMaterials==null||!builtMaterials.SequenceEqual(Materials())||builtPathsTransform!=Paths.transform.localToWorldMatrix||builtRiversTransform!=Rivers.transform.localToWorldMatrix)
                     throw new InvalidOperationException("Module bindings, geometry settings or transforms changed; rebuild composition.");
                 var input=CaptureSource(out var bounds,out var graph);
+                if(Paths.LastPlan!=null)PathCrossingPermissions.RequireCurrent(Paths.LastPlan,LastSharedInput==null?null:CrossingPermissions?.Invoke(LastSharedInput));
                 if(input.Identity.InputFingerprint!=builtInput||RiverPlanner.ProfileVersion(Rivers.CaptureProfile(),bounds,Requests(input))!=builtRiverProfile
                     ||World.TerrainContentFingerprint!=builtTerrain||Digest(Paths.PlanJson)!=builtPathsJson||Digest(Rivers.PlanJson)!=builtRiversJson)
                     throw new InvalidOperationException("Upstream inputs or module outputs changed; rebuild the composition before downstream decoration/navigation.");

@@ -153,7 +153,7 @@ namespace TerraLoom.Integration.Editor
             AssetDatabase.SaveAssets();EditorSceneManager.SaveScene(scene,Root+"/TerraLoomDynamic.unity");
             Debug.Log("Configuration-only dynamic scene saved; all world geometry is generated at runtime from the seed.");
         }
-        private static Material MakeMaterial(string name,Color tint,bool wood)
+        internal static Material MakeMaterial(string name,Color tint,bool wood)
         {
             var texture=new Texture2D(64,64,TextureFormat.RGBA32,true) { name=name+" original texture",wrapMode=TextureWrapMode.Repeat };
             var colors=new Color[4096];
@@ -170,7 +170,7 @@ namespace TerraLoom.Integration.Editor
             mat.SetFloat("_UseWorldRegions",1);mat.SetFloat("_WinterBoundaryZ",48);mat.SetFloat("_RegionBlend",6);
             return Save(mat,Root+"/"+name+".mat");
         }
-        private static Material MakeTimberWood()
+        internal static Material MakeTimberWood(string prefix="TimberWood")
         {
             const int size=256;var texture=new Texture2D(size,size,TextureFormat.RGBA32,true)
             {name="Original weathered timber grain",wrapMode=TextureWrapMode.Repeat,filterMode=FilterMode.Trilinear,anisoLevel=8};
@@ -193,11 +193,11 @@ namespace TerraLoom.Integration.Editor
                 }
                 colors[y*size+x]=Color.Lerp(new Color(.19f,.095f,.04f),new Color(.52f,.34f,.17f),Mathf.Clamp01(value));
             }
-            texture.SetPixels(colors);texture.Apply();texture=Save(texture,Root+"/TimberWoodTexture.asset");
+            texture.SetPixels(colors);texture.Apply();texture=Save(texture,Root+"/"+prefix+"Texture.asset");
             var material=new Material(Shader.Find("TerraLoom/SeasonalSurface")){name="Original short timber wood"};
             material.SetColor("_BaseColor",Color.white);material.SetTexture("_BaseMap",texture);material.SetTextureScale("_BaseMap",new Vector2(.5f,2));
             material.SetFloat("_Smoothness",.12f);material.SetFloat("_UseWorldRegions",0);
-            return Save(material,Root+"/TimberWood.mat");
+            return Save(material,Root+"/"+prefix+".mat");
         }
         /// <summary>Independent configuration-only landscape; keeps the regional comparison gallery intact.</summary>
         public static void BuildLandscapeScene()
