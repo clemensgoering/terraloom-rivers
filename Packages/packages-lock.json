@@ -1,13 +1,13 @@
 {
   "dependencies": {
     "com.terraloom.core": {
-      "version": "https://github.com/clemensgoering/terraloom-core.git?path=/Packages/com.terraloom.core#87d1358f498a3ee25ce643d5804f7c16271f9d56",
+      "version": "https://github.com/clemensgoering/terraloom-core.git?path=/Packages/com.terraloom.core#681554bdd79e2cf9855f2391e172dff132ec7696",
       "depth": 0,
       "source": "git",
       "dependencies": {
         "com.unity.render-pipelines.universal": "17.3.0"
       },
-      "hash": "87d1358f498a3ee25ce643d5804f7c16271f9d56"
+      "hash": "681554bdd79e2cf9855f2391e172dff132ec7696"
     },
     "com.terraloom.rivers": {
       "version": "file:com.terraloom.rivers",
