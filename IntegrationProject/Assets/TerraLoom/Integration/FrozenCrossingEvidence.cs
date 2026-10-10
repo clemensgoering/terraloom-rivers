@@ -12,6 +12,7 @@ namespace TerraLoom.Integration
     public sealed class FrozenCrossingEvidence:MonoBehaviour
     {
         public FrozenCurvedCrossing Scenario;
+        public bool RequireFullRoute;
         private IEnumerator Start()
         {
             var args=Environment.GetCommandLineArgs();int at=Array.IndexOf(args,"-terraloomScreenshot");
@@ -21,6 +22,7 @@ namespace TerraLoom.Integration
             try
             {
                 var c=Scenario.Composition;if(c.Paths.LastPlan==null&&Scenario.ProbeRoute==null)throw new InvalidOperationException(Scenario.ProbeDiagnostic??c.Diagnostics);
+                if(RequireFullRoute&&(c.Paths.LastPlan==null||Scenario.ProbeRoot||Scenario.ProbeRoute!=null))throw new InvalidOperationException("Full published route required; construction probe cannot qualify.");
                 if(c.Paths.LastPlan!=null&&!c.ValidateCurrent(out var reason))throw new InvalidOperationException(reason);
                 var route=Scenario.ProbeRoute??c.Paths.LastPlan.Routes.Single();int first=route.Surfaces.ToList().IndexOf(PathSurface.Bridge),last=first;
                 if(first<0)throw new InvalidOperationException("Missing actual crossing.");while(last<route.Surfaces.Count&&route.Surfaces[last]==PathSurface.Bridge)last++;
@@ -63,11 +65,11 @@ namespace TerraLoom.Integration
                     RuntimeVisualCapture.Save(Camera.main,Path.Combine(Path.GetDirectoryName(path),Path.GetFileNameWithoutExtension(path)+suffix+".png"));
                 }
                 View("-overview",mid+side*15-f*10+Vector3.up*12,mid-Vector3.up);
-                View("-west",P(0)-f*4+side*3+Vector3.up*2.6f,P(0)+f*1.6f+Vector3.up*.4f);
-                View("-east",P(route.Waypoints.Count-1)+f*4+side*3+Vector3.up*2.6f,P(route.Waypoints.Count-1)-f*1.6f+Vector3.up*.4f);
+                View("-west",P(first-1)-f*4+side*3+Vector3.up*2.6f,P(first-1)+f*1.6f+Vector3.up*.4f);
+                View("-east",P(last+1)+f*4+side*3+Vector3.up*2.6f,P(last+1)-f*1.6f+Vector3.up*.4f);
                 View("-underside",mid+side*5-f*2-Vector3.up*.75f,mid-Vector3.up*.4f);
                 File.WriteAllText(Path.ChangeExtension(path,".txt"),"Frozen seed42; span="+Vector3.Distance(a,b).ToString("R")+"; width="+c.Paths.Width+"; probes="+probes+"\n"+Scenario.ProbeDiagnostic+"\nFull route: "+c.Diagnostics);
-                Debug.Log("TERRALOOM_FROZEN_TRUSS_SUCCESS span="+Vector3.Distance(a,b).ToString("R")+" probes="+probes);Application.Quit(0);
+                Debug.Log("TERRALOOM_FROZEN_TRUSS_SUCCESS fullRoute="+RequireFullRoute+" span="+Vector3.Distance(a,b).ToString("R")+" probes="+probes);Application.Quit(0);
             }
             catch(Exception ex){Debug.LogError("TERRALOOM_FROZEN_TRUSS_FAILED "+ex);Application.Quit(1);}
         }

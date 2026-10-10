@@ -1,5 +1,10 @@
 # Frozen curved crossing: bounded construction evidence
 
+New separate full-route recipe: [Positive curved crossing](POSITIVE-CURVED-CROSSING.md)
+publishes the normal 9.511811m route and has actual Player traversal/captures.
+It changes road targets and explicitly restricts road routing; this frozen
+negative case and its local construction probe remain unchanged.
+
 Later target follow-up: Paths now checks the actual oriented full-width strip
 clipped against bilinear cells (`paths-clipped-grid-v7`). All15 local options per
 original target still fail; best along0.41066270750032324/across0.330397403450082,

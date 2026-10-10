@@ -19,6 +19,16 @@ namespace TerraLoom.Integration
         public TerraLoomPaths Paths;
         public TerraLoomRivers Rivers;
         public bool GenerateOnStart;
+        [Tooltip("Consumer routing constraint only; grants no crossing or terrain-edit rights. Rivers still use the full terrain domain.")]
+        public bool RestrictPathRouting;
+        public Rect PathRoutingZone;
+        public WorldBounds CapturePathBounds(WorldBounds terrainBounds)
+        {
+            if(!RestrictPathRouting)return terrainBounds;
+            var selected=new WorldBounds(PathRoutingZone.xMin,PathRoutingZone.yMin,PathRoutingZone.xMax,PathRoutingZone.yMax);
+            if(!selected.IsValid||!terrainBounds.Contains(selected))throw new InvalidOperationException("Path routing zone must be a positive finite rectangle within the source terrain.");
+            return selected;
+        }
         [SerializeField, TextArea] private string diagnostics;
         [SerializeField] private GenerationRunState generationState;
         [SerializeField] private string activeStep;
@@ -92,7 +102,7 @@ namespace TerraLoom.Integration
                 });
                 Step("03-plan-routes",()=>{
                     LastSharedInput=shared;
-                    pathPlan=PathPlanner.Plan(shared,Paths.CaptureProfile(),bounds,graph,cancellation,CrossingPermissions?.Invoke(shared));
+                    pathPlan=PathPlanner.Plan(shared,Paths.CaptureProfile(),CapturePathBounds(bounds),graph,cancellation,CrossingPermissions?.Invoke(shared));
                     LastPathAttempt=pathPlan;
                     if(!pathPlan.Complete)throw new InvalidOperationException(string.Join("\n",pathPlan.Reports.Select(r=>r.Connection.Id+": "+r.Outcome+" "+r.Detail)));
                 });
@@ -104,7 +114,7 @@ namespace TerraLoom.Integration
                     if(!Rivers.GenerateFromSnapshot(input,bounds,requests,cancellation))throw new InvalidOperationException(Rivers.Diagnostics);
                     earthworksPublished=true;
                 });
-                Step("05-publish-walkable",()=>{if(!Paths.GenerateFromSnapshot(shared,bounds,graph,cancellation,
+                Step("05-publish-walkable",()=>{if(!Paths.GenerateFromSnapshot(shared,CapturePathBounds(bounds),graph,cancellation,
                     currentPermissions:CrossingPermissions==null?(Func<PathCrossingPermissions>)null:()=>CrossingPermissions?.Invoke(shared)))throw new InvalidOperationException(Paths.Diagnostics);});
                 builtInput=input.Identity.InputFingerprint;builtRiverProfile=RiverPlanner.ProfileVersion(Rivers.CaptureProfile(),bounds,requests);
                 builtTerrain=World.TerrainContentFingerprint;builtPathsJson=Digest(Paths.PlanJson);builtRiversJson=Digest(Rivers.PlanJson);activeStep="";
@@ -145,7 +155,7 @@ namespace TerraLoom.Integration
                 // Re-fingerprint the combined protections: changing either inspector invalidates
                 // downstream publication. Duplicate reservation IDs are rejected by Core.
                 return new PlanningInput(pathInput.Identity.Seed,pathInput.Identity.Revision,
-                    pathInput.Identity.AlgorithmVersion,pathInput.Identity.ProfileVersion,pathInput.Terrain,
+                    pathInput.Identity.AlgorithmVersion,PathPlanner.ProfileVersion(Paths.CaptureProfile(),CapturePathBounds(bounds),graph),pathInput.Terrain,
                     World.TerrainContentFingerprint,new AnchorSnapshot(pathInput.AnchorSourceId,pathInput.AnchorSourceRevision,pathInput.Anchors),
                     pathInput.Landscape,protectedPaths.Concat(riverInput.Reservations)).BaseSnapshot;
             }
