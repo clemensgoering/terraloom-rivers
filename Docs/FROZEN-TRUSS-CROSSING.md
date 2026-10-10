@@ -1,5 +1,17 @@
 # Frozen curved crossing: bounded construction evidence
 
+Later target follow-up: Paths now checks the actual oriented full-width strip
+clipped against bilinear cells (`paths-clipped-grid-v7`). All15 local options per
+original target still fail; best along0.41066270750032324/across0.330397403450082,
+witness west(12,23.25)/east(84,23.25). This is actual occupied terrain, stronger
+than the historical conservative-cell comparison below; not a global trajectory
+impossibility proof. Full road stays NoRoute before earthworks, expanded2.
+See Paths `Docs/TARGET-ACCESS.md` for semantics, counterexample and native91/91.
+Regenerate oldv6 saved plans. No terrain/target/grade/rights changes.
+Rebuiltv7 Windows Player exit0,151 probes + CharacterController pass; all4
+`frozen-truss-v7-*.png` views were opened. Geometry/contact matches the earlier
+local evidence. `ExactSlope-Player.log` includes both exact target failure details.
+
 The separate `TerraLoomFrozenTruss.unity` scene tests the new original Paths side
 truss in the unchanged seed42 landscape. Recreate with Tools > TerraLoom >
 Integration > Build Frozen Curved Truss Crossing, or batch

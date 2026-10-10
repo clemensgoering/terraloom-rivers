@@ -34,8 +34,22 @@ namespace TerraLoom.Tests
                     Assert.That(grid.TryGetHeight(x,z,out double h00),Is.True);grid.TryGetHeight(x+(x<48?sx:-sx),z,out double h10);grid.TryGetHeight(x,z+sz,out double h01);
                     double gx=(h10-h00)/sx,gz=(h01-h00)/sz,lowerBound=Math.Sqrt(gx*gx+gz*gz)/Math.Sqrt(2);
                     Assert.That(lowerBound,Is.GreaterThan(c.Paths.MaximumSlope));
+                    double best=double.PositiveInfinity;int exactAccepted=0;string bestDetail="";
+                    for(int dz=-1;dz<=2;dz++)for(int dx=-1;dx<=2;dx++)
+                    {
+                        if(dx==0&&dz==0)continue;double tx=x+dx*c.Paths.CellSize,tz=z+dz*c.Paths.CellSize;
+                        grid.TryGetHeight(tx,tz,out double th);
+                        var exact=PathTerrainSlopeInspection.Inspect(grid,anchor.Position,new WorldPoint(tx,th,tz),c.Paths.Width,c.Paths.MaximumSlope);
+                        if(exact.Accepted)exactAccepted++;
+                        double maximum=Math.Max(exact.MaximumAlongGrade,exact.MaximumAcrossGrade);
+                        if(maximum<best){best=maximum;bestDetail="toXZ=("+tx+","+tz+") "+exact.Diagnostic;}
+                    }
+                    TestContext.WriteLine("FROZEN_EXACT_TARGET "+anchor.Id+" accepted="+exactAccepted+" of15 nonzero candidates; bestMax="+best+" "+bestDetail);
+                    Assert.That(exactAccepted,Is.Zero);Assert.That(best,Is.EqualTo(.41066270750032324).Within(.00001));
                     TestContext.WriteLine("FROZEN_TARGET "+anchor.Id+" x="+x+" z="+z+" gx="+gx+" gz="+gz+" best-direction lower bound at mandatory conservative cell="+lowerBound+" profile="+c.Paths.MaximumSlope+" expanded="+report.ExpandedNodes+". This diagnoses the current full-width grid gate, not global geometric impossibility.");
                 }
+                Assert.That(report.Detail,Does.Contain("Target west: 0/15 actual full-width strips"));
+                Assert.That(report.Detail,Does.Contain("Target east: 0/15 actual full-width strips"));
                 Assert.That(scenario.Generate(),Is.True,scenario.ProbeDiagnostic);Assert.That(c.GenerationState,Is.EqualTo(GenerationRunState.Failed));Assert.That(c.Paths.LastPlan,Is.Null);
                 Assert.That(scenario.ProbeDiagnostic,Does.Contain("CONSTRUCTION ONLY"));var route=scenario.ProbeRoute;
                 Assert.That(Math.Abs(route.Waypoints[2].X-route.Waypoints[1].X),Is.EqualTo(9.511811023622044).Within(.000001));
