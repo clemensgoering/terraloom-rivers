@@ -4,6 +4,7 @@
     <Compile Include="WaterfallProfileChecks.cs" />
     <Compile Include="../Assets/TerraLoom/Tests/Editor/WaterfallProfileTests.cs" />
     <Compile Include="../Assets/TerraLoom/Tests/Editor/WaterfallFallSurfaceTests.cs" />
+    <Compile Include="../Assets/TerraLoom/Tests/Editor/WaterfallRecipeTests.cs" />
     <Reference Include="TerraLoom.Core.Runtime"><HintPath>$(CoreRuntimeAssembly)</HintPath></Reference>
     <Reference Include="TerraLoom.Rivers.Runtime"><HintPath>bin/Debug/netstandard2.1/TerraLoom.Rivers.Runtime.dll</HintPath></Reference>
   </ItemGroup>

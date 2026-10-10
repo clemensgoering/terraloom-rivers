@@ -196,3 +196,7 @@ and is a geometry diagnostic, not a complete GPU pixel-ID pass. This explains
 these sampled corner pixels; no general contact/art acceptance is implied and
 no culling/camera/geometry change is made to hide the result. V0/V1 native
 WaterfallPrototypeTests regression7/7 rerun after diagnostic shader change.
+
+Next shared data contract is now implemented as `WaterfallRecipe`: see
+[combined recipe](WATERFALL-RECIPE.md). It combines actual V2fall and V1pool/sill
+without changing these frozen V2 scenes/packets into different comparison cases.

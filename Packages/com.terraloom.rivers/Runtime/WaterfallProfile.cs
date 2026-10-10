@@ -41,6 +41,7 @@ namespace TerraLoom.Rivers
         public double PoolStation { get; }
         public double OutletStation { get; }
         private readonly double dx,dz;
+        private readonly WaterfallPoolShape receivingShape;
 
         public WaterfallProfile(WorldPoint lip,WorldPoint impact,WorldPoint pool,WorldPoint outlet,
             double upperWaterLevel,double lowerWaterLevel,double channelWidth,double poolWidth,
@@ -69,6 +70,7 @@ namespace TerraLoom.Rivers
             ChannelDepth=channelDepth;PoolDepth=poolDepth;OutletSillDepth=outletSillDepth;
             UpstreamSlope=upstreamSlope;DownstreamSlope=downstreamSlope;OutletTransitionLength=outletTransitionLength;
             ImpactStation=length;PoolStation=Station(pool);OutletStation=Station(outlet);
+            receivingShape=new WaterfallPoolShape(channelWidth,poolWidth,channelDepth,poolDepth,outletSillDepth,downstreamSlope,outletTransitionLength);
         }
         private WaterfallProfile()
         {
@@ -98,20 +100,9 @@ namespace TerraLoom.Rivers
                 y=(2*t3-3*t2+1)*UpperWaterLevel+(t3-2*t2+t)*(-UpstreamSlope*ImpactStation)+(-2*t3+3*t2)*LowerWaterLevel;
                 depth=Lerp(ChannelDepth,PoolDepth,Smooth(t));section=WaterfallSection.Fall;
             }
-            else if(station<=OutletStation)
-            {
-                y=LowerWaterLevel;section=WaterfallSection.Pool;
-                double t=station<=PoolStation?(station-ImpactStation)/(PoolStation-ImpactStation):(OutletStation-station)/(OutletStation-PoolStation);
-                half=Lerp(ChannelWidth,PoolWidth,Smooth(t))*.5;
-                depth=station<=PoolStation?PoolDepth:Lerp(OutletSillDepth,PoolDepth,Smooth(t));
-            }
             else
             {
-                section=WaterfallSection.Outlet;double q=station-OutletStation,t=Math.Min(1,q/OutletTransitionLength);
-                // Integral of smoothstep slope: zero tangent at pool, full downstream grade
-                // after transition, continuous water level and tangent at both endpoints.
-                double drop=q<OutletTransitionLength?DownstreamSlope*OutletTransitionLength*(t*t*t-.5*t*t*t*t):DownstreamSlope*(q-.5*OutletTransitionLength);
-                y=LowerWaterLevel-drop;depth=Lerp(OutletSillDepth,ChannelDepth,Smooth(t));
+                receivingShape.Evaluate(station,ImpactStation,PoolStation,OutletStation,LowerWaterLevel,out y,out half,out depth,out section);
             }
             return new WaterfallSample(new WorldPoint(Lip.X+station*dx,y,Lip.Z+station*dz),half,depth,section);
         }
