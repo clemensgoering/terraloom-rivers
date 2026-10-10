@@ -26,6 +26,13 @@ namespace TerraLoom.Integration.Editor
             TerraLoom.Rivers.Editor.RiversSampleBuilder.BuildInsetBatch();
             BuildRiverEvidenceBatch();
         }
+        public static void BuildTimberCrossingBatch()
+        {
+            IntegrationSampleBuilder.BuildTimberBatch();
+            new GameObject("Timber crossing evidence").AddComponent<BrushCrossingEvidence>();
+            UnityEditor.SceneManagement.EditorSceneManager.SaveScene(UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene(),IntegrationSampleBuilder.Root+"/TerraLoomTimberCrossing.unity");
+            Build("TerraLoomTimberCrossing","PlayerTimberCrossing");
+        }
         public static void BuildRiverEvidenceBatch()
         {
             var scene=UnityEditor.SceneManagement.EditorSceneManager.OpenScene(TerraLoom.Rivers.Editor.RiversSampleBuilder.SampleScene);

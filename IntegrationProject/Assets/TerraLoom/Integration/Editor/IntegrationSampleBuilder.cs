@@ -21,7 +21,11 @@ namespace TerraLoom.Integration.Editor
         public static void BuildBrushInteractive() { if(EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())BuildBrushBatch(); }
         /// <summary>Straight brush river with one negotiated road crossing. This fixture is separate
         /// from the legacy gallery and does not promise arbitrary seeded crossing acceptance.</summary>
-        public static void BuildBrushBatch()
+        public static void BuildBrushBatch()=>BuildBrushRecipe(false);
+        [MenuItem("Tools/TerraLoom/Integration/Build Short Timber Crossing (Experimental)")]
+        public static void BuildTimberInteractive(){if(EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())BuildTimberBatch();}
+        public static void BuildTimberBatch()=>BuildBrushRecipe(true);
+        private static void BuildBrushRecipe(bool timber)
         {
             RiversSampleBuilder.BuildInsetBatch();
             Directory.CreateDirectory(Root);AssetDatabase.Refresh();
@@ -29,7 +33,7 @@ namespace TerraLoom.Integration.Editor
             rivers.Clear();
             // Own the source asset as well: rebuilding the standalone/legacy gallery must not
             // rewrite the source that Clear and freshness use in this independent fixture.
-            var brushSource=SeasonalSampleBuilder.Save(TerrainAssetClone.Create(world.Terrain.terrainData),Root+"/BrushSourceTerrain.asset");
+            var brushSource=SeasonalSampleBuilder.Save(TerrainAssetClone.Create(world.Terrain.terrainData),Root+(timber?"/TimberSourceTerrain.asset":"/BrushSourceTerrain.asset"));
             world.Terrain.terrainData=brushSource;world.Terrain.GetComponent<TerrainCollider>().terrainData=brushSource;
             // A dedicated straight acceptance case; the standalone curved/protected sample remains
             // separate. Curved adjacent crossing windows still need a joint corridor contract.
@@ -45,9 +49,12 @@ namespace TerraLoom.Integration.Editor
             var paths=pathHost.AddComponent<TerraLoomPaths>();paths.World=world;paths.AutomaticNetwork=false;
             paths.Connections.Add(new PathConnectionSettings { Id="brush-crossing",StartId="west",EndId="east" });
             paths.GroundMaterial=MakeMaterial("BrushGravel",new Color(.55f,.42f,.26f),false);
-            paths.BridgeMaterial=MakeMaterial("BrushBridge",new Color(.29f,.16f,.065f),true);
+            paths.BridgeMaterial=timber?MakeTimberWood():MakeMaterial("BrushBridge",new Color(.29f,.16f,.065f),true);
             paths.GroundMaterial.SetFloat("_UseWorldRegions",0);paths.BridgeMaterial.SetFloat("_UseWorldRegions",0);
             paths.BridgeClearance=1.2f;paths.MaximumSlope=.35f;
+            // Separate short-span fixture: the original wide case exceeds the short beam kit's
+            // fixed 6m limit. Never raise that construction limit merely to fit the sample.
+            if(timber){rivers.Width=2;rivers.BankWidth=.75f;paths.TimberBeamBridge=true;}
             var composition=world.gameObject.AddComponent<TerraLoomIntegration>();composition.World=world;composition.Paths=paths;composition.Rivers=rivers;
             if(!composition.Generate())throw new InvalidOperationException(composition.Diagnostics);
             if(!paths.LastPlan.Routes.Any(r=>r.Surfaces.Contains(TerraLoom.Paths.PathSurface.Bridge)))
@@ -63,10 +70,10 @@ namespace TerraLoom.Integration.Editor
             }
             foreach(var decoration in world.GetComponentsInChildren<RegionDecoration>())
             {decoration.Exclusions=exclusions.ToArray();decoration.Generate();}
-            RiversSampleBuilder.Bake(rivers,Root+"/BrushRiver");PathsSampleBuilder.Bake(paths,Root+"/BrushPaths");
+            RiversSampleBuilder.Bake(rivers,Root+(timber?"/TimberRiver":"/BrushRiver"));PathsSampleBuilder.Bake(paths,Root+(timber?"/TimberPaths":"/BrushPaths"));
             var camera=UnityEngine.Object.FindFirstObjectByType<Camera>();camera.transform.position=new Vector3(104,66,-22);camera.transform.LookAt(new Vector3(48,4,42));
             var driver=world.gameObject.AddComponent<IntegrationTestDriver>();driver.Composition=composition;driver.View=camera;
-            AssetDatabase.SaveAssets();EditorSceneManager.SaveScene(world.gameObject.scene,Root+"/TerraLoomBrushCrossing.unity");
+            AssetDatabase.SaveAssets();EditorSceneManager.SaveScene(world.gameObject.scene,Root+(timber?"/TerraLoomTimberCrossing.unity":"/TerraLoomBrushCrossing.unity"));
             Debug.Log("Experimental straight brush crossing saved. "+composition.Diagnostics);
         }
         [MenuItem("Tools/TerraLoom/Integration/Build Test Scene")]
@@ -162,6 +169,35 @@ namespace TerraLoom.Integration.Editor
             mat.SetTextureScale("_BaseMap",wood?new Vector2(.25f,.8f):new Vector2(.6f,.6f));
             mat.SetFloat("_UseWorldRegions",1);mat.SetFloat("_WinterBoundaryZ",48);mat.SetFloat("_RegionBlend",6);
             return Save(mat,Root+"/"+name+".mat");
+        }
+        private static Material MakeTimberWood()
+        {
+            const int size=256;var texture=new Texture2D(size,size,TextureFormat.RGBA32,true)
+            {name="Original weathered timber grain",wrapMode=TextureWrapMode.Repeat,filterMode=FilterMode.Trilinear,anisoLevel=8};
+            var colors=new Color[size*size];
+            for(int y=0;y<size;y++)for(int x=0;x<size;x++)
+            {
+                float u=(float)x/size,v=(float)y/size;
+                float warped=v+.006f*Mathf.Sin(u*Mathf.PI*4)+.003f*Mathf.Sin(u*Mathf.PI*14+v*Mathf.PI*2);
+                float grain=.5f+.5f*Mathf.Sin(warped*Mathf.PI*96);
+                uint hash=unchecked((uint)(x*374761393+y*668265263));hash=(hash^(hash>>13))*1274126177u;
+                float fine=(hash&65535)/65535f;
+                float value=.55f+.13f*grain+.10f*fine+.12f*Mathf.Sin(v*Mathf.PI*6);
+                // Three subdued periodic knots; no alternating two-colour board pattern.
+                foreach(var knot in new[]{new Vector2(.22f,.19f),new Vector2(.73f,.61f),new Vector2(.48f,.87f)})
+                {
+                    float dx=Mathf.Min(Mathf.Abs(u-knot.x),1-Mathf.Abs(u-knot.x));
+                    float dy=Mathf.Min(Mathf.Abs(v-knot.y),1-Mathf.Abs(v-knot.y));
+                    float radius=Mathf.Sqrt(dx*dx*100+dy*dy*1600);
+                    value-=.19f*Mathf.Exp(-radius*radius*2)*( .75f+.25f*Mathf.Cos(radius*20));
+                }
+                colors[y*size+x]=Color.Lerp(new Color(.19f,.095f,.04f),new Color(.52f,.34f,.17f),Mathf.Clamp01(value));
+            }
+            texture.SetPixels(colors);texture.Apply();texture=Save(texture,Root+"/TimberWoodTexture.asset");
+            var material=new Material(Shader.Find("TerraLoom/SeasonalSurface")){name="Original short timber wood"};
+            material.SetColor("_BaseColor",Color.white);material.SetTexture("_BaseMap",texture);material.SetTextureScale("_BaseMap",new Vector2(.5f,2));
+            material.SetFloat("_Smoothness",.12f);material.SetFloat("_UseWorldRegions",0);
+            return Save(material,Root+"/TimberWood.mat");
         }
         /// <summary>Independent configuration-only landscape; keeps the regional comparison gallery intact.</summary>
         public static void BuildLandscapeScene()

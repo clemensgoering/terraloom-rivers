@@ -14,6 +14,39 @@ namespace TerraLoom.Tests
 {
     public sealed class SavedCompositionTests
     {
+        [Test] public void SavedTimberFixtureRestoresSolidBodyColliderAndPlanningLimits()
+        {
+            var setup=EditorSceneManager.GetSceneManagerSetup();
+            try
+            {
+                EditorSceneManager.OpenScene("Assets/TerraLoom/Integration/Generated/TerraLoomTimberCrossing.unity");
+                var instance=Object.FindFirstObjectByType<TerraLoomIntegration>();
+                Assert.That(instance.Paths.TimberBeamBridge,Is.True);
+                Assert.That(instance.Paths.CaptureProfile().MaximumBridgeSpan,Is.EqualTo(6));
+                Assert.That(instance.Paths.CaptureProfile().BridgeClearance,Is.EqualTo(instance.Paths.BridgeClearance).Within(.000001));
+                Assert.That(instance.Paths.CaptureProfile().BridgeBodyDepth,Is.EqualTo(.5));
+                Assert.That(instance.ValidateCurrent(out var reason),Is.True,reason);
+                var parts=instance.Paths.GeneratedRoot.GetComponentsInChildren<PathGeneratedGeometry>();
+                var body=parts.Single(p=>p.Role==PathGeometryRole.BridgeStructure);
+                var mesh=body.GetComponent<MeshFilter>().sharedMesh;
+                Assert.That(AssetDatabase.Contains(mesh),Is.True);Assert.That(body.GetComponent<MeshCollider>().sharedMesh,Is.SameAs(mesh));
+                Assert.That(body.GetComponent<MeshCollider>().enabled,Is.True);
+                foreach(var deck in parts.Where(p=>p.Role==PathGeometryRole.BridgeDeck))
+                {Assert.That(deck.GetComponent<MeshRenderer>().enabled,Is.False);Assert.That(deck.GetComponent<MeshCollider>().enabled,Is.False);}
+                var ramps=parts.Where(p=>p.Role==PathGeometryRole.BridgeRamp).ToArray();Assert.That(ramps.Length,Is.EqualTo(2));
+                foreach(var ramp in ramps)
+                {Assert.That(AssetDatabase.Contains(ramp.GetComponent<MeshFilter>().sharedMesh),Is.True);Assert.That(ramp.GetComponent<MeshCollider>().enabled,Is.True);}
+                var route=instance.Paths.LastPlan; // LastPlan is ephemeral after reload; saved geometry stays usable.
+                Assert.That(route,Is.Null);
+                var deckMesh=parts.First(p=>p.Role==PathGeometryRole.BridgeDeck).GetComponent<MeshFilter>().sharedMesh;
+                float span=Mathf.Max(deckMesh.bounds.size.x,deckMesh.bounds.size.z);
+                TestContext.WriteLine("TERRALOOM_TIMBER_SAVED span="+span+"m, deckTop="+deckMesh.bounds.max.y+"m, beamUnderside="+(deckMesh.bounds.max.y-.5f)+"m, bodyVertices="+mesh.vertexCount);
+                var original=instance.Rivers.OriginalTerrainData;instance.Clear();
+                Assert.That(instance.World.Terrain.terrainData,Is.SameAs(original));Assert.That(mesh,Is.Not.Null,"Clear cannot destroy persisted body asset.");
+            }
+            finally{if(setup.Any(s=>s.isLoaded&&s.isActive&&!string.IsNullOrEmpty(s.path)))EditorSceneManager.RestoreSceneManagerSetup(setup);else EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);}
+        }
+
         [Test] public void SavedBrushCrossingNeedsOnlyWaterAndRetainsTerrainOwnership()
         {
             var setup=EditorSceneManager.GetSceneManagerSetup();

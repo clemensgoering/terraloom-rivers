@@ -80,7 +80,10 @@ namespace TerraLoom.Tests
             yield return null;
         }
 
-        private IEnumerator RunCrossing(bool terrainBrush)
+        [UnityTest] public IEnumerator ShortTimberRejectsWideCrossingAndWalksSolidKitWithRebuildAndClear()
+            =>RunCrossing(true,true);
+
+        private IEnumerator RunCrossing(bool terrainBrush,bool timber=false)
         {
             var original=new TerrainData { heightmapResolution=129,size=new Vector3(96,16,96) };
             var heights=new float[129,129];for(int z=0;z<129;z++)for(int x=0;x<129;x++)heights[z,x]=(6-.03f*(96f*z/128))/16;
@@ -99,6 +102,19 @@ namespace TerraLoom.Tests
                 rivers.TerrainBrush=terrainBrush;rivers.WaterInset=terrainBrush?.6f:0;
                 if(terrainBrush){rivers.BedMaterial=null;rivers.BankMaterial=null;}
                 var integration=host.AddComponent<TerraLoom.Integration.TerraLoomIntegration>();integration.World=world;integration.Paths=paths;integration.Rivers=rivers;
+                if(timber)
+                {
+                    Assert.That(integration.Generate(),Is.True,integration.Diagnostics);
+                    var oldPaths=paths.GeneratedRoot;var oldRivers=rivers.GeneratedRoot;var oldTerrain=world.Terrain.terrainData;
+                    paths.TimberBeamBridge=true;
+                    Assert.That(integration.ValidateCurrent(out _),Is.False,"Construction depth/span belongs to captured planning profile.");
+                    Assert.That(integration.Generate(),Is.False,"Short beam kit cannot bridge the original wide channel.");
+                    Assert.That(integration.ActiveStep,Is.EqualTo("03-plan-routes"));
+                    Assert.That(integration.Diagnostics,Does.Contain("construction limit"));
+                    Assert.That(paths.GeneratedRoot,Is.SameAs(oldPaths));Assert.That(rivers.GeneratedRoot,Is.SameAs(oldRivers));
+                    Assert.That(world.Terrain.terrainData,Is.SameAs(oldTerrain));
+                    integration.Clear();rivers.Width=2;rivers.BankWidth=.75f;
+                }
                 Assert.That(integration.Generate(),Is.True,integration.Diagnostics);
                 Assert.That(integration.GenerationState,Is.EqualTo(TerraLoom.Core.GenerationRunState.Ready));
                 Assert.That(integration.ValidateCurrent(out var fresh),Is.True,fresh);
@@ -152,7 +168,18 @@ namespace TerraLoom.Tests
                 var parts=paths.GeneratedRoot.GetComponentsInChildren<PathGeneratedGeometry>();
                 Assert.That(parts.Any(p=>p.Role==PathGeometryRole.BridgeLanding),Is.True);
                 foreach(var part in parts) Assert.That(part.GetComponent<MeshRenderer>().shadowCastingMode,
-                    Is.EqualTo(part.Role==PathGeometryRole.BridgeDeck?ShadowCastingMode.On:ShadowCastingMode.Off));
+                    Is.EqualTo(part.Role==PathGeometryRole.BridgeDeck||part.Role==PathGeometryRole.BridgeStructure||part.Role==PathGeometryRole.BridgeRamp?ShadowCastingMode.On:ShadowCastingMode.Off));
+                if(timber)
+                {
+                    var body=parts.Single(p=>p.Role==PathGeometryRole.BridgeStructure);
+                    Assert.That(body.GetComponent<MeshCollider>().enabled,Is.True);
+                    Assert.That(body.GetComponent<MeshCollider>().sharedMesh,Is.SameAs(body.GetComponent<MeshFilter>().sharedMesh));
+                    foreach(var deck in parts.Where(p=>p.Role==PathGeometryRole.BridgeDeck))
+                    {Assert.That(deck.GetComponent<MeshRenderer>().enabled,Is.False);Assert.That(deck.GetComponent<MeshCollider>().enabled,Is.False);}
+                    Assert.That(parts.Count(p=>p.Role==PathGeometryRole.BridgeRamp),Is.EqualTo(2));
+                    foreach(var landing in parts.Where(p=>p.Role==PathGeometryRole.BridgeLanding))
+                    {Assert.That(landing.GetComponent<MeshRenderer>().enabled,Is.False);Assert.That(landing.GetComponent<MeshCollider>().enabled,Is.False);}
+                }
                 // Exercise Unity's actual walking solver as well as vertical collider coverage.
                 var walker=new GameObject("Collider traversal probe");walker.transform.SetParent(host.transform);
                 var controller=walker.AddComponent<CharacterController>();controller.height=1.8f;controller.radius=.3f;controller.stepOffset=.25f;controller.slopeLimit=40;

@@ -23,6 +23,20 @@ namespace TerraLoom.Integration
                 if(!composition.Rivers.TerrainBrush||!composition.Paths.LastPlan.Routes.Any(r=>r.Surfaces.Contains(PathSurface.Bridge)))
                     throw new InvalidOperationException("Evidence needs terrain brush and a negotiated bridge.");
                 foreach(var decoration in composition.World.GetComponentsInChildren<RegionDecoration>())decoration.Generate();
+                if(composition.Paths.TimberBeamBridge)
+                {
+                    var route=composition.Paths.LastPlan.Routes.First(r=>r.Surfaces.Contains(PathSurface.Bridge));
+                    int index=route.Surfaces.ToList().IndexOf(PathSurface.Bridge);var p=route.Waypoints[index];var q=route.Waypoints[index+1];
+                    var forward=new Vector3((float)(q.X-p.X),0,(float)(q.Z-p.Z)).normalized;
+                    var side=new Vector3(-forward.z,0,forward.x);var position=new Vector3((float)p.X,0,(float)p.Z)-forward+side*2.1f;
+                    position.y=composition.World.Terrain.SampleHeight(position)+composition.World.Terrain.transform.position.y+.9f;
+                    var reference=GameObject.CreatePrimitive(PrimitiveType.Capsule);reference.name="Metric reference: 1.80m high, 0.5m wide";
+                    reference.transform.position=position;reference.transform.localScale=new Vector3(.5f,.9f,.5f);
+                    reference.GetComponent<Collider>().enabled=false;
+                    var material=new Material(Shader.Find("Universal Render Pipeline/Lit"));material.SetColor("_BaseColor",new Color(.82f,.72f,.5f));
+                    reference.GetComponent<Renderer>().material=material;
+                    Debug.Log("TERRALOOM_METRIC_REFERENCE height="+reference.GetComponent<Renderer>().bounds.size.y+"m; temporary capture reference, no gameplay collider.");
+                }
             }
             catch(Exception ex){Debug.LogError("TERRALOOM_BRUSH_CROSSING_FAILED "+ex);Application.Quit(1);yield break;}
             yield return new WaitForFixedUpdate();

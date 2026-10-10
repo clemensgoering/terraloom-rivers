@@ -161,3 +161,9 @@ exact window/request/input diagnostics. See [frozen baseline](CURVED-CROSSING-BA
 and its JSON measurements. Latest targeted block: 5/5 Integration PlayMode and
 29 portable contracts passed; preserving outputs before publication is not a
 multi-module rollback proof. The collective crossing contract remains unimplemented.
+
+10 October update: additive collective contract now exists in Core but is NOT
+wired into Paths; curved M1 remains open. New narrow short-timber fixture and final
+4Edit/6Play/Windows evidence: [V0 timber](V0-TIMBER.md). Physical ramps/supports do
+not establish general area-rights or atomic composition rollback. Waterfall reach
+requirements and planned first gate: [design draft](WATERFALL-DESIGN.md).

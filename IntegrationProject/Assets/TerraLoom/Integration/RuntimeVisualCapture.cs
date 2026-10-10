@@ -19,6 +19,22 @@ namespace TerraLoom.Integration
             {
                 Save(camera,path);
                 InspectWaterTerrain(composition.Rivers);
+                if(composition.Paths.TimberBeamBridge)
+                {
+                    foreach(var part in composition.Paths.GeneratedRoot.GetComponentsInChildren<TerraLoom.Paths.Unity.PathGeneratedGeometry>())
+                    {
+                        if(part.Role!=TerraLoom.Paths.Unity.PathGeometryRole.BridgeLanding)continue;
+                        double minimum=double.PositiveInfinity,maximum=double.NegativeInfinity;int count=0;
+                        foreach(var vertex in part.GetComponent<MeshFilter>().sharedMesh.vertices)
+                        {
+                            var point=part.transform.TransformPoint(vertex);
+                            double ground=composition.World.Terrain.SampleHeight(point)+composition.World.Terrain.transform.position.y;
+                            minimum=Math.Min(minimum,point.y-ground);maximum=Math.Max(maximum,point.y-ground);count++;
+                        }
+                        Debug.Log(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                            "TERRALOOM_LANDING_TERRAIN_GAP {0}: vertices={1}, min={2:R}m, max={3:R}m. Vertex-only distances; thin walking surface, no earth fill generated.",part.name,count,minimum,maximum));
+                    }
+                }
                 var river=composition.Rivers.LastPlan.Routes[0];
                 int middle=river.WaterPolyline.Count/2;
                 var station=river.WaterPolyline[middle];
@@ -59,6 +75,15 @@ namespace TerraLoom.Integration
                         eye.y=composition.World.Terrain.SampleHeight(eye)+composition.World.Terrain.transform.position.y+1.7f;
                         camera.transform.position=eye;camera.transform.LookAt(foot+Vector3.up*.4f);
                         Save(camera,stem+"-landing-"+landing+".png");
+                        if(composition.Paths.TimberBeamBridge)
+                        {
+                            int outerIndex=landing==0?Math.Max(0,i-1):Math.Min(route.Waypoints.Count-1,end+1);
+                            var outer=route.Waypoints[outerIndex];
+                            var rampCenter=(foot+new Vector3((float)outer.X,(float)outer.Y,(float)outer.Z))*.5f;
+                            camera.transform.position=rampCenter+side*6+Vector3.up*.6f;
+                            camera.transform.LookAt(rampCenter);
+                            Save(camera,stem+"-landing-side-"+landing+".png");
+                        }
                     }
                     var span=(a+far)*.5f;
                     camera.transform.position=span+side*(composition.Paths.Width+2)-Vector3.up*.65f;
