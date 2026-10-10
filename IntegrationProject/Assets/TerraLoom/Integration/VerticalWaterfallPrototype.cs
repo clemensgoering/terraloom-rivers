@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using TerraLoom.Core;
 using TerraLoom.Rivers;
+using TerraLoom.Rivers.Unity;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -155,17 +156,22 @@ namespace TerraLoom.Integration
                     var go=new GameObject(name);go.transform.SetParent(candidate.transform,false);go.AddComponent<MeshFilter>().sharedMesh=mesh;go.AddComponent<MeshRenderer>().sharedMaterial=material;
                     return mesh;
                 }
-                var upperMesh=Water("Upper reach to exact lip",64,combined==null?12:12*Mathf.Sqrt(1+(float)(combined.UpstreamSlope*combined.UpstreamSlope)),
-                    (i,a)=>(combined==null?V(fall.Sample(0,a*1.5))-V(fall.Forward)*(12*(1-i/64f)):V(combined.SampleUpperSurface(12*(1-i/64f),a*1.5)))+Vector3.up*.01f,waterMaterial);
-                var fallMesh=Water("Parametric fall, zero-run safe",128,(float)fall.ArcLength,(i,a)=>V(fall.Sample(i/128d,a*1.5))+Vector3.up*.01f,fallMaterial);
-                Mesh poolMesh;
-                if(combined==null)poolMesh=Water("Impact pool and receiving reach",128,17,(i,a)=>V(fall.Impact)+V(fall.Forward)*(i/128f*17)+V(fall.Across)*a*Width((float)run+i/128f*17)+Vector3.up*.01f,waterMaterial);
+                Mesh upperMesh,fallMesh,poolMesh;
+                if(combined==null)
+                {
+                    upperMesh=Water("Upper reach to exact lip",64,12,(i,a)=>V(fall.Sample(0,a*1.5))-V(fall.Forward)*(12*(1-i/64f))+Vector3.up*.01f,waterMaterial);
+                    fallMesh=Water("Parametric fall, zero-run safe",128,(float)fall.ArcLength,(i,a)=>V(fall.Sample(i/128d,a*1.5))+Vector3.up*.01f,fallMaterial);
+                    poolMesh=Water("Impact pool and receiving reach",128,17,(i,a)=>V(fall.Impact)+V(fall.Forward)*(i/128f*17)+V(fall.Across)*a*Width((float)run+i/128f*17)+Vector3.up*.01f,waterMaterial);
+                }
                 else
                 {
-                    var stations=Enumerable.Range(0,129).Select(i=>i/128d*17).Concat(new[]{combined.PoolStation,combined.OutletStation,combined.OutletStation+combined.OutletTransitionLength}).Distinct().OrderBy(s=>s).ToArray();
-                    var uvDistances=new float[stations.Length];
-                    for(int i=1;i<stations.Length;i++)uvDistances[i]=uvDistances[i-1]+Vector3.Distance(V(combined.SampleLowerReach(stations[i-1]).Surface),V(combined.SampleLowerReach(stations[i]).Surface));
-                    poolMesh=Water("Impact pool and receiving reach",stations.Length-1,17,(i,a)=>V(combined.SampleLowerSurface(stations[i],a*combined.SampleLowerReach(stations[i]).HalfWidth))+Vector3.up*.01f,waterMaterial,i=>uvDistances[i]);
+                    var meshes=WaterfallWaterGeometry.Build(combined,cancelled:cancelled);assets.AddRange(meshes);
+                    upperMesh=meshes[0];fallMesh=meshes[1];poolMesh=meshes[2];
+                    for(int i=0;i<meshes.Length;i++)
+                    {
+                        var go=new GameObject(meshes[i].name);go.transform.SetParent(candidate.transform,false);
+                        go.AddComponent<MeshFilter>().sharedMesh=meshes[i];go.AddComponent<MeshRenderer>().sharedMaterial=i==1?fallMaterial:waterMaterial;
+                    }
                 }
                 var us=upperMesh.vertices;var fs=fallMesh.vertices;var ps=poolMesh.vertices;
                 for(int i=0;i<17;i++){ValidateJoin(us[us.Length-17+i],fs[i]);ValidateJoin(fs[fs.Length-17+i],ps[i]);}

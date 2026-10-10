@@ -144,3 +144,66 @@ NinePNGscaptured; HERE actually opened only main side/lip/foot and lipflat/norma
 are visible, but steep technical panels, straight upper pane, bright lip area,
 small curtain corner and abrupt water-material transitions remain visually open.
 This is a tested combined reference, **not final natural-landscape/art approval**.
+
+## Shared Unity water consumer (2026-10-10)
+
+`TerraLoom.Rivers.Unity.WaterfallWaterGeometry.Build(recipe)` now creates the
+three water meshes directly from the runtime recipe. The combined reference uses
+this package API; its previous duplicated tessellation has been removed. It runs
+in Editor and Player and accepts recipes supplied by manual authoring or a seeded
+runtime planner. It creates no scene objects, materials, colliders or terrain.
+
+Returned order is Upper/Fall/Lower, with world-space vertices and metre UVs.
+Attach using identity world transforms (or explicitly convert into the host's
+local coordinates). Apply the render offset only in Build: it is already baked
+into vertices. The caller owns successful meshes and must release them when
+replaced/disposed. Build destroys partial meshes on failure/cancellation; Unity
+Player destruction is deferred to end of frame. Shared materials remain caller
+references and must never be destroyed by the consumer.
+
+Lengths must cover the outlet transition; lengths are capped at1e6m and offset
+at +/-1m. Longitudinal segments1..512, transverse2..64 keep meshes within16-bit
+indices. Pool/sill/transition stations are inserted exactly. Float-collapsed or
+overflowing triangles fail explicitly: large world coordinates require a suitable
+local origin, and this API does not silently shift physical anchors.
+
+Native `SharedWater-15.xml/.log`:15/15, including rotated-frame full-width joins,
+exact pool/sill rows, cancellation after the first mesh, invalid parameters and
+float-collapse cleanup. Windows build/Player exit0 (`SharedWaterBuild.log`,
+`SharedWaterPlayer.log`). New evidence prefix `combined-shared-water-v2-r1`;
+all19binary payloads byte-identical to frozen combined r1, manifest also retains
+SHA2619f72538a92eaad75e7fcc6f5fbdcd6c4d212f1649c4cb0d28803516debefd.
+Nine images captured, side/lip/foot originals actually opened here. Technical
+wall/upper plane/material transitions remain visible; extraction adds reuse,
+not visual acceptance. Previous packet and screenshots were not overwritten.
+
+Epos feedback revealed why cell-centre equality is insufficient for import
+acceptance. `verify_vertical_packet.py` now independently reconstructs all15bed
+contacts using decoded uint16 heights, exported per-cell triangle diagonals and
+closed cliff triangles inside holes. Maximum off-grid decoded/source difference
+is0.172147mm, separately bounded below1mm. The source bed-design error remains
+bounded below4mm. These are different budgets; never claim bit-identical arbitrary
+TerrainCollider/mesh contacts or compensate by shifting exported geometry.
+Corrupt/truncated/path-escape payload checks still reject invalid packets.
+
+### Bounded scene-component follow-up
+
+The water builder is implemented; the scene component below is a follow-up design,
+not a completed terrain/backend API. Keep one module host attached to the Core
+world, with optional inspector UI delegating to the same runtime methods:
+
+| Responsibility | Component contract |
+| --- | --- |
+| Input | Runtime WaterfallRecipe plus lengths/resolution; manual inspector fields and seeded planner both produce that same recipe. No dependency on sample camera/scene flags. |
+| Materials | Explicit shared Upper/Lower and Fall material references, validated before generation. Optional renderer adapter maps UVs/palette without moving physical vertices. |
+| Generate/Rebuild | Build an inactive owned candidate, validate actual terrain/solid contacts and joins, then swap. Cancellation/error keeps the previous published output. |
+| Dispose | Destroy only owned output objects/meshes and explicitly owned terrain data; never shared source materials, user terrain or unrelated decorations. |
+| Terrain/solid | Host supplies the accepted contact geometry. Initially own fresh terrain/solid only; foreign terrain edits/holes require a separate rollback and ownership contract. |
+| Editor feedback | Report recipe anchors, physical/rendered surfaces, pool/sill depths, validation failures and generated ownership; gizmos use the runtime samples. One editing entry point, no duplicate Workbench controls. |
+| Integration gate | Consume the shared builder in the natural reference landscape, preserve the17-wide joins and15bed probes, repeat fixed camera/Player checks before making it the default sample. |
+
+Natural side-rock embedding is currently being compared by the World session in
+Epos. Incorporate its contact/sightline findings before replacing the technical
+reference solid. The shared builder alone neither finds waterfall sites nor
+establishes arbitrary terrain support. General foreign terrain, M1 and collective
+Paths integration remain open.
