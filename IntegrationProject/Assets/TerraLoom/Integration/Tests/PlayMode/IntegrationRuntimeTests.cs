@@ -118,6 +118,28 @@ namespace TerraLoom.Tests
                 Assert.That(integration.Generate(),Is.True,integration.Diagnostics);
                 Assert.That(integration.GenerationState,Is.EqualTo(TerraLoom.Core.GenerationRunState.Ready));
                 Assert.That(integration.ValidateCurrent(out var fresh),Is.True,fresh);
+                var rollbackRiver=rivers.GeneratedRoot;var rollbackPath=paths.GeneratedRoot;var rollbackTerrain=world.Terrain.terrainData;
+                var rollbackCollider=world.Terrain.GetComponent<TerrainCollider>().terrainData;
+                string rollbackRiverJson=rivers.PlanJson,rollbackPathJson=paths.PlanJson;
+                GameObject abandonedRoot=null;TerrainData abandonedData=null;
+                integration.PublicationBoundary=point=>
+                {
+                    if(point!="river-bound")return;
+                    abandonedRoot=rivers.GeneratedRoot;abandonedData=world.Terrain.terrainData;
+                    throw new System.InvalidOperationException("Runtime fault after first binding");
+                };
+                Assert.That(integration.Generate(),Is.False);
+                Assert.That(rivers.GeneratedRoot,Is.SameAs(rollbackRiver));Assert.That(paths.GeneratedRoot,Is.SameAs(rollbackPath));
+                Assert.That(world.Terrain.terrainData,Is.SameAs(rollbackTerrain));
+                Assert.That(world.Terrain.GetComponent<TerrainCollider>().terrainData,Is.SameAs(rollbackCollider));
+                Assert.That(rivers.PlanJson,Is.EqualTo(rollbackRiverJson));Assert.That(paths.PlanJson,Is.EqualTo(rollbackPathJson));
+                Assert.That(rollbackRiver.activeSelf&&rollbackPath.activeSelf,Is.True);
+                Assert.That(abandonedRoot.activeSelf,Is.False,"Pending destruction cannot leave candidate colliders active.");
+                yield return null;
+                Assert.That(abandonedRoot==null&&abandonedData==null,Is.True,"Runtime candidate disposal completes at frame end.");
+                integration.PublicationBoundary=null;
+                Assert.That(integration.Generate(),Is.True,integration.Diagnostics);
+                Assert.That(integration.ValidateCurrent(out fresh),Is.True,fresh);
                 if(terrainBrush)
                 {
                     rivers.SedimentExposureDepth*=2;
@@ -210,10 +232,12 @@ namespace TerraLoom.Tests
                 var oldHeight=world.Terrain.terrainData.GetHeights(0,0,1,1);world.Terrain.terrainData.SetHeights(0,0,new float[,]{{oldHeight[0,0]+.001f}});
                 Assert.That(integration.ValidateCurrent(out _),Is.False,"Changed derived heights invalidate downstream work.");
                 world.Terrain.terrainData.SetHeights(0,0,oldHeight);
+                var budgetPath=paths.GeneratedRoot;var budgetRiver=rivers.GeneratedRoot;var budgetTerrain=world.Terrain.terrainData;
                 int previousBudget=paths.MaximumGeometryVertices;paths.MaximumGeometryVertices=128;
                 Assert.That(integration.Generate(),Is.False,"Exhausted geometry budget must stop publication.");
                 Assert.That(integration.GenerationState,Is.EqualTo(TerraLoom.Core.GenerationRunState.Failed));
-                Assert.That(paths.GeneratedRoot,Is.Null,"Old paths cannot remain on newly published earthworks.");
+                Assert.That(paths.GeneratedRoot,Is.SameAs(budgetPath),"Failed preparation preserves the complete previous composition.");
+                Assert.That(rivers.GeneratedRoot,Is.SameAs(budgetRiver));Assert.That(world.Terrain.terrainData,Is.SameAs(budgetTerrain));
                 Assert.That(integration.ValidateCurrent(out _),Is.False);paths.MaximumGeometryVertices=previousBudget;
                 Assert.That(integration.Generate(),Is.True,integration.Diagnostics);
                 integration.Clear();yield return null;

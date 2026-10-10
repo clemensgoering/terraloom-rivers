@@ -122,6 +122,19 @@ namespace TerraLoom.Rivers.Unity
         public bool GenerateFromSnapshot(PlanSnapshot input, WorldBounds bounds, IEnumerable<RiverRequest> requests,
             CancellationToken cancellation = default)
         {
+            try
+            {
+                using(var prepared=PrepareFromSnapshot(input,bounds,requests,cancellation))
+                { cancellation.ThrowIfCancellationRequested();prepared.CommitBindings();var cleanup=prepared.Complete();if(cleanup.Length!=0)diagnostics+="\n"+cleanup;return true; }
+            }
+            catch(Exception ex){diagnostics=ex is OperationCanceledException?"Cancelled; previous river retained.":ex.Message;return false;}
+        }
+
+        /// <summary>Builds inactive owned outputs without replacing terrain, collider or published geometry.
+        /// The caller must dispose the handle; SealBindings accepts the result before Complete retires old resources.</summary>
+        public PreparedPublication PrepareFromSnapshot(PlanSnapshot input, WorldBounds bounds, IEnumerable<RiverRequest> requests,
+            CancellationToken cancellation=default)
+        {
             GameObject staged = null; TerrainData stagedData = null;
             try
             {
@@ -132,7 +145,7 @@ namespace TerraLoom.Rivers.Unity
                 if(TerrainBrush && SedimentTerrainLayer < -1)throw new InvalidOperationException("Sediment layer must be -1 or an existing terrain layer index.");
                 var profile = CaptureProfile(); var plan = RiverPlanner.Plan(input, profile, bounds, requests, cancellation);
                 diagnostics = string.Join("\n", plan.Reports.Select(r => r.Request.Id + ": " + r.Outcome + " — " + r.Detail));
-                if (!plan.Complete || plan.Routes.Count == 0) return false;
+                if (!plan.Complete || plan.Routes.Count == 0) throw new InvalidOperationException(diagnostics);
                 staged = new GameObject("Rivers (generated)"); staged.SetActive(false); staged.transform.SetParent(transform, false);
                 int vertices = 0;
                 foreach (var route in plan.Routes)
@@ -175,18 +188,86 @@ namespace TerraLoom.Rivers.Unity
                 }
                 cancellation.ThrowIfCancellationRequested();
                 string serialized = RiverPlanStore.Save(plan);
-                var oldRoot = generatedRoot; var oldData = carvedData; bool oldOwned = ownsTransientData;
-                if (oldData && carvedTerrain && carvedTerrain.terrainData == oldData) Assign(carvedTerrain, originalData);
-                originalData = stagedData ? basis : null; carvedTerrain = stagedData ? target : null; carvedData = stagedData; ownsTransientData = stagedData != null;
-                if (stagedData) Assign(target, stagedData);
-                generatedRoot = staged; staged.SetActive(true); staged = null; stagedData = null;
-                LastPlan = plan; planJson = serialized;
-                DestroyRoot(oldRoot); if (oldOwned) ReleaseData(oldData);
-                return true;
+                var result=new PreparedPublication(this,staged,stagedData,basis,target,plan,serialized);
+                staged=null;stagedData=null;return result;
             }
-            catch (Exception ex) { diagnostics = ex is OperationCanceledException ? "Cancelled; previous river retained." : ex.Message; return false; }
-            finally { DestroyRoot(staged); ReleaseData(stagedData); }
+            finally { try{DestroyRoot(staged);}finally{ReleaseData(stagedData);} }
         }
+        /// <summary>Synchronous reversible binding swap. No external callbacks run during commit.
+        /// Until SealBindings, Dispose restores the exact previous Terrain and Collider bindings.</summary>
+        public sealed class PreparedPublication : IDisposable
+        {
+            private readonly TerraLoomRivers owner;
+            private readonly GameObject root,oldRoot;
+            private readonly TerrainData data,basis,oldData,oldOriginal,oldBinding,oldColliderBinding;
+            private readonly Terrain target,oldTerrain;
+            private readonly TerrainCollider collider;
+            private readonly int colliderId;
+            private readonly bool oldOwned,oldActive;
+            private readonly RiverPlan plan,oldPlan;
+            private readonly string json,oldJson;
+            private bool committed,completed,disposed;
+            internal PreparedPublication(TerraLoomRivers owner,GameObject root,TerrainData data,TerrainData basis,Terrain target,RiverPlan plan,string json)
+            {
+                this.owner=owner;this.root=root;this.data=data;this.basis=basis;this.target=target;this.plan=plan;this.json=json;
+                oldRoot=owner.generatedRoot;oldData=owner.carvedData;oldOriginal=owner.originalData;oldTerrain=owner.carvedTerrain;
+                oldOwned=owner.ownsTransientData;oldPlan=owner.LastPlan;oldJson=owner.planJson;oldActive=oldRoot&&oldRoot.activeSelf;
+                oldBinding=target.terrainData;collider=target.GetComponent<TerrainCollider>();colliderId=collider?collider.GetInstanceID():0;oldColliderBinding=collider?collider.terrainData:null;
+            }
+            /// <summary>Captures the staged final grid directly, without temporarily binding it to the live world.</summary>
+            public IHeightSource CaptureFinalHeights()
+            {
+                if(disposed)throw new ObjectDisposedException(nameof(PreparedPublication));
+                var selected=data?data:basis;int n=selected.heightmapResolution;var raw=selected.GetHeights(0,0,n,n);
+                var position=target.transform.position;var size=selected.size;var heights=new double[n*n];
+                for(int z=0;z<n;z++)for(int x=0;x<n;x++)heights[z*n+x]=(double)position.y+(double)raw[z,x]*size.y;
+                return new GridHeightSource(position.x,(double)position.x+size.x,position.z,(double)position.z+size.z,n,n,heights);
+            }
+            public void ValidateBeforeCommit()
+            {
+                if(disposed||committed)throw new InvalidOperationException("River preparation is no longer pending.");
+                var currentCollider=target?target.GetComponent<TerrainCollider>():null;
+                bool sameCollider=colliderId==0?!currentCollider:currentCollider&&currentCollider.GetInstanceID()==colliderId;
+                if(!owner||!target||owner.World.Terrain!=target||target.terrainData!=oldBinding
+                    ||!sameCollider
+                    ||(collider&&collider.terrainData!=oldColliderBinding)||owner.generatedRoot!=oldRoot||owner.carvedData!=oldData)
+                    throw new InvalidOperationException("River bindings changed after preparation.");
+            }
+            public void CommitBindings()
+            {
+                ValidateBeforeCommit();committed=true;
+                owner.originalData=data?basis:null;owner.carvedTerrain=data?target:null;owner.carvedData=data;owner.ownsTransientData=data!=null;
+                target.terrainData=data?data:basis;if(collider)collider.terrainData=data?data:basis;
+                owner.generatedRoot=root;owner.LastPlan=plan;owner.planJson=json;
+                if(oldRoot)oldRoot.SetActive(false);root.SetActive(true);
+            }
+            public void SealBindings()
+            {
+                if(disposed||!committed)throw new InvalidOperationException("Commit river bindings before completion.");
+                completed=true;
+            }
+            private bool retired;
+            public string Complete()
+            {
+                SealBindings();if(retired)return "";retired=true;var errors=new List<string>();
+                try{DestroyRoot(oldRoot);}catch(Exception ex){errors.Add("River root retirement: "+ex.Message);}
+                try{if(oldOwned)ReleaseData(oldData);}catch(Exception ex){errors.Add("River terrain retirement: "+ex.Message);}
+                return string.Join("\n",errors);
+            }
+            public void Dispose()
+            {
+                if(disposed)return;if(completed){Complete();disposed=true;return;}disposed=true;
+                if(committed)
+                {
+                    target.terrainData=oldBinding;if(collider)collider.terrainData=oldColliderBinding;
+                    owner.generatedRoot=oldRoot;owner.originalData=oldOriginal;owner.carvedData=oldData;owner.carvedTerrain=oldTerrain;
+                    owner.ownsTransientData=oldOwned;owner.LastPlan=oldPlan;owner.planJson=oldJson;
+                    if(oldRoot)oldRoot.SetActive(oldActive);
+                }
+                try{DestroyRoot(root);}finally{ReleaseData(data);}
+            }
+        }
+
         public bool LoadPlanJson(string json, CancellationToken cancellation = default)
         {
             try

@@ -50,6 +50,12 @@ namespace TerraLoom.Integration
         public PlanSnapshot LastSharedInput { get; private set; }
         public PlanSnapshot LastSourceInput { get; private set; }
         public PathPlan LastPathAttempt { get; private set; }
+        /// <summary>Consumer diagnostic seam for deterministic transaction fault tests. Leave null in production.
+        /// Boundaries: river-prepared, before-commit, river-bound, all-bound. Never supplied to product adapters.</summary>
+        public Action<string> PublicationBoundary;
+        /// <summary>Optional retirement callback; failures are post-commit diagnostics, with default cleanup fallback.</summary>
+        public Action<GameObject> PathRetirement;
+        private bool generating;
         private static GenerationSchedule Schedule() => new GenerationSchedule(new[] {
             new GenerationStep("01-capture-source",Array.Empty<string>(),new[]{"source-snapshot"}),
             new GenerationStep("02-plan-water",new[]{"source-snapshot"},new[]{"river-plan","water-offers"}),
@@ -67,12 +73,16 @@ namespace TerraLoom.Integration
         private void Start() { if (GenerateOnStart && !Generate()) Debug.LogError(diagnostics,this); }
         public bool Generate(CancellationToken cancellation = default)
         {
+            if(generating)throw new InvalidOperationException("Composition generation cannot reenter an active publication.");
+            generating=true;
             var run=new GenerationRun(Schedule());generationTrace="";generationState=GenerationRunState.Pending;activeStep="preflight";
-            bool earthworksPublished=false;
+            TerraLoomRivers.PreparedPublication preparedRiver=null;
+            TerraLoomPaths.PreparedPublication preparedPaths=null;
+            bool publicationCommitted=false;string cleanupDiagnostics="";
             void Step(string id,Action action)
             {
                 activeStep=id;generationState=GenerationRunState.Running;
-                try{run.Execute(id,action,cancellation);generationTrace+=id+": complete\n";}
+                try{run.Execute(id,action,id=="05-publish-walkable"?CancellationToken.None:cancellation);generationTrace+=id+": complete\n";}
                 finally{generationState=run.State;}
             }
             try
@@ -91,10 +101,13 @@ namespace TerraLoom.Integration
                 PlanSnapshot input=null,shared=null;WorldBounds bounds=default;
                 System.Collections.Generic.IReadOnlyList<PathConnection> graph=null;
                 System.Collections.Generic.IReadOnlyList<RiverRequest> requests=null;
-                RiverPlan riverPlan=null;PathPlan pathPlan=null;
+                RiverPlan riverPlan=null;PathPlan pathPlan=null;string plannedRiverProfile=null;
+                var plannedMaterials=Materials();var plannedPathTransform=Paths.transform.localToWorldMatrix;var plannedRiverTransform=Rivers.transform.localToWorldMatrix;
+                float plannedSpacing=Paths.MeshSpacing,plannedExposure=Rivers.SedimentExposureDepth;int plannedLayer=Rivers.SedimentTerrainLayer,plannedPathBudget=Paths.MaximumGeometryVertices,plannedRiverBudget=Rivers.MaximumGeometryVertices;
+                bool plannedCarve=Rivers.CarveTerrainCopy;
                 Step("01-capture-source",()=>{input=CaptureSource(out bounds,out graph);LastSourceInput=input;});
                 Step("02-plan-water",()=>{
-                    requests=Requests(input);riverPlan=RiverPlanner.Plan(input,Rivers.CaptureProfile(),bounds,requests,cancellation);
+                    requests=Requests(input);plannedRiverProfile=RiverPlanner.ProfileVersion(Rivers.CaptureProfile(),bounds,requests);riverPlan=RiverPlanner.Plan(input,Rivers.CaptureProfile(),bounds,requests,cancellation);
                     if(!riverPlan.Complete)throw new InvalidOperationException(string.Join("\n",riverPlan.Reports.Select(r=>r.Request.Id+": "+r.Outcome+" "+r.Detail)));
                     var offer=riverPlan.ToContribution("rivers",input.Identity);
                     shared=new PlanSnapshot(input.Identity,input.Terrain,new AnchorSnapshot(input.AnchorSourceId,input.AnchorSourceRevision,input.Anchors),
@@ -107,29 +120,53 @@ namespace TerraLoom.Integration
                     if(!pathPlan.Complete)throw new InvalidOperationException(string.Join("\n",pathPlan.Reports.Select(r=>r.Connection.Id+": "+r.Outcome+" "+r.Detail)));
                 });
                 Step("04-publish-earthworks",()=>{
-                    // Height/route changes invalidate downstream placements even when geometry publication
-                    // fails later. Never leave old vegetation/colliders pretending to match new earthworks.
-                    foreach(var decoration in UnityEngine.Object.FindObjectsByType<RegionDecoration>(FindObjectsInactive.Include,FindObjectsSortMode.None))
-                        if(decoration.World==World)decoration.Clear();
-                    if(!Rivers.GenerateFromSnapshot(input,bounds,requests,cancellation))throw new InvalidOperationException(Rivers.Diagnostics);
-                    earthworksPublished=true;
+                    preparedRiver=Rivers.PrepareFromSnapshot(input,bounds,requests,cancellation);
+                    PublicationBoundary?.Invoke("river-prepared");
                 });
-                Step("05-publish-walkable",()=>{if(!Paths.GenerateFromSnapshot(shared,CapturePathBounds(bounds),graph,cancellation,
-                    currentPermissions:CrossingPermissions==null?(Func<PathCrossingPermissions>)null:()=>CrossingPermissions?.Invoke(shared)))throw new InvalidOperationException(Paths.Diagnostics);});
-                builtInput=input.Identity.InputFingerprint;builtRiverProfile=RiverPlanner.ProfileVersion(Rivers.CaptureProfile(),bounds,requests);
-                builtTerrain=World.TerrainContentFingerprint;builtPathsJson=Digest(Paths.PlanJson);builtRiversJson=Digest(Rivers.PlanJson);activeStep="";
-                builtCarve=Rivers.CarveTerrainCopy;builtSpacing=Paths.MeshSpacing;builtMaterials=Materials();
-                builtSedimentLayer=Rivers.SedimentTerrainLayer;builtSedimentExposure=Rivers.SedimentExposureDepth;
-                builtPathsTransform=Paths.transform.localToWorldMatrix;builtRiversTransform=Rivers.transform.localToWorldMatrix;
+                Step("05-publish-walkable",()=>{
+                    preparedPaths=Paths.PrepareFromSnapshot(shared,CapturePathBounds(bounds),preparedRiver.CaptureFinalHeights(),graph,cancellation,
+                        currentPermissions:CrossingPermissions==null?(Func<PathCrossingPermissions>)null:()=>CrossingPermissions?.Invoke(shared));
+                    PublicationBoundary?.Invoke("before-commit");
+                    cancellation.ThrowIfCancellationRequested();
+                    var current=CaptureSource(out var liveBounds,out var liveGraph);
+                    if(current.Identity.InputFingerprint!=input.Identity.InputFingerprint
+                        ||RiverPlanner.ProfileVersion(Rivers.CaptureProfile(),liveBounds,Requests(current))!=plannedRiverProfile
+                        ||!plannedMaterials.SequenceEqual(Materials())||plannedPathTransform!=Paths.transform.localToWorldMatrix||plannedRiverTransform!=Rivers.transform.localToWorldMatrix
+                        ||plannedSpacing!=Paths.MeshSpacing||plannedExposure!=Rivers.SedimentExposureDepth||plannedLayer!=Rivers.SedimentTerrainLayer
+                        ||plannedPathBudget!=Paths.MaximumGeometryVertices||plannedRiverBudget!=Rivers.MaximumGeometryVertices||plannedCarve!=Rivers.CarveTerrainCopy)
+                        throw new InvalidOperationException("Source changed while preparing composition.");
+                    preparedRiver.ValidateBeforeCommit();preparedPaths.ValidateBeforeCommit();
+                    cancellation.ThrowIfCancellationRequested();
+                    // Synchronous host swap. Old resources remain alive through both bindings and metadata capture.
+                    preparedRiver.CommitBindings();PublicationBoundary?.Invoke("river-bound");
+                    cancellation.ThrowIfCancellationRequested();
+                    preparedPaths.CommitBindings();PublicationBoundary?.Invoke("all-bound");
+                    builtTerrain=World.TerrainContentFingerprint;
+                    builtPathsJson=Digest(Paths.PlanJson);builtRiversJson=Digest(Rivers.PlanJson);
+                    builtInput=input.Identity.InputFingerprint;builtRiverProfile=plannedRiverProfile;
+                    builtCarve=plannedCarve;builtSpacing=plannedSpacing;builtMaterials=plannedMaterials;
+                    builtSedimentLayer=plannedLayer;builtSedimentExposure=plannedExposure;
+                    builtPathsTransform=plannedPathTransform;builtRiversTransform=plannedRiverTransform;
+                    preparedPaths.SealBindings();preparedRiver.SealBindings();publicationCommitted=true;
+                    cleanupDiagnostics=preparedPaths.Complete(PathRetirement)+"\n"+preparedRiver.Complete();
+                    // Once both outputs are committed cancellation belongs to the next run.
+                    // Decorations are invalidated only after successful collective publication.
+                    foreach(var decoration in UnityEngine.Object.FindObjectsByType<RegionDecoration>(FindObjectsInactive.Include,FindObjectsSortMode.None))
+                        if(decoration.World==World)
+                            try{decoration.Clear();}catch(Exception ex){cleanupDiagnostics+="\nDecoration invalidation: "+ex.Message;}
+                });
+                activeStep="";
                 diagnostics="Core + Rivers + Paths: "+riverPlan.Routes.Count+" river, "+pathPlan.Routes.Count+" path; "+pathPlan.Routes.Sum(r=>r.Surfaces.Count(s=>s==PathSurface.Bridge))+" negotiated bridge deck(s).";
+                if(!string.IsNullOrWhiteSpace(cleanupDiagnostics))diagnostics+="\nPost-commit cleanup: "+cleanupDiagnostics.Trim();
                 return true;
             }
             catch (Exception ex)
             {
-                if(earthworksPublished&&Paths)Paths.Clear();
+
                 generationState=ex is OperationCanceledException?GenerationRunState.Cancelled:GenerationRunState.Failed;
-                diagnostics="Stage "+activeStep+": "+ex.Message+(earthworksPublished?" Downstream Paths cleared; composition is not ready.":"");return false;
+                diagnostics="Stage "+activeStep+": "+ex.Message+(publicationCommitted?" New composition committed; post-commit failure.":" Previous composition resources retained; attempt is not ready.");return false;
             }
+            finally { try{preparedPaths?.Dispose();}finally{try{preparedRiver?.Dispose();}finally{generating=false;}} }
         }
         private PlanSnapshot CaptureSource(out WorldBounds bounds,out System.Collections.Generic.IReadOnlyList<PathConnection> graph)
         {
@@ -187,6 +224,6 @@ namespace TerraLoom.Integration
         private static string Digest(string value)
         {using(var sha=System.Security.Cryptography.SHA256.Create())return Convert.ToBase64String(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(value??"")));}
         private Material[] Materials()=>new[]{Paths.GroundMaterial,Paths.BridgeMaterial,Rivers.WaterMaterial,Rivers.BedMaterial,Rivers.BankMaterial};
-        public void Clear() { generationState=GenerationRunState.Pending;activeStep="";generationTrace="Cleared in reverse order: Paths, Rivers.\n";if (Paths) Paths.Clear(); if (Rivers) Rivers.Clear(); }
+        public void Clear() { if(generating)throw new InvalidOperationException("Cannot clear during composition generation.");generationState=GenerationRunState.Pending;activeStep="";generationTrace="Cleared in reverse order: Paths, Rivers.\n";if (Paths) Paths.Clear(); if (Rivers) Rivers.Clear(); }
     }
 }

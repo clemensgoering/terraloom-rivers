@@ -6,6 +6,10 @@ Update10October: separate full-route timber truss evidence now exists in
 traversal and opened landing/underside images. These bounded analytic recipes
 do not close all M1/art work; earlier development gates below remain historical.
 
+The synchronous prepared publication consumer now keeps both old module outputs
+and terrain/collider bindings until collective commit; see
+[M2 publication](M2-PUBLICATION.md) for cancellation, rollback and cleanup semantics.
+
 Fruehes visuelles Entwicklungsgate und erster begrenzter Material-/Playervergleich:
 [V0-SURFACES.md](V0-SURFACES.md). Kein V0-/M1-Abschluss: Tragwerk, natuerliche
 Ufer-/Wegkanten und gekruemmte gemeinsame Querungsfreigabe bleiben offen.
@@ -13,7 +17,8 @@ Ufer-/Wegkanten und gekruemmte gemeinsame Querungsfreigabe bleiben offen.
 Gemeinsamer Ablauf und Invalidierung: Core `Docs/GENERATION-ORDER.md`.
 Core-Schedule prueft Requires/Provides vor Mutation. Die Komposition zeigt die
 abgeschlossenen Schritte und bietet eine explizite Freshness-Pruefung. Nach
-Erdarbeits-Publikationsfehler bleiben keine veralteten Paths-Collider aktiv.
+Vorbereitungs-/Bindungsfehler bleibt die vorherige zusammenpassende Komposition
+erhalten; ein gescheiterter Versuch gilt trotzdem nicht als Ready.
 Vollstaendige Seed-Regeneration ueber die Rezeptkarte; einzelne Modulbuttons
 innerhalb einer Komposition sind kein Ersatz fuer den gemeinsamen Aufbau.
 
