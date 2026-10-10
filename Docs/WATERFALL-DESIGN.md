@@ -1,4 +1,8 @@
-# Waterfall reach draft — not implemented
+# Waterfall reach draft — general API not implemented
+
+Follow-up: Clemens requested an early actual landscape. A separate explicit
+runtime prototype now exists; see `WATERFALL-PROTOTYPE.md`. This does not implement
+the general rights/composition/streaming contract proposed below.
 
 TerraLoom Rivers owns this ability; no additional mandatory product module.
 Source requirements: Epos `_Docs/Konzept-Weltaufbau-nach-Regeln-2026-10-06.md`,

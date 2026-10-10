@@ -167,3 +167,7 @@ wired into Paths; curved M1 remains open. New narrow short-timber fixture and fi
 4Edit/6Play/Windows evidence: [V0 timber](V0-TIMBER.md). Physical ramps/supports do
 not establish general area-rights or atomic composition rollback. Waterfall reach
 requirements and planned first gate: [design draft](WATERFALL-DESIGN.md).
+
+New early landscape request: [runtime waterfall prototype](WATERFALL-PROTOTYPE.md)
+provides an isolated reproducible scene and three1.7m player views plus overview.
+It is an explicit recipe, not general Rivers waterfall/module acceptance.

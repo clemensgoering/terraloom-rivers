@@ -14,6 +14,11 @@ namespace TerraLoom.Integration.Editor
             => Build("TerraLoomDynamic", "Player");
         public static void BuildLandscapeBatch()
             => Build("TerraLoomLandscape", "PlayerLandscape");
+        public static void BuildWaterfallLandscapeBatch()
+        {
+            WaterfallLandscapeBuilder.BuildBatch();
+            Build("TerraLoomWaterfallPrototype","PlayerWaterfallPrototype");
+        }
         public static void BuildBrushCrossingBatch()
         {
             IntegrationSampleBuilder.BuildBrushBatch();

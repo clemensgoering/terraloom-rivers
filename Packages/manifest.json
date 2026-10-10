@@ -40,6 +40,6 @@
     "com.unity.modules.vr": "1.0.0",
     "com.unity.modules.wind": "1.0.0",
     "com.unity.modules.xr": "1.0.0",
-    "com.terraloom.core": "https://github.com/clemensgoering/terraloom-core.git?path=/Packages/com.terraloom.core#2a04dd10b19042add3316bff8e77ed1478825fff"
+    "com.terraloom.core": "https://github.com/clemensgoering/terraloom-core.git?path=/Packages/com.terraloom.core#1f9555d99ddf8e95f6668035101f0c3e6fa52a77"
   }
 }
