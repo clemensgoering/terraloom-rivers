@@ -61,32 +61,37 @@ namespace TerraLoom.Rivers.Unity
         public RiverPlan LastPlan { get; private set; }
         private void Start() { if (GenerateOnStart && !generatedRoot && !Generate()) Debug.LogError(diagnostics, this); }
 
-        public RiverProfile CaptureProfile() => new RiverProfile(Width, Depth, BankWidth, CellSize, MaximumSlope,
+        public RiverProfile CaptureProfile() => CaptureProfile(null);
+        public RiverProfile CaptureProfile(TerrainData sourceData) => new RiverProfile(Width, Depth, BankWidth, CellSize, MaximumSlope,
             SampleSpacing, MaximumNodes, TotalSearchBudget, TotalSampleBudget, bridgeClearance: BridgeClearance,
             regionCosts: RegionCosts.Select(r => new RiverRegionCost(r.RegionId, r.CostPerMetre)), allowExcavation: CarveTerrainCopy,
             minimumBendRadius: MinimumBendRadius, waterInset: WaterInset, terrainBrush: TerrainBrush,
-            terrainCellGuard: CaptureTerrainSupportGuard());
+            terrainCellGuard: CaptureTerrainSupportGuard(sourceData));
 
-        private double CaptureTerrainSupportGuard()
+        private double CaptureTerrainSupportGuard(TerrainData sourceData=null)
         {
             if(!TerrainBrush||!World||!World.Terrain||!World.Terrain.terrainData)return 0;
-            var data=World.Terrain.terrainData;
+            var data=sourceData?sourceData:World.Terrain.terrainData;
             double guard=Math.Max((double)data.size.x/(data.heightmapResolution-1),(double)data.size.z/(data.heightmapResolution-1));
             if(SedimentTerrainLayer>=0)guard=Math.Max(guard,Math.Max((double)data.size.x/(data.alphamapWidth-1),(double)data.size.z/(data.alphamapHeight-1)));
             return guard;
         }
 
-        public PlanSnapshot CaptureInput(out WorldBounds bounds, out IReadOnlyList<RiverRequest> requests)
+        public PlanSnapshot CaptureInput(out WorldBounds bounds,out IReadOnlyList<RiverRequest> requests)
+            => CaptureInput(out bounds,out requests,null);
+        public PlanSnapshot CaptureInput(out WorldBounds bounds, out IReadOnlyList<RiverRequest> requests,
+            WorldSourcePublication.PreparedSource source)
         {
             if (!World || !World.Terrain || !World.Terrain.terrainData) throw new InvalidOperationException("Assign a Core world with terrain.");
             var selected = World.Terrain; var current = selected.terrainData;
             if (carvedData && (selected != carvedTerrain || current != carvedData))
                 throw new InvalidOperationException("Terrain changed since carving. Clear Rivers before selecting a different terrain.");
-            try
-            {
-                if (carvedData) selected.terrainData = originalData;
-                var terrain = World.CaptureTerrain(); var anchors = World.CaptureAnchors();
-                Vector3 origin = selected.transform.position, size = selected.terrainData.size;
+                if(source!=null&&source.World!=World)throw new InvalidOperationException("Prepared source belongs to a different world.");
+                var data=source!=null?source.Data:carvedData?originalData:current;
+                var terrain = World.CaptureTerrain(data);
+                var anchors = source==null?World.CaptureAnchors(data,World.Seed,World.UseSeedAnchors,World.ManualAnchors)
+                    :World.CaptureAnchors(data,source.Seed,false,source.ManualAnchors);
+                Vector3 origin = selected.transform.position, size = data.size;
                 bounds = new WorldBounds(origin.x, origin.z, origin.x + size.x, origin.z + size.z);
                 requests = AutomaticSourceAndMouth ? RiverPlanner.CreateRequests(anchors.Anchors, terrain.Heights) : Connections.Select(c => c.Capture()).ToArray();
                 if (requests.Count == 0) throw new InvalidOperationException("At least two distinct targets are required.");
@@ -94,19 +99,17 @@ namespace TerraLoom.Rivers.Unity
                 if ((long)(nx+1)*(nz+1) > Math.Min(MaximumNodes,65536)) throw new InvalidOperationException("Increase cell size: landscape capture exceeds its node budget.");
                 var points = new List<WorldPoint>();
                 for (int z = 0; z <= nz; z++) for (int x = 0; x <= nx; x++) points.Add(new WorldPoint(origin.x + size.x*x/nx, 0, origin.z + size.z*z/nz));
-                var profile = CaptureProfile();
-                return new PlanningInput(World.Seed, World.Revision, RiverPlanner.AlgorithmVersion,
-                    RiverPlanner.ProfileVersion(profile, bounds, requests), terrain, World.TerrainContentFingerprint, anchors,
+                var profile = CaptureProfile(data);
+                return new PlanningInput(source==null?World.Seed:source.Seed, World.Revision, RiverPlanner.AlgorithmVersion,
+                    RiverPlanner.ProfileVersion(profile, bounds, requests), terrain, World.CaptureTerrainFingerprint(data), anchors,
                     World.CaptureLandscape(points), ProtectedAreas.Select(p =>
                     {
                         var area=p.Capture();
                         if(!TerrainBrush)return area;
-                        double gx=CaptureTerrainSupportGuard(),gz=gx;
+                        double gx=CaptureTerrainSupportGuard(data),gz=gx;
                         var b=area.Bounds;
                         return new AreaReservation(area.Id,area.OwnerId,new WorldBounds(b.MinX-gx,b.MinZ-gz,b.MaxX+gx,b.MaxZ+gz),area.Strength,area.Purpose,area.TransitionCost);
                     })).BaseSnapshot;
-            }
-            finally { selected.terrainData = current; }
         }
 
         public bool Generate(CancellationToken cancellation = default)
@@ -132,8 +135,10 @@ namespace TerraLoom.Rivers.Unity
 
         /// <summary>Builds inactive owned outputs without replacing terrain, collider or published geometry.
         /// The caller must dispose the handle; SealBindings accepts the result before Complete retires old resources.</summary>
+        public PreparedPublication PrepareFromSnapshot(PlanSnapshot input,WorldBounds bounds,IEnumerable<RiverRequest> requests,
+            CancellationToken cancellation=default) => PrepareFromSnapshot(input,bounds,requests,cancellation,null);
         public PreparedPublication PrepareFromSnapshot(PlanSnapshot input, WorldBounds bounds, IEnumerable<RiverRequest> requests,
-            CancellationToken cancellation=default)
+            CancellationToken cancellation,WorldSourcePublication.PreparedSource source)
         {
             GameObject staged = null; TerrainData stagedData = null;
             try
@@ -143,7 +148,7 @@ namespace TerraLoom.Rivers.Unity
                 if (!World || !World.Terrain) throw new InvalidOperationException("Assign a Core world.");
                 if (Mathf.Abs(transform.localToWorldMatrix.determinant) < .000001f) throw new InvalidOperationException("River transform must have nonzero scale.");
                 if(TerrainBrush && SedimentTerrainLayer < -1)throw new InvalidOperationException("Sediment layer must be -1 or an existing terrain layer index.");
-                var profile = CaptureProfile(); var plan = RiverPlanner.Plan(input, profile, bounds, requests, cancellation);
+                var profile = CaptureProfile(source?.Data); var plan = RiverPlanner.Plan(input, profile, bounds, requests, cancellation);
                 diagnostics = string.Join("\n", plan.Reports.Select(r => r.Request.Id + ": " + r.Outcome + " — " + r.Detail));
                 if (!plan.Complete || plan.Routes.Count == 0) throw new InvalidOperationException(diagnostics);
                 staged = new GameObject("Rivers (generated)"); staged.SetActive(false); staged.transform.SetParent(transform, false);
@@ -164,7 +169,9 @@ namespace TerraLoom.Rivers.Unity
                     if (role != RiverGeometryRole.Water) child.AddComponent<MeshCollider>().sharedMesh = mesh;
                     marker.Restore();
                 }
-                Terrain target = World.Terrain; TerrainData basis = carvedData ? originalData : target.terrainData;
+                if(source!=null&&source.World!=World)throw new InvalidOperationException("Prepared source belongs to a different world.");
+                source?.ValidateBeforeCommit();
+                Terrain target = World.Terrain; TerrainData basis = source!=null?source.Data:carvedData ? originalData : target.terrainData;
                 if (carvedData && (target != carvedTerrain || target.terrainData != carvedData)) throw new InvalidOperationException("Selected terrain changed; clear before regeneration.");
                 if (CarveTerrainCopy) stagedData = RiverTerrainCarver.Build(basis, target.transform.position, plan, profile, cancellation,
                     profile.TerrainBrush ? input.Reservations : null);
@@ -197,6 +204,8 @@ namespace TerraLoom.Rivers.Unity
         /// Until SealBindings, Dispose restores the exact previous Terrain and Collider bindings.</summary>
         public sealed class PreparedPublication : IDisposable
         {
+            /// <summary>Exact rendered candidate required by the Core source publication's composed binding.</summary>
+            public TerrainData FinalTerrainData => data?data:basis;
             private readonly TerraLoomRivers owner;
             private readonly GameObject root,oldRoot;
             private readonly TerrainData data,basis,oldData,oldOriginal,oldBinding,oldColliderBinding;

@@ -1,5 +1,15 @@
 # Synchronous prepared composition publication
 
+The source extension is now installed and natively validated against Core
+351351d2c5b4340ce9012a7fee98770c9e873c22:137/137 Editor tests and5/5 Play tests
+pass, including12 source lifecycle and5 independent Core ownership cases.
+Fresh canonical Player build and both2043/2044 runs exit0; full route/real
+CharacterController,9.51181m span,538/488 collision probes. All eight canonical
+views opened: dry approaches and clear passage, but repeated gravel/timber and
+bright white water bands remain visual gaps. Evidence archive:
+Integration/.artifacts/M2-SourceLifecycle-20261010 (Canonical-* logs/XML and
+canonical-seed* captures). Runtime ownership only, not atomic saved assets/scenes.
+
 This is a bounded whole-world consumer transaction for Core terrain bindings,
 Rivers and Paths. Planning, preparation and publication use the existing portable
 planners and Unity geometry builders. Product modules do not import each other.
@@ -44,14 +54,17 @@ not considered Ready; retaining geometry is not permission to consume stale
 inputs. A subsequent normal generation revalidates all inputs and can become
 Ready. Changes to the source made by an external caller are not undone.
 
-The seed recipe's source replacement (`CrossingRecipeVariant.Rebuild`) still
-clears its old generated source before generating a new one. This composition
-transaction does not yet include that larger source-generation lifecycle.
+The bounded seeded crossing recipe now uses Core `WorldSourcePublication` and
+the consumer `GenerateWithSource`: explicit candidate captures, reversible
+source seed/anchors/ownership, and all three handles sealed before retirement.
+Its old source is retained on planning/materialization failure or cancellation.
+Other generators do not automatically acquire this lifecycle. See Core
+Docs/M2-SOURCE-LIFECYCLE.md for ownership, explicit composed binding and limits.
 Decoration is retained or invalidated, not regenerated inside the transaction.
 Standalone legacy Paths callbacks remain caller-controlled and outside the
 collective callback-free consumer swap.
 
-Canonical validation:19/19 targeted transaction tests,120/120 broad Editor tests
+Earlier output-only canonical validation:19/19 targeted transaction tests,120/120 broad Editor tests
 and4/4 shared Play tests pass against the actual sibling packages. Portable
 Paths/Rivers runtime builds have zero warnings/errors. Canonical evidence is
 archived separately at Integration/.artifacts/M2-Canonical-20261010. The fresh

@@ -71,13 +71,20 @@ namespace TerraLoom.Integration
             if(Rivers)Rivers.GenerateOnStart=false;
         }
         private void Start() { if (GenerateOnStart && !Generate()) Debug.LogError(diagnostics,this); }
-        public bool Generate(CancellationToken cancellation = default)
+        public bool Generate(CancellationToken cancellation = default) => GenerateCore(null,cancellation);
+
+        /// <summary>Prepares an owned source inside the same lifecycle as both module outputs.</summary>
+        public bool GenerateWithSource(Func<WorldSourcePublication.PreparedSource> prepareSource,CancellationToken cancellation=default)
+            => GenerateCore(prepareSource??throw new ArgumentNullException(nameof(prepareSource)),cancellation);
+
+        private bool GenerateCore(Func<WorldSourcePublication.PreparedSource> prepareSource,CancellationToken cancellation)
         {
             if(generating)throw new InvalidOperationException("Composition generation cannot reenter an active publication.");
             generating=true;
             var run=new GenerationRun(Schedule());generationTrace="";generationState=GenerationRunState.Pending;activeStep="preflight";
             TerraLoomRivers.PreparedPublication preparedRiver=null;
             TerraLoomPaths.PreparedPublication preparedPaths=null;
+            WorldSourcePublication.PreparedSource source=null;
             bool publicationCommitted=false;string cleanupDiagnostics="";
             void Step(string id,Action action)
             {
@@ -97,6 +104,13 @@ namespace TerraLoom.Integration
                     ||Rivers.MaximumGeometryVertices<4||Rivers.MaximumGeometryVertices>8000000)
                     throw new InvalidOperationException("Invalid module geometry spacing/budget; no outputs changed.");
                 Rivers.CaptureProfile();
+                if(prepareSource!=null)
+                {
+                    source=prepareSource();
+                    if(source==null||source.World!=World)throw new InvalidOperationException("Source factory must prepare this world.");
+                    PublicationBoundary?.Invoke("source-prepared");
+                    cancellation.ThrowIfCancellationRequested();
+                }
                 // Capture the unchanged source while keeping previous geometry available on planning failure.
                 PlanSnapshot input=null,shared=null;WorldBounds bounds=default;
                 System.Collections.Generic.IReadOnlyList<PathConnection> graph=null;
@@ -105,9 +119,9 @@ namespace TerraLoom.Integration
                 var plannedMaterials=Materials();var plannedPathTransform=Paths.transform.localToWorldMatrix;var plannedRiverTransform=Rivers.transform.localToWorldMatrix;
                 float plannedSpacing=Paths.MeshSpacing,plannedExposure=Rivers.SedimentExposureDepth;int plannedLayer=Rivers.SedimentTerrainLayer,plannedPathBudget=Paths.MaximumGeometryVertices,plannedRiverBudget=Rivers.MaximumGeometryVertices;
                 bool plannedCarve=Rivers.CarveTerrainCopy;
-                Step("01-capture-source",()=>{input=CaptureSource(out bounds,out graph);LastSourceInput=input;});
+                Step("01-capture-source",()=>{input=CaptureSource(out bounds,out graph,source);LastSourceInput=input;});
                 Step("02-plan-water",()=>{
-                    requests=Requests(input);plannedRiverProfile=RiverPlanner.ProfileVersion(Rivers.CaptureProfile(),bounds,requests);riverPlan=RiverPlanner.Plan(input,Rivers.CaptureProfile(),bounds,requests,cancellation);
+                    requests=Requests(input);plannedRiverProfile=RiverPlanner.ProfileVersion(Rivers.CaptureProfile(source?.Data),bounds,requests);riverPlan=RiverPlanner.Plan(input,Rivers.CaptureProfile(source?.Data),bounds,requests,cancellation);
                     if(!riverPlan.Complete)throw new InvalidOperationException(string.Join("\n",riverPlan.Reports.Select(r=>r.Request.Id+": "+r.Outcome+" "+r.Detail)));
                     var offer=riverPlan.ToContribution("rivers",input.Identity);
                     shared=new PlanSnapshot(input.Identity,input.Terrain,new AnchorSnapshot(input.AnchorSourceId,input.AnchorSourceRevision,input.Anchors),
@@ -120,7 +134,7 @@ namespace TerraLoom.Integration
                     if(!pathPlan.Complete)throw new InvalidOperationException(string.Join("\n",pathPlan.Reports.Select(r=>r.Connection.Id+": "+r.Outcome+" "+r.Detail)));
                 });
                 Step("04-publish-earthworks",()=>{
-                    preparedRiver=Rivers.PrepareFromSnapshot(input,bounds,requests,cancellation);
+                    preparedRiver=Rivers.PrepareFromSnapshot(input,bounds,requests,cancellation,source);
                     PublicationBoundary?.Invoke("river-prepared");
                 });
                 Step("05-publish-walkable",()=>{
@@ -128,27 +142,35 @@ namespace TerraLoom.Integration
                         currentPermissions:CrossingPermissions==null?(Func<PathCrossingPermissions>)null:()=>CrossingPermissions?.Invoke(shared));
                     PublicationBoundary?.Invoke("before-commit");
                     cancellation.ThrowIfCancellationRequested();
-                    var current=CaptureSource(out var liveBounds,out var liveGraph);
+                    var current=CaptureSource(out var liveBounds,out var liveGraph,source);
                     if(current.Identity.InputFingerprint!=input.Identity.InputFingerprint
-                        ||RiverPlanner.ProfileVersion(Rivers.CaptureProfile(),liveBounds,Requests(current))!=plannedRiverProfile
+                        ||RiverPlanner.ProfileVersion(Rivers.CaptureProfile(source?.Data),liveBounds,Requests(current))!=plannedRiverProfile
                         ||!plannedMaterials.SequenceEqual(Materials())||plannedPathTransform!=Paths.transform.localToWorldMatrix||plannedRiverTransform!=Rivers.transform.localToWorldMatrix
                         ||plannedSpacing!=Paths.MeshSpacing||plannedExposure!=Rivers.SedimentExposureDepth||plannedLayer!=Rivers.SedimentTerrainLayer
                         ||plannedPathBudget!=Paths.MaximumGeometryVertices||plannedRiverBudget!=Rivers.MaximumGeometryVertices||plannedCarve!=Rivers.CarveTerrainCopy)
                         throw new InvalidOperationException("Source changed while preparing composition.");
-                    preparedRiver.ValidateBeforeCommit();preparedPaths.ValidateBeforeCommit();
+                    source?.ValidateBeforeCommit();preparedRiver.ValidateBeforeCommit();preparedPaths.ValidateBeforeCommit();
                     cancellation.ThrowIfCancellationRequested();
                     // Synchronous host swap. Old resources remain alive through both bindings and metadata capture.
                     preparedRiver.CommitBindings();PublicationBoundary?.Invoke("river-bound");
                     cancellation.ThrowIfCancellationRequested();
-                    preparedPaths.CommitBindings();PublicationBoundary?.Invoke("all-bound");
+                    preparedPaths.CommitBindings();
+                    if(source!=null)
+                    {
+                        PublicationBoundary?.Invoke("before-source-bind");cancellation.ThrowIfCancellationRequested();
+                        source.CommitComposedBindings(preparedRiver.FinalTerrainData);
+                        PublicationBoundary?.Invoke("source-bound");cancellation.ThrowIfCancellationRequested();
+                    }
+                    PublicationBoundary?.Invoke("all-bound");
                     builtTerrain=World.TerrainContentFingerprint;
                     builtPathsJson=Digest(Paths.PlanJson);builtRiversJson=Digest(Rivers.PlanJson);
                     builtInput=input.Identity.InputFingerprint;builtRiverProfile=plannedRiverProfile;
                     builtCarve=plannedCarve;builtSpacing=plannedSpacing;builtMaterials=plannedMaterials;
                     builtSedimentLayer=plannedLayer;builtSedimentExposure=plannedExposure;
                     builtPathsTransform=plannedPathTransform;builtRiversTransform=plannedRiverTransform;
-                    preparedPaths.SealBindings();preparedRiver.SealBindings();publicationCommitted=true;
+                    preparedPaths.SealBindings();preparedRiver.SealBindings();source?.SealBindings();publicationCommitted=true;
                     cleanupDiagnostics=preparedPaths.Complete(PathRetirement)+"\n"+preparedRiver.Complete();
+                    if(source!=null)cleanupDiagnostics+="\n"+source.Complete();
                     // Once both outputs are committed cancellation belongs to the next run.
                     // Decorations are invalidated only after successful collective publication.
                     foreach(var decoration in UnityEngine.Object.FindObjectsByType<RegionDecoration>(FindObjectsInactive.Include,FindObjectsSortMode.None))
@@ -166,24 +188,22 @@ namespace TerraLoom.Integration
                 generationState=ex is OperationCanceledException?GenerationRunState.Cancelled:GenerationRunState.Failed;
                 diagnostics="Stage "+activeStep+": "+ex.Message+(publicationCommitted?" New composition committed; post-commit failure.":" Previous composition resources retained; attempt is not ready.");return false;
             }
-            finally { try{preparedPaths?.Dispose();}finally{try{preparedRiver?.Dispose();}finally{generating=false;}} }
+            finally { try{preparedPaths?.Dispose();}finally{try{preparedRiver?.Dispose();}finally{try{source?.Dispose();}finally{generating=false;}}} }
         }
-        private PlanSnapshot CaptureSource(out WorldBounds bounds,out System.Collections.Generic.IReadOnlyList<PathConnection> graph)
+        private PlanSnapshot CaptureSource(out WorldBounds bounds,out System.Collections.Generic.IReadOnlyList<PathConnection> graph,
+            WorldSourcePublication.PreparedSource source=null)
         {
             if(!World||!World.Terrain||!World.Terrain.terrainData)throw new InvalidOperationException("Generate/assign terrain before composition.");
-            // Let the river adapter capture its source and raster-expanded authored protections.
-            // Calling before the temporary Paths source swap also preserves its ownership checks.
-            var riverInput=Rivers.CaptureInput(out _,out _);
+            // Both adapters capture the explicit source without rebinding the live Terrain.
+            var riverInput=Rivers.CaptureInput(out _,out _,source);
             var selected=World.Terrain;var current=selected.terrainData;
-            try
-            {
                 if(Rivers.CarvedTerrainData)
                 {
                     if(current!=Rivers.CarvedTerrainData||!Rivers.OriginalTerrainData)throw new InvalidOperationException("Selected terrain changed. Clear the composition first.");
-                    selected.terrainData=Rivers.OriginalTerrainData;
                 }
-                var pathInput=Paths.CaptureInput(Paths.CaptureProfile(),out bounds,out graph);
-                double guard=Rivers.CaptureProfile().TerrainCellGuard;
+                var data=source!=null?source.Data:Rivers.CarvedTerrainData?Rivers.OriginalTerrainData:current;
+                var pathInput=Paths.CaptureInput(Paths.CaptureProfile(),out bounds,out graph,source,data);
+                double guard=Rivers.CaptureProfile(data).TerrainCellGuard;
                 var protectedPaths=pathInput.Reservations.Select(area=>{
                     if(!Rivers.TerrainBrush||area.Strength!=ReservationStrength.Hard)return area;
                     var b=area.Bounds;
@@ -193,10 +213,8 @@ namespace TerraLoom.Integration
                 // downstream publication. Duplicate reservation IDs are rejected by Core.
                 return new PlanningInput(pathInput.Identity.Seed,pathInput.Identity.Revision,
                     pathInput.Identity.AlgorithmVersion,PathPlanner.ProfileVersion(Paths.CaptureProfile(),CapturePathBounds(bounds),graph),pathInput.Terrain,
-                    World.TerrainContentFingerprint,new AnchorSnapshot(pathInput.AnchorSourceId,pathInput.AnchorSourceRevision,pathInput.Anchors),
+                    World.CaptureTerrainFingerprint(data),new AnchorSnapshot(pathInput.AnchorSourceId,pathInput.AnchorSourceRevision,pathInput.Anchors),
                     pathInput.Landscape,protectedPaths.Concat(riverInput.Reservations)).BaseSnapshot;
-            }
-            finally{selected.terrainData=current;}
         }
         private System.Collections.Generic.IReadOnlyList<RiverRequest> Requests(PlanSnapshot input)=>Rivers.AutomaticSourceAndMouth
             ?RiverPlanner.CreateRequests(input.Anchors,input.Terrain.Heights):Rivers.Connections.Select(c=>c.Capture()).ToArray();
