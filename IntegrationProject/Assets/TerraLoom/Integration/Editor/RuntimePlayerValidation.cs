@@ -24,6 +24,16 @@ namespace TerraLoom.Integration.Editor
             WaterfallLandscapeBuilder.BuildComparisonBatch();
             Build("TerraLoomWaterfallComparison","PlayerWaterfallComparison");
         }
+        public static void BuildVerticalWaterfallBatch()
+        {
+            VerticalWaterfallBuilder.BuildBatch();Build("TerraLoomVertical","PlayerVertical");
+        }
+        public static void BuildNearVerticalWaterfallBatch()
+        {
+            VerticalWaterfallBuilder.BuildNearBatch();Build("TerraLoomNearVertical","PlayerNearVertical");
+        }
+        public static void BuildRotatedVerticalWaterfallBatch()
+        {VerticalWaterfallBuilder.BuildRotatedBatch();Build("TerraLoomRotatedVertical","PlayerRotatedVertical");}
         public static void BuildBrushCrossingBatch()
         {
             IntegrationSampleBuilder.BuildBrushBatch();

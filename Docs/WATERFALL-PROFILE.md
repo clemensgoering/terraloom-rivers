@@ -111,3 +111,5 @@ New required next case: near-vertical AND exactly vertical falls with plausible
 source/impact/bank contact. V1 rejects horizontal run<=.01m; do not weaken that
 guard. A separate fall parameter and explicit flow direction are needed, plus
 bounded owned cliff meshes/colliders where a heightfield cannot represent a wall.
+Follow-up now implemented as a separate [V2 vertical contact experiment](VERTICAL-WATERFALL.md):
+exact/near/quarter-turn native Player cases. V1-r2 remains its own comparison.
