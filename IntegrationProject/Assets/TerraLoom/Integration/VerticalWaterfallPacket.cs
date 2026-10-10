@@ -82,6 +82,11 @@ namespace TerraLoom.Integration
                 packet.limitations="Fresh owned terrain only; shared WaterfallRecipe upper/fall/pool/sill/outflow. Original landscape layers and rock textures; UV projection documented; no general terrain writer/site solver or final art acceptance.";
                 packet.receivingRecipe=new ReceivingRecipe {pool=V(r.Pool),outletSill=V(r.OutletSill),poolStation=r.PoolStation,outletStation=r.OutletStation,poolWidth=r.PoolWidth,channelDepth=r.ChannelDepth,poolDepth=r.PoolDepth,sillDepth=r.OutletSillDepth,upstreamSlope=r.UpstreamSlope,downstreamSlope=r.DownstreamSlope,outletTransitionLength=r.OutletTransitionLength};
                 packet.bedProbes=recipe.MeasureBed();
+                if(recipe.NaturalHostReference)
+                {
+                    packet.revision="natural-host-waterfall-v2-r1";
+                    packet.limitations="Owned fresh terrain/closed relief solid and original rock masses. WaterfallWaterHost uses full17joins/15bed/holeperimeter validator on this final candidate. No foreign terrain or multi-module rollback contract; natural contact rendering is comparative, not art approval.";
+                }
             }
             var heights=data.GetHeights(0,0,n,n);var holes=data.GetHoles(0,0,h,h);
             packet.heights=Write("heights","uint16 LE",w=>{for(int z=0;z<n;z++)for(int x=0;x<n;x++)w.Write((ushort)Mathf.RoundToInt(heights[z,x]*65535));});

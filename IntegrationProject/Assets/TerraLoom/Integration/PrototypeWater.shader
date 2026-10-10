@@ -9,6 +9,8 @@ Shader "TerraLoom/Prototype/WaterfallLandscapeWater"
   _ImpactZ("Planned impact world Z",Float)=85.8
   _ImpactX("Planned impact world X",Float)=0
   _ImpactAxis("Horizontal flow axis XZ",Vector)=(0,1,0,0)
+  _NaturalContact("Natural reference contact treatment",Float)=0
+  _ImpactY("Physical impact world Y",Float)=8
  }
  SubShader
  {
@@ -26,7 +28,7 @@ Shader "TerraLoom/Prototype/WaterfallLandscapeWater"
    #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
    #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
    CBUFFER_START(UnityPerMaterial)
-    half4 _BaseColor,_WaveColor;float _Fall,_ImpactZ,_ImpactX,_Diagnostic;float4 _ImpactAxis;
+    half4 _BaseColor,_WaveColor;float _Fall,_ImpactZ,_ImpactX,_Diagnostic,_NaturalContact,_ImpactY;float4 _ImpactAxis;
    CBUFFER_END
    struct A{float4 p:POSITION;float3 n:NORMAL;float2 uv:TEXCOORD0;};
    struct V{float4 p:SV_POSITION;float3 world:TEXCOORD0;float3 n:TEXCOORD1;float2 uv:TEXCOORD2;float fog:TEXCOORD3;};
@@ -44,13 +46,16 @@ Shader "TerraLoom/Prototype/WaterfallLandscapeWater"
     // Narrow bank fringe instead of broad white rails; falling water keeps streaks.
     foam=max(foam,smoothstep(.94,1,abs(i.uv.x))*.28);
     float impact=exp(-pow(dot(i.world.xz-float2(_ImpactX,_ImpactZ),_ImpactAxis.xy)*1.2,2))*exp(-i.uv.x*i.uv.x*1.8);
-    foam=max(foam,impact*(.18+n*.42)*(1-_Fall));
+    // Grounded at the actual impact height: the elevated lip shares XZ but is not
+    // an impact zone. Opt-in keeps frozen material behaviour in previous cases.
+    impact*=lerp(1,exp(-pow((i.world.y-_ImpactY)*2,2)),_NaturalContact);
+    foam=max(foam,impact*lerp(.18+n*.42,.72+n*.28,_NaturalContact)*(1-_Fall));
     half3 color=lerp(_BaseColor.rgb,_WaveColor.rgb,.18+ripple*.16+n*.2);
     color=lerp(color,half3(.69,.80,.75),foam);
     Light sun=GetMainLight(TransformWorldToShadowCoord(i.world));
     color*=.48+.6*sun.shadowAttenuation;
     float3 view=normalize(GetCameraPositionWS()-i.world);
-    float spec=pow(saturate(dot(reflect(-sun.direction,normalize(i.n)),view)),80)*.22;
+    float spec=pow(saturate(dot(reflect(-sun.direction,normalize(i.n)),view)),80)*.22*lerp(1,.3,_NaturalContact);
     color+=sun.color*spec;color=MixFog(color,i.fog);return half4(color,1);
    }
    ENDHLSL

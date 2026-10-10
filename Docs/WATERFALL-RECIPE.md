@@ -271,3 +271,56 @@ curtain, bright solid/lip plates, hard raster shoreline and weak dark impact zon
 remain. No visual acceptance. Next integrate accepted natural wet-rock/lip/impact
 transitions using the shared host; do not transfer Epos purchased assets or hide
 contact/import errors with geometric offsets. Frozen r1 packets remain unchanged.
+
+## Host-backed visible contact reference, natural-host-waterfall-v2-r1
+
+`VerticalWaterfallBuilder.BuildNaturalHostBatch` / menu Tools > TerraLoom >
+Integration > Build Natural Host Waterfall Reference saves
+`Generated/TerraLoomNaturalHostWaterfall.unity`. Build Windows Player through
+`RuntimePlayerValidation.BuildNaturalHostWaterfallBatch`; run
+`.artifacts/PlayerNaturalHostWaterfall/TerraLoom.exe -terraloomSmoke
+-terraloomScreenshot <absolute>/natural-host-waterfall-v2-r1.png`.
+Existing combined r1 and earlier scenes/packet snapshots are retained.
+
+This reference actually calls WaterfallWaterHost.Generate. Its mandatory callback
+checks all17vertices on both joins, all15actual collider/water-triangle bed probes,
+the whole hole perimeter and full parametric fall support against the **same final
+candidate terrain/solid**. It does not substitute the three-centre teaching pads.
+Outer publication owns terrain, closed cliff, cloned materials and the host;
+water meshes are owned only by the host, never registered twice. An outer failure
+after the water host succeeds still destroys the entire new candidate and keeps
+the previous published terrain/solid/water subtree. This is this owned-reference
+lifecycle, not a general multi-module terrain rollback contract.
+
+The supplied cliff now has bounded side relief outside the water envelope and
+six closed original rock masses embedded in its actual mesh/collider. Hole
+perimeter and the physical water envelope stay fixed. Existing original rock
+colour/normal textures are reused with a darker, smoother owned material clone;
+no purchased assets or new asset series. Opt-in prototype shader treatment
+locates impact foam using physical impactY as well as XZ: the elevated lip no
+longer receives lower-impact foam. Lower impact foam is stronger and upper specular
+glare reduced. Old materials keep _NaturalContact=0 and old rendering behaviour.
+No water vertex displacement, changed render offset or compensated import delta.
+
+Native `NaturalHost-21.xml/.log`:21/21 including allprevious20. Natural case checks
+real host/recipe binding, closed solid, full packet roundtrip, full joins/depths,
+perimeter, replacement ownership and a late **outer** cancel after host publication
+but before terrain/solid publication. Windows `NaturalHostBuild.log` and
+`NaturalHostPlayer.log`:exit0, same3actual controller drops and clear observer
+sightlines. Max bed-intent error2.022743mm, seam.745773mm, independent decoded/source
+bed error.172147mm (<1mm import budget, separate from<4mm design budget).
+
+Packet `Integration/.artifacts/Evidence/natural-host-waterfall-v2-r1-packet`,
+revision natural-host-waterfall-v2-r1, manifestSHA256
+a47a7509fc2d3c0942cf8afa6adbc32d90c529b38a51bd6bed7a7f50791fda4c.
+15of19payloads are byte-identical to frozen combined r1: allterrain and allwater.
+Only the four cliff payloads differ. All3camera DTOs,15bed-probe DTOs and3actual
+controller DTOs are identical. Independent packet reader accepts both revisions.
+
+Nine PNGs captured; HERE actually opened side/lip/foot originals plus lipflat and
+lipnormals (5of9). Side rock contact silhouettes and reduced upper glare are
+visible; rectangular curtain, remaining broad solid planes, faceted rocks and
+hard water/material transitions still limit natural appearance. **No final visual
+acceptance.** Keep this bounded visible integration evidence; return next to M1
+collective curved crossing authorization and composition requirements rather than
+expanding waterfall art experiments. No Epos product files were changed here.

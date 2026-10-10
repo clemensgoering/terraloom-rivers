@@ -10,7 +10,7 @@ import sys
 def verify(directory):
     root = Path(directory).resolve()
     packet = json.loads((root / 'manifest.json').read_text(encoding='utf-8'))
-    assert packet['schemaVersion'] == 1 and packet['revision'] in ('vertical-contact-v2', 'combined-waterfall-v2-r1')
+    assert packet['schemaVersion'] == 1 and packet['revision'] in ('vertical-contact-v2', 'combined-waterfall-v2-r1', 'natural-host-waterfall-v2-r1')
 
     def read(payload):
         path = (root / payload['file']).resolve()
@@ -60,7 +60,7 @@ def verify(directory):
         assert probe['grounded'] and probe['start']['y'] - probe['end']['y'] > 2.5
         assert probe['steps'] == 140 and probe['fixedDeltaTime'] > 0
     decoded_bed_errors = []
-    if packet['revision'] == 'combined-waterfall-v2-r1':
+    if packet['revision'] in ('combined-waterfall-v2-r1', 'natural-host-waterfall-v2-r1'):
         # Independent off-grid reconstruction, distinct from source collider cell-centre
         # agreement. Unity TerrainCollider and an imported triangle mesh can differ
         # slightly here; the import budget is 1mm, not the 4mm bed-design budget.

@@ -20,6 +20,8 @@ namespace TerraLoom.Integration
         public bool RotateQuarterTurn;
         [Tooltip("Separate combined reference; existing V2 contact cases keep this disabled.")]
         public bool CombinedPoolSill;
+        [Tooltip("Separate host-backed natural contact reference; frozen r1 remains unchanged.")]
+        public bool NaturalHostReference;
         public Material TerrainMaterial,CliffMaterial,WaterMaterial,FallMaterial;
         public TerrainLayer[] Layers;
         private GameObject generated;
@@ -62,6 +64,7 @@ namespace TerraLoom.Integration
         {
             if(!TerrainMaterial||!CliffMaterial||!WaterMaterial||!FallMaterial||Layers==null||Layers.Length!=4)
                 throw new InvalidOperationException("Vertical recipe materials missing.");
+            if(NaturalHostReference&&!CombinedPoolSill)throw new InvalidOperationException("Natural host reference requires the combined recipe.");
             double run=NearVertical?.025:0;
             var fall=new WaterfallFallSurface(new WorldPoint(32,11.2,32),new WorldPoint(32+(RotateQuarterTurn?run:0),8,32+(RotateQuarterTurn?0:run)),RotateQuarterTurn?1:0,RotateQuarterTurn?0:1,3);
             var combined=CombinedPoolSill?new WaterfallRecipe(fall.Lip,fall.Impact,
@@ -129,6 +132,39 @@ namespace TerraLoom.Integration
                     float x=24.5f+ix*.125f,z=30.75f+iz*.125f;
                     Quad(new Vector3(x,3,z),new Vector3(x+.125f,3,z),new Vector3(x+.125f,3,z+.125f),new Vector3(x,3,z+.125f),Vector3.down);
                 }
+                if(NaturalHostReference)
+                {
+                    // Keep the full water envelope and terrain-hole perimeter fixed.
+                    // Relief changes the supplied solid outside that envelope only.
+                    for(int i=0;i<vertices.Count;i++)
+                    {
+                        var p=vertices[i];float x=p.x-32,z=p.z-32;
+                        float weight=Smooth((Mathf.Abs(x)-1.7f)/.8f)*(1-Smooth((Mathf.Abs(x)-6)/1.5f))
+                            *(1-Smooth((Mathf.Abs(z-CliffZ)-.25f)/.7f))*Smooth((p.y-7)/2);
+                        p.z+=.22f*Mathf.Sin(x*3.7f+p.y*2.1f)*weight;vertices[i]=p;
+                    }
+                    // Closed overlapping rock masses anchored into the supplied solid.
+                    // Original material/texture recipe, no new asset series or imports.
+                    foreach(float side in new[]{-1f,1f})for(int k=0;k<3;k++)
+                    {
+                        float x=side*new[]{2.65f,4.3f,6f}[k],z=-.25f;
+                        float t=Taper(x),radiusY=.8f+1.25f*t;
+                        var centre=new Vector3(32+x,Floor(x,z,combined)+radiusY-.45f,32+z);
+                        Vector3 Rock(int latitude,int longitude)
+                        {
+                            if(latitude==0)return centre+Vector3.up*radiusY;
+                            if(latitude==8)return centre-Vector3.up*radiusY;
+                            float a=latitude*Mathf.PI/8,b=(longitude%16)*Mathf.PI/8;
+                            float grain=1+.08f*Mathf.Sin(b*3+a*5+k);
+                            return centre+new Vector3(Mathf.Sin(a)*Mathf.Cos(b)*(.8f+k*.12f)*grain,Mathf.Cos(a)*radiusY,Mathf.Sin(a)*Mathf.Sin(b)*.7f*grain);
+                        }
+                        for(int row=0;row<8;row++)for(int column=0;column<16;column++)
+                        {
+                            var p=Rock(row,column);var q=Rock(row,column+1);var r=Rock(row+1,column+1);var s=Rock(row+1,column);
+                            Quad(p,q,r,s,(p+q+r+s)*.25f-centre);
+                        }
+                    }
+                }
                 var solid=new Mesh{name="Closed cliff replacement solid",indexFormat=IndexFormat.UInt32};assets.Add(solid);solid.SetVertices(vertices.Select(World).ToList());solid.SetTriangles(triangles,0);solid.RecalculateNormals();solid.RecalculateBounds();
                 if(combined!=null)
                 {
@@ -139,13 +175,16 @@ namespace TerraLoom.Integration
                     solid.uv=suv;solid.RecalculateTangents();
                 }
                 var cliffGO=new GameObject(solid.name);cliffGO.transform.SetParent(candidate.transform,false);
-                cliffGO.AddComponent<MeshFilter>().sharedMesh=solid;cliffGO.AddComponent<MeshRenderer>().sharedMaterial=CliffMaterial;
+                var rockMaterial=CliffMaterial;
+                if(NaturalHostReference){rockMaterial=new Material(CliffMaterial);assets.Add(rockMaterial);rockMaterial.SetColor("_BaseColor",new Color(.64f,.69f,.66f,1));rockMaterial.SetFloat("_Smoothness",.36f);}
+                cliffGO.AddComponent<MeshFilter>().sharedMesh=solid;cliffGO.AddComponent<MeshRenderer>().sharedMaterial=rockMaterial;
                 var cliff=cliffGO.AddComponent<MeshCollider>();cliff.sharedMesh=solid;
                 var waterMaterial=new Material(WaterMaterial);var fallMaterial=new Material(FallMaterial);assets.Add(waterMaterial);assets.Add(fallMaterial);
                 foreach(var material in new[]{waterMaterial,fallMaterial})
                 {
                     material.SetFloat("_ImpactX",(float)fall.Impact.X);material.SetFloat("_ImpactZ",(float)fall.Impact.Z);
                     material.SetVector("_ImpactAxis",new Vector4((float)fall.Forward.X,(float)fall.Forward.Z,0,0));
+                    if(NaturalHostReference){material.SetFloat("_NaturalContact",1);material.SetFloat("_ImpactY",(float)fall.Impact.Y);}
                 }
                 Mesh Water(string name,int count,float length,Func<int,float,Vector3> point,Material material,Func<int,float> distance=null)
                 {
@@ -163,7 +202,7 @@ namespace TerraLoom.Integration
                     fallMesh=Water("Parametric fall, zero-run safe",128,(float)fall.ArcLength,(i,a)=>V(fall.Sample(i/128d,a*1.5))+Vector3.up*.01f,fallMaterial);
                     poolMesh=Water("Impact pool and receiving reach",128,17,(i,a)=>V(fall.Impact)+V(fall.Forward)*(i/128f*17)+V(fall.Across)*a*Width((float)run+i/128f*17)+Vector3.up*.01f,waterMaterial);
                 }
-                else
+                else if(!NaturalHostReference)
                 {
                     var meshes=WaterfallWaterGeometry.Build(combined,cancelled:cancelled);assets.AddRange(meshes);
                     upperMesh=meshes[0];fallMesh=meshes[1];poolMesh=meshes[2];
@@ -172,6 +211,23 @@ namespace TerraLoom.Integration
                         var go=new GameObject(meshes[i].name);go.transform.SetParent(candidate.transform,false);
                         go.AddComponent<MeshFilter>().sharedMesh=meshes[i];go.AddComponent<MeshRenderer>().sharedMaterial=i==1?fallMaterial:waterMaterial;
                     }
+                }
+                else
+                {
+                    var hostGO=new GameObject("Water-only module host");hostGO.transform.SetParent(candidate.transform,false);
+                    var host=hostGO.AddComponent<WaterfallWaterHost>();
+                    host.Generate(combined,waterMaterial,fallMaterial,(r,meshes)=>
+                    {
+                        var upper=meshes[0].vertices;var falling=meshes[1].vertices;var lower=meshes[2].vertices;
+                        for(int i=0;i<17;i++){ValidateJoin(upper[upper.Length-17+i],falling[i]);ValidateJoin(falling[falling.Length-17+i],lower[i]);}
+                        Physics.SyncTransforms();
+                        ValidateGeometry(ground,cliff,fall,r); // Entire hole perimeter + full fall support.
+                        MeasureBed(ground,cliff,r,meshes[2]); // All15 actual collider/water-triangle probes.
+                    },cancelled:cancelled);
+                    // Host owns these meshes; outer candidate owns the host, terrain,
+                    // solid and cloned materials. Do not register meshes a second time.
+                    var filters=host.Output.GetComponentsInChildren<MeshFilter>();
+                    upperMesh=filters[0].sharedMesh;fallMesh=filters[1].sharedMesh;poolMesh=filters[2].sharedMesh;
                 }
                 var us=upperMesh.vertices;var fs=fallMesh.vertices;var ps=poolMesh.vertices;
                 for(int i=0;i<17;i++){ValidateJoin(us[us.Length-17+i],fs[i]);ValidateJoin(fs[fs.Length-17+i],ps[i]);}
@@ -227,7 +283,7 @@ namespace TerraLoom.Integration
         /// <summary>Actual collider bed and rendered lower-mesh water heights at physical
         /// recipe stations. No scene-wide raycasts or inferred constant pool depth.</summary>
         public VerticalWaterfallPacket.BedProbe[] MeasureBed()=>CombinedRecipe==null?new VerticalWaterfallPacket.BedProbe[0]:
-            MeasureBed(Ground,Cliff,CombinedRecipe,generated.transform.Find("Impact pool and receiving reach").GetComponent<MeshFilter>().sharedMesh);
+            MeasureBed(Ground,Cliff,CombinedRecipe,generated.GetComponentsInChildren<MeshFilter>().Single(f=>f.sharedMesh.name=="Impact pool and receiving reach").sharedMesh);
         private static VerticalWaterfallPacket.BedProbe[] MeasureBed(Terrain ground,MeshCollider cliff,WaterfallRecipe recipe,Mesh water)
         {
             var result=new List<VerticalWaterfallPacket.BedProbe>();var tc=ground.GetComponent<TerrainCollider>();var vs=water.vertices;var ts=water.triangles;

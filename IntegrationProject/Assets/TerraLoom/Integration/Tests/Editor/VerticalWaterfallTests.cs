@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using NUnit.Framework;
 using UnityEditor.SceneManagement;
@@ -11,23 +12,30 @@ namespace TerraLoom.Integration.Tests
 {
     public sealed class VerticalWaterfallTests
     {
-        [TestCase(false,false,false)][TestCase(true,false,false)][TestCase(false,true,false)][TestCase(false,false,true)]
-        public void OwnedCliffHoleContactAndCancelledRebuild(bool near,bool rotated,bool combined)
+        [TestCase(false,false,false,false)][TestCase(true,false,false,false)][TestCase(false,true,false,false)][TestCase(false,false,true,false)][TestCase(false,false,true,true)]
+        public void OwnedCliffHoleContactAndCancelledRebuild(bool near,bool rotated,bool combined,bool natural)
         {
             var setup=EditorSceneManager.GetSceneManagerSetup();
             try
             {
-                EditorSceneManager.OpenScene("Assets/TerraLoom/Integration/Generated/"+(combined?"TerraLoomCombinedWaterfall":rotated?"TerraLoomRotatedVertical":near?"TerraLoomNearVertical":"TerraLoomVertical")+".unity");
+                EditorSceneManager.OpenScene("Assets/TerraLoom/Integration/Generated/"+(natural?"TerraLoomNaturalHostWaterfall":combined?"TerraLoomCombinedWaterfall":rotated?"TerraLoomRotatedVertical":near?"TerraLoomNearVertical":"TerraLoomVertical")+".unity");
                 var recipe=Object.FindFirstObjectByType<VerticalWaterfallPrototype>();recipe.Generate();
                 Assert.That(recipe.Fall.HorizontalRun,Is.EqualTo(near?.025:0).Within(1e-10));
                 Assert.That(recipe.MaximumSeamError,Is.LessThan(.004));
                 var oldTerrain=recipe.Ground;var oldData=oldTerrain.terrainData;var oldCliff=recipe.Cliff;
                 AssertClosed(oldCliff.sharedMesh);
                 var root=recipe.transform.GetChild(0);
-                var upper=root.Find("Upper reach to exact lip").GetComponent<MeshFilter>().sharedMesh.vertices;
-                var falling=root.Find("Parametric fall, zero-run safe").GetComponent<MeshFilter>().sharedMesh.vertices;
-                var pool=root.Find("Impact pool and receiving reach").GetComponent<MeshFilter>().sharedMesh.vertices;
-                var fallMesh=root.Find("Parametric fall, zero-run safe").GetComponent<MeshFilter>().sharedMesh;
+                Mesh Find(string name)=>root.GetComponentsInChildren<MeshFilter>().Single(f=>f.sharedMesh.name==name).sharedMesh;
+                var upper=Find("Upper reach to exact lip").vertices;
+                var falling=Find("Parametric fall, zero-run safe").vertices;
+                var pool=Find("Impact pool and receiving reach").vertices;
+                var fallMesh=Find("Parametric fall, zero-run safe");
+                if(natural)
+                {
+                    var host=root.GetComponentInChildren<TerraLoom.Rivers.Unity.WaterfallWaterHost>();
+                    Assert.That(host,Is.Not.Null);Assert.That(host.Output.activeSelf,Is.True);
+                    Assert.That(host.CurrentRecipe,Is.SameAs(recipe.CombinedRecipe));
+                }
                 var down=falling[falling.Length-17]-falling[0];var crossEdge=falling[16]-falling[0];
                 var expectedNormal=Vector3.Cross(down,crossEdge).normalized;
                 foreach(var normal in fallMesh.normals)Assert.That(Vector3.Dot(normal,expectedNormal),Is.GreaterThan(.999f));
@@ -47,7 +55,7 @@ namespace TerraLoom.Integration.Tests
                     Assert.That(packet.meshes.Length,Is.EqualTo(4));Assert.That(packet.meshes[0].uvCount,Is.EqualTo(combined?packet.meshes[0].vertexCount:0));
                     if(combined)
                     {
-                        Assert.That(packet.revision,Is.EqualTo("combined-waterfall-v2-r1"));Assert.That(packet.bedProbes.Length,Is.EqualTo(15));
+                        Assert.That(packet.revision,Is.EqualTo(natural?"natural-host-waterfall-v2-r1":"combined-waterfall-v2-r1"));Assert.That(packet.bedProbes.Length,Is.EqualTo(15));
                         foreach(var probe in packet.bedProbes)
                         {
                             Assert.That(Mathf.Abs(probe.actualBedY-probe.intendedBedY),Is.LessThan(.004f));
@@ -88,10 +96,22 @@ namespace TerraLoom.Integration.Tests
                 Assert.Throws<OperationCanceledException>(()=>recipe.Generate(()=>true));
                 Assert.That(recipe.Ground,Is.SameAs(oldTerrain));Assert.That(recipe.Cliff,Is.SameAs(oldCliff));
                 Assert.That(recipe.transform.childCount,Is.EqualTo(1));
+                if(natural)
+                {
+                    var publishedHost=root.GetComponentInChildren<TerraLoom.Rivers.Unity.WaterfallWaterHost>();
+                    // Cancel after a new host has validated and published its own water,
+                    // but before the containing terrain/solid candidate is published.
+                    Assert.Throws<OperationCanceledException>(()=>recipe.Generate(()=>recipe.GetComponentsInChildren<TerraLoom.Rivers.Unity.WaterfallWaterHost>()
+                        .Any(h=>h!=publishedHost&&h.Output)));
+                    Assert.That(recipe.Ground,Is.SameAs(oldTerrain));
+                    Assert.That(recipe.GetComponentInChildren<TerraLoom.Rivers.Unity.WaterfallWaterHost>(),Is.SameAs(publishedHost));
+                    Assert.That(recipe.transform.childCount,Is.EqualTo(1));Assert.That(fallMesh,Is.Not.Null);
+                }
                 var material=recipe.FallMaterial;recipe.FallMaterial=null;
                 Assert.Throws<InvalidOperationException>(()=>recipe.Generate());recipe.FallMaterial=material;
                 Assert.That(recipe.Ground,Is.SameAs(oldTerrain));
                 recipe.Generate();Assert.That(oldTerrain==null,Is.True);Assert.That(oldData==null,Is.True);Assert.That(oldCliff==null,Is.True);
+                if(natural)Assert.That(fallMesh==null,Is.True,"Water host must release replaced meshes.");
                 Assert.That(recipe.transform.childCount,Is.EqualTo(1));
                 foreach(float across in new[]{-1.5f,0,1.5f})
                 {
