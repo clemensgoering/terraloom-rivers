@@ -26,6 +26,19 @@ did not admit these brush/protection settings in initial checks (hydraulic dead
 end / excavation and bend failure). Those failures were not waived. No claim of
 arbitrary seeded terrain compatibility follows from the analytic examples.
 
+The first general-recipe failure is retained as `HydraulicSeedBoundaryTests`:
+Core DrainageValley, seed2043,129 samples,96x16x96m,frequency4; the independent
+hash streams select source(50,8),mouth(54,88), with the original central protection
+and brush settings. Native1/1 passes: two identical attempts reject at stage02
+with `NoRoute Hydraulic dead end`, hard protection15 and uphill water/bed184.
+TerrainData, TerrainCollider data and height digest remain unchanged; neither
+module publishes geometry and Paths is never planned. The fixture supplies two
+existing layers to Core's ground/rock generation style; painting is outside this
+hydraulic claim. Original failed build logs and the new XML/log are archived at
+Integration `.artifacts/HydraulicSeedBoundary-20261010`. This isolated-package
+consumer regression preserves a real rejection; it is not a positive general
+terrain-generation or M2 canonical-installation result.
+
 `CrossingRecipeVariant.Rebuild` is shared by the editor button and runtime Start;
 it clears downstream outputs before regenerating its own source. It restores the
 original source and frees only its owned copy on Clear. This full rebuild is not
