@@ -188,9 +188,10 @@ Corrupt/truncated/path-escape payload checks still reject invalid packets.
 
 ### Bounded scene-component follow-up
 
-The water builder is implemented; the scene component below is a follow-up design,
-not a completed terrain/backend API. Keep one module host attached to the Core
-world, with optional inspector UI delegating to the same runtime methods:
+The design below defines the bounded scene host now implemented in the next
+section. It is not a completed terrain/backend API. A host can be placed alongside
+the Core world, but requires no Core world component. Optional inspector UI
+delegates to the same runtime methods:
 
 | Responsibility | Component contract |
 | --- | --- |
@@ -207,3 +208,66 @@ Epos. Incorporate its contact/sightline findings before replacing the technical
 reference solid. The shared builder alone neither finds waterfall sites nor
 establishes arbitrary terrain support. General foreign terrain, M1 and collective
 Paths integration remain open.
+
+## Water-only scene host (2026-10-10, following shared builder)
+
+`Rivers.Unity.WaterfallWaterHost` implements Generate/Rebuild/DisposeOutput around
+the shared builder. No Core world GameObject is required. The host requires an
+identity world transform; recipe vertices remain in physical world metres.
+Materials are explicit shared references; the host creates no material instances.
+A contact-validation callback is mandatory and must throw on unsupported terrain
+or solid contacts. It must inspect candidates without changing/retaining/destroying
+their meshes. No terrain/collider is created, edited or owned by this component.
+
+```
+host.Generate(recipe, reachMaterial, fallMaterial,
+    (physicalRecipe, candidateMeshes) => ValidateMyActualContacts(physicalRecipe, candidateMeshes));
+host.Rebuild(nextRecipe, reachMaterial, fallMaterial, ValidateMyActualContacts);
+host.DisposeOutput();
+```
+
+Manual authoring and seeded planning provide the same immutable recipe argument.
+Generation first builds an inactive candidate, validates contacts and checks
+cancellation again, then activates the new output and disables/releases the old
+one. Exceptions/cancellation retain the published output. Generate/Dispose calls
+inside validation are rejected; validation is a synchronous, read-only step.
+In Player, destruction completes at end of frame; old output is disabled
+immediately. DisposeOutput is idempotent and never releases shared materials or
+supplied colliders. Destroying the host releases only its own meshes/output.
+
+Editor: Add Component > TerraLoom > Rivers > Waterfall Water Host. Inspector shows
+owned output, mesh count, last failure and the four physical anchors; Dispose
+uses the runtime method. Selected-host cyan gizmos show physical anchors and
+centre connections, without render offset. Output/anchor references survive
+assembly reload and transient output is not baked into the saved scene. The
+immutable CurrentRecipe property is runtime state and must be supplied again by
+the authoring tool/planner after reload. This host is a consumer adapter; its
+inspector does not add another competing recipe authoring form or Workbench.
+
+`Integration/WaterfallHostExample.cs` is a fresh small consumer, independent of
+VerticalWaterfallPrototype. It accepts an externally authored/seeded recipe and
+explicit collider/material inputs; checks actual collider centre depths at
+impact/pool/sill against the4mm design budget. It is a code example exercised with
+fresh contact pads in tests, not a new landscape/art scene or full site validator.
+Full-width bank/fall-wall support, remaining stations and terrain seams need the
+caller's appropriate validator; supplied colliders remain caller-owned.
+
+Native WaterfallHost-20.xml/log:20/20 including previous15, two simultaneous
+hosts, inactive validation, successful replacement, explicit disposal/deletion,
+missing material/validator, transform/reentrancy rejection, failure/late-cancel
+rollback and fresh example with seeded recipes0/42 and moved-collider rejection.
+The first run exposed missing Editor mesh cleanup on host deletion; ExecuteAlways
+now enables the same ownership cleanup in Editor, verified by the repeated run.
+WaterfallHostRuntime-1.xml/log:1/1 PlayMode, checks deferred destruction, immediate
+old-output disabling, late cancellation, host deletion and separate instance/
+shared material survival. Pure runtime audit/compile:0warnings/0errors with local
+development Core override; this does not replace the native host tests.
+
+Epos combined comparison feedback: World reports Edit4/4 and Play1/1,15depths and
+3landings, waterimport0m, bedimport.172138mm. HERE opened all3final combined PNGs
+at 0_Game/_Docs/WorldPrototypeEvidence/WaterfallComparisonV2/
+20261010-105551Z-PlayMode-0_Game (side/lip/foot). Felskit is visible; rectangular
+curtain, bright solid/lip plates, hard raster shoreline and weak dark impact zone
+remain. No visual acceptance. Next integrate accepted natural wet-rock/lip/impact
+transitions using the shared host; do not transfer Epos purchased assets or hide
+contact/import errors with geometric offsets. Frozen r1 packets remain unchanged.
