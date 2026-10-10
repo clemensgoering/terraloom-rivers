@@ -151,3 +151,9 @@ this is no finished-art approval. Discrete water probes: 6318 vertices minimum +
 returning to the landscape scene, so a fresh generated test project has all three
 saved-scene regression inputs. The added shared protection checks apply equally to
 manual and seeded input capture; no all-seed curved-brush acceptance is claimed.
+
+The protected curved-brush rejection is now a reproducible runtime regression with
+exact window/request/input diagnostics. See [frozen baseline](CURVED-CROSSING-BASELINE.md)
+and its JSON measurements. Latest targeted block: 5/5 Integration PlayMode and
+29 portable contracts passed; preserving outputs before publication is not a
+multi-module rollback proof. The collective crossing contract remains unimplemented.

@@ -20,6 +20,66 @@ namespace TerraLoom.Tests
         [UnityTest] public IEnumerator TerrainBrushBridgeAndRampsWorkWithoutBedOrBankMeshes()
             => RunCrossing(true);
 
+        [UnityTest] public IEnumerator CurvedBrushCrossingReproducesOutsideCandidateBeforePublication()
+        {
+            // Frozen geometry from the protected standalone brush sample; no asset builder or
+            // editor capture is required. Keep this as the baseline until an explicit joint
+            // crossing contract has positive and negative geometry coverage.
+            var original=new TerrainData{heightmapResolution=129,alphamapResolution=128,size=new Vector3(96,16,96)};
+            var heights=new float[129,129];
+            for(int z=0;z<129;z++)for(int x=0;x<129;x++)
+            {
+                float px=96f*x/128,pz=96f*z/128;
+                float shoulder=Mathf.SmoothStep(0,1,Mathf.Clamp01((Mathf.Abs(px-48)-22)/20));
+                heights[z,x]=(6-.03f*pz+shoulder*(5+3*Mathf.Pow(Mathf.Sin(pz*.055f+.4f),2)))/16;
+            }
+            original.SetHeights(0,0,heights);
+            var sourceHeights=original.GetHeights(0,0,129,129);
+            var layers=new[]{new TerrainLayer(),new TerrainLayer(),new TerrainLayer()};original.terrainLayers=layers;
+            var alpha=new float[128,128,3];for(int z=0;z<128;z++)for(int x=0;x<128;x++)alpha[z,x,0]=1;original.SetAlphamaps(0,0,alpha);
+            var terrain=Terrain.CreateTerrainGameObject(original);var host=new GameObject("Frozen curved crossing failure");
+            var ground=new Material(Shader.Find("Universal Render Pipeline/Lit"));var water=new Material(Shader.Find("TerraLoom/RiverWater"));
+            try
+            {
+                var world=host.AddComponent<TerraLoomWorld>();world.WorldId="curved-brush-repro";world.Seed=42;world.Terrain=terrain.GetComponent<Terrain>();
+                world.Areas=new[]{new LandscapeArea{Id="river-landscape",Center=new Vector2(48,48),Size=new Vector2(96,96),Tags=new[]{"sample","landscape"}}};
+                world.ManualAnchors=new[]{
+                    new ManualWorldAnchor{Id="source",Position=new Vector3(48,0,4)},new ManualWorldAnchor{Id="mouth",Position=new Vector3(48,0,92)},
+                    new ManualWorldAnchor{Id="west",Position=new Vector3(12,0,48)},new ManualWorldAnchor{Id="east",Position=new Vector3(84,0,48)}};
+                var paths=host.AddComponent<TerraLoomPaths>();paths.World=world;paths.GroundMaterial=ground;paths.BridgeMaterial=ground;
+                paths.AutomaticNetwork=false;paths.MaximumSlope=.35f;paths.BridgeClearance=1.2f;
+                paths.Connections.Add(new PathConnectionSettings{Id="brush-crossing",StartId="west",EndId="east"});
+                var rivers=host.AddComponent<TerraLoomRivers>();rivers.World=world;rivers.WaterMaterial=water;
+                rivers.AutomaticSourceAndMouth=false;rivers.TerrainBrush=true;rivers.WaterInset=.6f;rivers.SedimentTerrainLayer=1;
+                rivers.Connections.Add(new RiverConnectionSettings{Id="sample-river",SourceId="source",MouthId="mouth"});
+                var composition=host.AddComponent<TerraLoom.Integration.TerraLoomIntegration>();composition.World=world;composition.Paths=paths;composition.Rivers=rivers;
+                Assert.That(composition.Generate(),Is.True,composition.Diagnostics);
+                var priorRiver=rivers.GeneratedRoot;var priorPath=paths.GeneratedRoot;var priorTerrain=world.Terrain.terrainData;
+                string priorRiverJson=rivers.PlanJson,priorPathJson=paths.PlanJson;
+                var priorHeights=priorTerrain.GetHeights(0,0,129,129);
+                world.ManualAnchors[0].Position=new Vector3(48,0,8);world.ManualAnchors[1].Position=new Vector3(48,0,88);
+                world.ManualAnchors[2].Position=new Vector3(12,0,24);world.ManualAnchors[3].Position=new Vector3(84,0,24);
+                rivers.ProtectedAreas.Add(new RiverProtectionSettings{Id="sample-detour",Center=new Vector2(48,48),Size=new Vector2(8,12)});
+                Assert.That(composition.Generate(),Is.False,"Baseline conflict must not silently become a detour or partial success.");
+                Assert.That(composition.ActiveStep,Is.EqualTo("03-plan-routes"));
+                string failure=composition.Diagnostics;
+                foreach(var field in new[]{"OutsideCandidate","CrossingContext revision=","input=sha256:","footprintXZ=","primaryWindowXZ=","conflictBedXZ=","conflictWindows="})
+                    Assert.That(failure,Does.Contain(field),failure);
+                Assert.That(rivers.GeneratedRoot,Is.SameAs(priorRiver));Assert.That(paths.GeneratedRoot,Is.SameAs(priorPath));
+                Assert.That(world.Terrain.terrainData,Is.SameAs(priorTerrain));Assert.That(priorTerrain.GetHeights(0,0,129,129),Is.EqualTo(priorHeights));
+                Assert.That(rivers.PlanJson,Is.EqualTo(priorRiverJson));Assert.That(paths.PlanJson,Is.EqualTo(priorPathJson));
+                Assert.That(original.GetAlphamaps(0,0,128,128),Is.EqualTo(alpha));
+                Assert.That(original.GetHeights(0,0,129,129),Is.EqualTo(sourceHeights));
+                Assert.That(composition.Generate(),Is.False);Assert.That(composition.Diagnostics,Is.EqualTo(failure),"Same captured inputs reproduce the exact rejection context.");
+                TestContext.WriteLine("TERRALOOM_CURVED_CROSSING_BASELINE "+failure);
+                // Planning failed before earthworks: this proves preservation at that boundary,
+                // not multi-module rollback after a materialization failure.
+                composition.Clear();Assert.That(world.Terrain.terrainData,Is.SameAs(original));
+            }
+            finally{Object.Destroy(host);Object.Destroy(terrain);Object.Destroy(original);Object.Destroy(ground);Object.Destroy(water);foreach(var layer in layers)Object.Destroy(layer);}
+            yield return null;
+        }
+
         private IEnumerator RunCrossing(bool terrainBrush)
         {
             var original=new TerrainData { heightmapResolution=129,size=new Vector3(96,16,96) };
