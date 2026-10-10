@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace TerraLoom.Integration.Editor
 {
-    /// <summary>Positive full-route recipe. Only road targets differ from the frozen negative case.</summary>
+    /// <summary>Positive full-route recipe with different road targets and an explicit consumer routing corridor.</summary>
     public static class PositiveCurvedCrossingBuilder
     {
         [MenuItem("Tools/TerraLoom/Integration/Build Positive Curved Crossing")]

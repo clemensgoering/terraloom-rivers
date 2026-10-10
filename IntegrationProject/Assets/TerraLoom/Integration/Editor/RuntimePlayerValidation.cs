@@ -10,6 +10,10 @@ namespace TerraLoom.Integration.Editor
     /// then exercises the same seed recipe without any editor assemblies being present.</summary>
     public static class RuntimePlayerValidation
     {
+        public static void BuildManualCrossingBatch()
+        {CrossingVariationBuilder.BuildManualBatch();Build("TerraLoomManualCrossing","PlayerManualCrossing");}
+        public static void BuildSeededCrossingBatch()
+        {CrossingVariationBuilder.BuildSeededBatch();Build("TerraLoomSeededCrossing","PlayerSeededCrossing");}
         public static void BuildPositiveCurvedCrossingBatch()
         {PositiveCurvedCrossingBuilder.BuildBatch();Build("TerraLoomPositiveCurvedCrossing","PlayerPositiveCurvedCrossing");}
         public static void BuildFrozenTrussCrossingBatch()

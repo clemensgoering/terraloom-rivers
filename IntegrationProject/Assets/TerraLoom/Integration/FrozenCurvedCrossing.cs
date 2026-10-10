@@ -17,6 +17,8 @@ namespace TerraLoom.Integration
         public TerraLoomIntegration Composition;
         public bool GenerateOnStart=true;
         public bool WithdrawPermissions;
+        [Tooltip("Consumer policy: select only declared partial windows touching each crossing strip; retains the 64-section limit per grant.")]
+        public bool LimitSectionsToCrossingStrip;
         public Rect ApprovedCrossingZone=new Rect(24,54,40,10);
         [Tooltip("Explicit construction-only evidence when the unchanged full road has no route. Never reports composition readiness.")]
         public bool ConstructionProbe=true;
@@ -97,11 +99,17 @@ namespace TerraLoom.Integration
             var sections=snapshot.Crossings.Where(c=>(c.AllowedKinds&CrossingKind.Bridge)!=0&&c.Bounds.Overlaps(zone))
                 .Select(c=>new {Candidate=c,Area=Intersection(c.Bounds,zone)})
                 .Where(s=>s.Area.HasValue).Select(s=>new CrossingSectionPermission(s.Candidate.WaterId,s.Candidate.Id,s.Area.Value)).ToArray();
-            if(sections.Length==0||sections.Length>64)throw new InvalidOperationException("Frozen road zone needs one to 64 explicit partial windows.");
+            if(sections.Length==0||(!LimitSectionsToCrossingStrip&&sections.Length>64))throw new InvalidOperationException("Frozen road zone needs one to 64 explicit partial windows.");
             double half=Composition.Paths.Width*.5+Composition.Paths.CaptureProfile().BridgeLateralPadding;
             var grants=snapshot.Crossings.Where(c=>sections.Any(s=>s.CandidateId==c.Id))
                 .Where(c=>{double z=(c.Bounds.MinZ+c.Bounds.MaxZ)/2;return z-half>=zone.MinZ&&z+half<=zone.MaxZ;})
-                .Select(c=>new CollectiveCrossingAuthorization("bridge:"+c.Id+":0",snapshot.Identity,sections));
+                .Select(c=>
+                {
+                    double z=(c.Bounds.MinZ+c.Bounds.MaxZ)/2;
+                    var strip=new WorldBounds(zone.MinX,z-half,zone.MaxX,z+half);
+                    var selected=LimitSectionsToCrossingStrip?sections.Where(s=>s.Area.Overlaps(strip)).ToArray():sections;
+                    return new CollectiveCrossingAuthorization("bridge:"+c.Id+":0",snapshot.Identity,selected);
+                });
             return new PathCrossingPermissions(grants);
         }
         private static WorldBounds? Intersection(WorldBounds a,WorldBounds b)

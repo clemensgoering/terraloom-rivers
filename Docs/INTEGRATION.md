@@ -1,5 +1,11 @@
 # Gemeinsames Testprojekt, 09.10.2026
 
+Update10October: separate full-route timber truss evidence now exists in
+[Positive curved crossing](POSITIVE-CURVED-CROSSING.md) and
+[Manual / seeded variations](CROSSING-VARIATIONS.md), including real Player
+traversal and opened landing/underside images. These bounded analytic recipes
+do not close all M1/art work; earlier development gates below remain historical.
+
 Fruehes visuelles Entwicklungsgate und erster begrenzter Material-/Playervergleich:
 [V0-SURFACES.md](V0-SURFACES.md). Kein V0-/M1-Abschluss: Tragwerk, natuerliche
 Ufer-/Wegkanten und gekruemmte gemeinsame Querungsfreigabe bleiben offen.

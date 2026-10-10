@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace TerraLoom.Integration
 {
-    /// <summary>Actual Player capture and physical coverage of the unchanged curved seed42 crossing.</summary>
+    /// <summary>Actual Player capture and physical coverage of a declared curved crossing recipe.</summary>
     public sealed class FrozenCrossingEvidence:MonoBehaviour
     {
         public FrozenCurvedCrossing Scenario;
@@ -68,7 +68,7 @@ namespace TerraLoom.Integration
                 View("-west",P(first-1)-f*4+side*3+Vector3.up*2.6f,P(first-1)+f*1.6f+Vector3.up*.4f);
                 View("-east",P(last+1)+f*4+side*3+Vector3.up*2.6f,P(last+1)-f*1.6f+Vector3.up*.4f);
                 View("-underside",mid+side*5-f*2-Vector3.up*.75f,mid-Vector3.up*.4f);
-                File.WriteAllText(Path.ChangeExtension(path,".txt"),"Frozen seed42; span="+Vector3.Distance(a,b).ToString("R")+"; width="+c.Paths.Width+"; probes="+probes+"\n"+Scenario.ProbeDiagnostic+"\nFull route: "+c.Diagnostics);
+                File.WriteAllText(Path.ChangeExtension(path,".txt"),"seed="+c.World.Seed+"; span="+Vector3.Distance(a,b).ToString("R")+"; width="+c.Paths.Width+"; probes="+probes+"; fullRoute="+RequireFullRoute+"; terrain="+c.World.TerrainContentFingerprint+"\n"+Scenario.ProbeDiagnostic+"\nFull route: "+c.Diagnostics);
                 Debug.Log("TERRALOOM_FROZEN_TRUSS_SUCCESS fullRoute="+RequireFullRoute+" span="+Vector3.Distance(a,b).ToString("R")+" probes="+probes);Application.Quit(0);
             }
             catch(Exception ex){Debug.LogError("TERRALOOM_FROZEN_TRUSS_FAILED "+ex);Application.Quit(1);}
