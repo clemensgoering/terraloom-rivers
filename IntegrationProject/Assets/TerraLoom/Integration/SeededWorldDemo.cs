@@ -9,6 +9,37 @@ using UnityEngine;
 
 namespace TerraLoom.Integration
 {
+    /// <summary>One owned, unbound candidate and frozen demo inputs. Dispose if publication fails.</summary>
+    public sealed class PreparedSeededWorldRequest : IDisposable
+    {
+        private TerrainData terrain;
+        public readonly int Seed;
+        public readonly TerrainRecipe Recipe;
+        public readonly int Resolution;
+        public readonly Vector3 Size;
+        public readonly float Frequency;
+        public readonly ManualWorldAnchor[] Anchors;
+        public readonly LandscapeArea[] Areas;
+        public readonly RiverConnectionSettings[] RiverConnections;
+        public readonly PathConnectionSettings[] PathConnections;
+        public readonly RegionalStyleProfile[] Profiles;
+        public readonly int DecorationCount;
+        public readonly RegionalProfileSelection Selection;
+        public readonly float Boundary;
+        public readonly RegionDecoration Decoration;
+        public PreparedSeededWorldRequest(TerrainData terrain,int seed,TerrainRecipe recipe,int resolution,Vector3 size,float frequency,
+            ManualWorldAnchor[] anchors,LandscapeArea[] areas,RiverConnectionSettings[] rivers,PathConnectionSettings[] paths,
+            RegionalStyleProfile[] profiles,int decorationCount,RegionalProfileSelection selection,float boundary,RegionDecoration decoration)
+        {
+            this.terrain=terrain;Seed=seed;Recipe=recipe;Resolution=resolution;Size=size;Frequency=frequency;
+            Anchors=anchors;Areas=areas;RiverConnections=rivers;PathConnections=paths;
+            Profiles=(RegionalStyleProfile[])profiles.Clone();DecorationCount=decorationCount;Selection=selection;
+            Boundary=boundary;Decoration=decoration;
+        }
+        public TerrainData TakeTerrain(){var result=terrain;terrain=null;return result;}
+        public void Dispose(){if(!terrain)return;if(Application.isPlaying)UnityEngine.Object.Destroy(terrain);else UnityEngine.Object.DestroyImmediate(terrain);terrain=null;}
+    }
+
     /// <summary>Runtime-only consumer recipe. Builds all three modules and regional art from one seed.
     /// Editor tools call Rebuild too; there is no UnityEditor dependency or baked geometry requirement.
     /// The drainage valley is a deliberately solvable directed-river example, not a hydrology simulation.</summary>
@@ -92,6 +123,28 @@ namespace TerraLoom.Integration
         /// A failed full world rebuild reports its stage; it is not an atomic multi-module transaction.</summary>
         public bool Rebuild()
         {
+            if(UseSeedConfiguration&&Composition&&Composition.World&&Composition.World.OwnsTerrain
+                &&Composition.Paths&&Composition.Paths.GeneratedRoot&&Composition.Rivers&&Composition.Rivers.GeneratedRoot)
+            {
+                try
+                {
+                    using(var request=PrepareSeedRequest())
+                    {
+                        bool ready=Composition.GenerateSeedRequest(request);
+                        generationState=ready?TerraLoom.Core.GenerationRunState.Ready:TerraLoom.Core.GenerationRunState.Failed;
+                        generationTrace=Composition.GenerationTrace;
+                        diagnostics=ready?"Seed "+Seed+": "+Composition.Diagnostics+" Regional instances: "+Decoration.PlacedCount+".":Composition.Diagnostics;
+                        if(ready)
+                        {
+                            ApplyBoundary(Composition.Rivers.GeneratedRoot,request.Boundary);
+                            ApplyBoundary(Composition.Paths.GeneratedRoot,request.Boundary);
+                            GetComponent<IntegrationTestDriver>()?.ReturnToOverview();
+                        }
+                        return ready;
+                    }
+                }
+                catch(Exception ex){generationState=TerraLoom.Core.GenerationRunState.Failed;diagnostics="Prepared seed: "+ex.Message;return false;}
+            }
             string stage="validate";
             var run=new TerraLoom.Core.GenerationRun(new TerraLoom.Core.GenerationSchedule(new[] {
                 new TerraLoom.Core.GenerationStep("01-reset",Array.Empty<string>(),new[]{"clean-world"}),
@@ -110,7 +163,8 @@ namespace TerraLoom.Integration
                 foreach(var profile in Profiles){if(!profile)throw new InvalidOperationException("Missing regional profile.");profile.Validate();}
                 var world=Composition.World;Composition.GenerateOnStart=false;
                 Composition.Paths.GenerateOnStart=false;Composition.Rivers.GenerateOnStart=false;world.AutoGenerateOnStart=false;
-                Step("01-reset",()=>{GetComponent<IntegrationTestDriver>()?.ReturnToOverview();Decoration.Clear();Composition.Clear();});
+                Step("01-reset",()=>{GetComponent<IntegrationTestDriver>()?.ReturnToOverview();
+                    if(UseSeedConfiguration){Decoration.Clear();Composition.Clear();}});
                 float boundary=world.Terrain?world.Terrain.transform.position.z+world.Terrain.terrainData.size.z*.5f:world.transform.position.z+48;
                 Step("02-source",()=>{
                 if(UseSeedConfiguration)
@@ -179,6 +233,49 @@ namespace TerraLoom.Integration
                 return true;
             }
             catch(Exception ex){generationState=TerraLoom.Core.GenerationRunState.Failed;diagnostics="Stage "+stage+": "+ex.Message;return false;}
+        }
+        private PreparedSeededWorldRequest PrepareSeedRequest()
+        {
+            var world=Composition.World;
+            if(!Decoration||Profiles==null||Profiles.Length!=4)throw new InvalidOperationException("Assign four seasonal profiles and decoration.");
+            foreach(var profile in Profiles){if(!profile)throw new InvalidOperationException("Missing regional profile.");profile.Validate();}
+            const int resolution=129;var size=new Vector3(96,16,96);
+            var data=world.CreateGeneratedTerrainData(Seed,TerrainRecipe.DrainageValley,resolution,size,world.Frequency);
+            try
+            {
+                var origin=world.Terrain.transform.position;
+                float riverX=origin.x+32+2*(Hash(Seed,0)%17),roadZ=origin.z+32+2*(Hash(Seed,1)%17);
+                if(LandscapeMode)
+                {
+                    float lowest=float.PositiveInfinity;
+                    var height=world.CaptureTerrain(data).Heights;
+                    for(float x=origin.x+32;x<=origin.x+64;x+=2)
+                    {height.TryGetHeight(x,origin.z+48,out double y);if(y<lowest){lowest=(float)y;riverX=x;}}
+                }
+                float boundary=roadZ,split=origin.x+48;
+                var areas=new[]{
+                    Area("summer-assets",origin.x,origin.z,split,boundary),Area("winter-assets",origin.x,boundary,split,origin.z+96),
+                    Area("summer-shader",split,origin.z,origin.x+96,boundary),Area("winter-shader",split,boundary,origin.x+96,origin.z+96),
+                    new LandscapeArea{Id="wet-bank",Center=new Vector2(riverX,origin.z+48),Size=new Vector2(16,96),Feather=2,Priority=2,Tags=new[]{"wet","riparian"}}};
+                var anchors=LandscapeMode?new[]{
+                    Anchor("source",riverX+6,origin.z+4),Anchor("mouth",riverX,origin.z+92),
+                    Anchor("west",origin.x+8,roadZ-16),Anchor("bend-west",origin.x+28,roadZ-8),
+                    Anchor("bend-east",origin.x+72,roadZ+8),Anchor("east",origin.x+88,roadZ+16),Anchor("hill",origin.x+12,origin.z+82)}
+                    :new[]{Anchor("source",riverX,origin.z+4),Anchor("mouth",riverX,origin.z+92),
+                        Anchor("west",origin.x+8,roadZ),Anchor("east",origin.x+88,roadZ)};
+                var rivers=new[]{new RiverConnectionSettings{Id="seed-river",SourceId="source",MouthId="mouth"}};
+                var paths=LandscapeMode?new[]{
+                    new PathConnectionSettings{Id="approach-west",StartId="west",EndId="bend-west"},
+                    new PathConnectionSettings{Id="valley-crossing",StartId="bend-west",EndId="bend-east"},
+                    new PathConnectionSettings{Id="approach-east",StartId="bend-east",EndId="east"},
+                    new PathConnectionSettings{Id="hill-trail",StartId="bend-west",EndId="hill"}}
+                    :new[]{new PathConnectionSettings{Id="seed-road",StartId="west",EndId="east"}};
+                RegionSurfacePainter.PaintUnboundTerrain(world,data,Profiles,areas);
+                return new PreparedSeededWorldRequest(data,Seed,TerrainRecipe.DrainageValley,resolution,size,world.Frequency,
+                    anchors,areas,rivers,paths,Profiles,LandscapeMode?1800:900,
+                    LandscapeMode?RegionalProfileSelection.WeightedCoverage:RegionalProfileSelection.PriorityWinner,boundary,Decoration);
+            }
+            catch{if(Application.isPlaying)Destroy(data);else DestroyImmediate(data);throw;}
         }
         private static ManualWorldAnchor Anchor(string id,float x,float z)=>new ManualWorldAnchor{Id=id,Position=new Vector3(x,0,z)};
         private static LandscapeArea Area(string id,float x0,float z0,float x1,float z1)=>new LandscapeArea{Id=id,Center=new Vector2((x0+x1)*.5f,(z0+z1)*.5f),Size=new Vector2(x1-x0,z1-z0+8),Feather=8,Tags=new[]{id.StartsWith("winter")?"winter":"summer"}};
