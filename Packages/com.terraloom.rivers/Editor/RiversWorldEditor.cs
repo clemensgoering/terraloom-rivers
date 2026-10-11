@@ -16,14 +16,13 @@ namespace TerraLoom.Rivers.Editor
         public override void OnInspectorGUI()
         {
             var rivers = (TerraLoomRivers)target;
-            serializedObject.Update();
-            using (new EditorGUILayout.HorizontalScope())
+            if(!WorldWorkbenchGUI.IsDrawingEmbedded)
             {
-                EditorGUILayout.LabelField(new GUIContent("TerraLoom Rivers", TerraLoomEditorIcons.Get("Rivers")), EditorStyles.boldLabel);
-                if (!WorldWorkbenchGUI.IsDrawingEmbedded)
-                    using (new EditorGUI.DisabledScope(!rivers.World))
-                        if (GUILayout.Button("Open World Workbench")) TerraLoomWorldWindow.Open(rivers.World);
+                WorldInspectorSections.DrawWorkbenchEntry("Rivers",rivers.World,
+                    string.IsNullOrEmpty(rivers.Diagnostics)?"No generated result yet":rivers.Diagnostics);
+                return;
             }
+            serializedObject.Update();
             WorldInspectorSections.DrawGeneral(serializedObject,
                 "Link Core for terrain, targets and regions. Rivers can be generated here or at runtime from the same settings.",
                 "World", "GenerateOnStart");
