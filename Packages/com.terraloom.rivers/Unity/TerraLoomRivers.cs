@@ -102,7 +102,7 @@ namespace TerraLoom.Rivers.Unity
                 var profile = CaptureProfile(data);
                 return new PlanningInput(source==null?World.Seed:source.Seed, World.Revision, RiverPlanner.AlgorithmVersion,
                     RiverPlanner.ProfileVersion(profile, bounds, requests), terrain, World.CaptureTerrainFingerprint(data), anchors,
-                    World.CaptureLandscape(points), ProtectedAreas.Select(p =>
+                    source==null?World.CaptureLandscape(points):World.CaptureLandscape(points,source.Areas), ProtectedAreas.Select(p =>
                     {
                         var area=p.Capture();
                         if(!TerrainBrush)return area;
