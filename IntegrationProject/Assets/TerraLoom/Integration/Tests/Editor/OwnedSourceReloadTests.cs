@@ -50,16 +50,29 @@ namespace TerraLoom.Tests
                 var carve=composition.Rivers.CarvedTerrainData;
                 var pathRoot=composition.Paths.GeneratedRoot;
                 var riverRoot=composition.Rivers.GeneratedRoot;
+                var published=composition.PublishedSharedInput;
+                var publishedSeed=composition.World.Seed;
                 composition.PublicationBoundary=stage=>
                 {if(stage=="source-prepared")throw new InvalidOperationException("Injected source failure");};
-                Assert.That(composition.GenerateOwnedSource(),Is.False);
+                Assert.That(composition.GenerateOwnedSource(2043),Is.False);
                 composition.PublicationBoundary=null;
+                Assert.That(composition.World.Seed,Is.EqualTo(publishedSeed));
+                Assert.That(composition.PublishedSharedInput.Identity.Seed,Is.EqualTo(publishedSeed));
                 Assert.That(composition.Rivers.OriginalTerrainData,Is.SameAs(source));
                 Assert.That(composition.Rivers.CarvedTerrainData,Is.SameAs(carve));
                 Assert.That(composition.World.Terrain.terrainData,Is.SameAs(carve));
                 Assert.That(composition.World.Terrain.GetComponent<TerrainCollider>().terrainData,Is.SameAs(carve));
                 Assert.That(composition.Paths.GeneratedRoot,Is.SameAs(pathRoot));
                 Assert.That(composition.Rivers.GeneratedRoot,Is.SameAs(riverRoot));
+                Assert.That(composition.PublishedSharedInput,Is.SameAs(published));
+                Assert.That(composition.ValidateCurrent(out var retainedReason),Is.True,retainedReason);
+                composition.PublicationBoundary=stage=>
+                {if(stage=="before-commit")throw new InvalidOperationException("Injected late failure");};
+                Assert.That(composition.GenerateOwnedSource(),Is.False);
+                composition.PublicationBoundary=null;
+                Assert.That(composition.LastSharedInput,Is.Not.SameAs(published));
+                Assert.That(composition.PublishedSharedInput,Is.SameAs(published));
+                Assert.That(composition.ValidateCurrent(out retainedReason),Is.True,retainedReason);
                 Assert.That(composition.GenerateOwnedSource(),Is.True,composition.Diagnostics);
                 Assert.That(composition.World.CaptureTerrainFingerprint(composition.Rivers.OriginalTerrainData),Is.EqualTo(sourceDigest));
                 Assert.That(composition.World.CaptureTerrainFingerprint(composition.Rivers.CarvedTerrainData),Is.EqualTo(carveDigest));

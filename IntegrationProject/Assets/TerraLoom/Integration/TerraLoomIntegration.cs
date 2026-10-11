@@ -50,6 +50,8 @@ namespace TerraLoom.Integration
         public PlanSnapshot LastSharedInput { get; private set; }
         public PlanSnapshot LastSourceInput { get; private set; }
         public PathPlan LastPathAttempt { get; private set; }
+        /// <summary>The last committed crossing context, distinct from a failed planning attempt.</summary>
+        public PlanSnapshot PublishedSharedInput { get; private set; }
         /// <summary>Consumer diagnostic seam for deterministic transaction fault tests. Leave null in production.
         /// Boundaries: river-prepared, before-commit, river-bound, all-bound. Never supplied to product adapters.</summary>
         public Action<string> PublicationBoundary;
@@ -77,6 +79,11 @@ namespace TerraLoom.Integration
         /// <summary>Rebuilds a Core-owned source without using the currently rendered River carve
         /// as input. A failed plan keeps the previous source, river, path and collider bindings.</summary>
         public bool GenerateOwnedSource(CancellationToken cancellation = default)
+            => GenerateOwnedSource(World ? World.Seed : 0,cancellation);
+
+        /// <summary>Requests a seed without changing the published World seed until every
+        /// terrain, river and path binding commits. Failed attempts retain the old identity.</summary>
+        public bool GenerateOwnedSource(int requestedSeed,CancellationToken cancellation = default)
         {
             if (!World || !World.OwnsTerrain || !World.Terrain || !World.Terrain.terrainData || !Rivers)
                 throw new InvalidOperationException("GenerateOwnedSource requires a Core-owned Terrain and Rivers.");
@@ -87,7 +94,7 @@ namespace TerraLoom.Integration
                 ownedSourcePublication=new WorldSourcePublication(World,original,original);
             else if (ownedSourcePublication.CurrentSource && original!=ownedSourcePublication.CurrentSource)
                 throw new InvalidOperationException("The Core source changed outside this composition. Clear before rebuilding.");
-            int requestedSeed=World.Seed;bool seedAnchors=World.UseSeedAnchors;
+            bool seedAnchors=World.UseSeedAnchors;
             var manualAnchors=World.ManualAnchors;
             return GenerateWithSource(()=>ownedSourcePublication.PrepareFreshSource(requestedSeed,seedAnchors,manualAnchors,()=>
             {
@@ -206,6 +213,7 @@ namespace TerraLoom.Integration
                     builtSedimentLayer=plannedLayer;builtSedimentExposure=plannedExposure;
                     builtPathsTransform=plannedPathTransform;builtRiversTransform=plannedRiverTransform;
                     preparedPaths.SealBindings();preparedRiver.SealBindings();source?.SealBindings();publicationCommitted=true;
+                    PublishedSharedInput=shared;
                     cleanupDiagnostics=preparedPaths.Complete(PathRetirement)+"\n"+preparedRiver.Complete();
                     if(source!=null)cleanupDiagnostics+="\n"+source.Complete();
                     // Once both outputs are committed cancellation belongs to the next run.
@@ -262,13 +270,15 @@ namespace TerraLoom.Integration
         {
             try
             {
-                if(generationState!=GenerationRunState.Ready||!Paths||!Rivers||!Paths.GeneratedRoot||!Rivers.GeneratedRoot)throw new InvalidOperationException("Composition is not ready.");
+                // GenerationState describes the most recent attempt. A failed retry can leave a
+                // previously published world intact; validate that publication independently.
+                if((generationState!=GenerationRunState.Ready&&string.IsNullOrEmpty(builtInput))||!Paths||!Rivers||!Paths.GeneratedRoot||!Rivers.GeneratedRoot)throw new InvalidOperationException("Composition is not ready.");
                 if(Paths.World!=World||Rivers.World!=World||builtCarve!=Rivers.CarveTerrainCopy||builtSpacing!=Paths.MeshSpacing
                     ||(Rivers.TerrainBrush&&(builtSedimentLayer!=Rivers.SedimentTerrainLayer||builtSedimentExposure!=Rivers.SedimentExposureDepth))
                     ||builtMaterials==null||!builtMaterials.SequenceEqual(Materials())||builtPathsTransform!=Paths.transform.localToWorldMatrix||builtRiversTransform!=Rivers.transform.localToWorldMatrix)
                     throw new InvalidOperationException("Module bindings, geometry settings or transforms changed; rebuild composition.");
                 var input=CaptureSource(out var bounds,out var graph);
-                if(Paths.LastPlan!=null)PathCrossingPermissions.RequireCurrent(Paths.LastPlan,LastSharedInput==null?null:CrossingPermissions?.Invoke(LastSharedInput));
+                if(Paths.LastPlan!=null)PathCrossingPermissions.RequireCurrent(Paths.LastPlan,PublishedSharedInput==null?null:CrossingPermissions?.Invoke(PublishedSharedInput));
                 if(input.Identity.InputFingerprint!=builtInput||RiverPlanner.ProfileVersion(Rivers.CaptureProfile(),bounds,Requests(input))!=builtRiverProfile
                     ||World.TerrainContentFingerprint!=builtTerrain||Digest(Paths.PlanJson)!=builtPathsJson||Digest(Rivers.PlanJson)!=builtRiversJson)
                     throw new InvalidOperationException("Upstream inputs or module outputs changed; rebuild the composition before downstream decoration/navigation.");
@@ -284,6 +294,7 @@ namespace TerraLoom.Integration
             if(generating)throw new InvalidOperationException("Cannot clear during composition generation.");
             generationState=GenerationRunState.Pending;activeStep="";
             generationTrace="Cleared in reverse order: Paths, Rivers, owned Core source.\n";
+            PublishedSharedInput=null;
             if(Paths)Paths.Clear();if(Rivers)Rivers.Clear();
             if(ownedSourcePublication!=null)
             {
