@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 using TerraLoom.Core.Editor;
 using TerraLoom.Rivers.Unity;
@@ -77,11 +78,20 @@ namespace TerraLoom.Rivers.Editor
             EditorGUILayout.LabelField("07  Build and inspect", EditorStyles.boldLabel);
             using (new EditorGUI.DisabledScope(EditorApplication.isPlayingOrWillChangePlaymode))
             {
-                if (GUILayout.Button("Generate")) Run(() =>
+                if (GUILayout.Button("Reload river")) Run(() =>
                 {
-                    if (!rivers.Generate()) throw new InvalidOperationException(rivers.Diagnostics);
+                    var coordinator=WorldEditorExtensions.All.FirstOrDefault(e=>e.CoordinatesGeometry&&rivers.World&&e.Find(rivers.World).Length>0);
+                    if(coordinator!=null)
+                    {
+                        foreach(var component in coordinator.Find(rivers.World))coordinator.Generate(component);
+                        message="Shared Rivers/Paths geometry rebuilt in dependency order.";
+                    }
+                    else
+                    {
+                        if (!rivers.Generate()) throw new InvalidOperationException(rivers.Diagnostics);
+                        message = "River regenerated. Bake to persist terrain and geometry.";
+                    }
                     RiversSampleBuilder.MarkDirty(rivers);
-                    message = "Generated. Bake to persist terrain and geometry.";
                 });
                 if (GUILayout.Button("Clear")) Run(() => { rivers.Clear(); RiversSampleBuilder.MarkDirty(rivers); message = "Cleared; original terrain restored."; });
                 using (new EditorGUI.DisabledScope(!rivers.GeneratedRoot))

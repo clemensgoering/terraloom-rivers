@@ -56,6 +56,17 @@ namespace TerraLoom.Rivers.Editor
         }
         public override void DrawInspector(Component component)
         { if (component is TerraLoomRivers) WorldWorkbenchGUI.DrawComponentInspector(component); }
+        public override void Generate(Component component)
+        {
+            var rivers=(TerraLoomRivers)component;
+            if(!rivers.Generate())throw new InvalidOperationException("Rivers: "+rivers.Diagnostics);
+            EditorUtility.SetDirty(rivers);
+        }
+        public override bool CanDetach(Component component,out string reason)
+        {
+            reason=((TerraLoomRivers)component).GeneratedRoot?"Clear generated river first.":null;
+            return reason==null;
+        }
 
         public override void DrawScene(TerraLoomWorld world)
         {
