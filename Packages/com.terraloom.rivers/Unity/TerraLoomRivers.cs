@@ -90,7 +90,7 @@ namespace TerraLoom.Rivers.Unity
                 var data=source!=null?source.Data:carvedData?originalData:current;
                 var terrain = World.CaptureTerrain(data);
                 var anchors = source==null?World.CaptureAnchors(data,World.Seed,World.UseSeedAnchors,World.ManualAnchors)
-                    :World.CaptureAnchors(data,source.Seed,false,source.ManualAnchors);
+                    :World.CaptureAnchors(data,source.Seed,source.UseSeedAnchors,source.ManualAnchors);
                 Vector3 origin = selected.transform.position, size = data.size;
                 bounds = new WorldBounds(origin.x, origin.z, origin.x + size.x, origin.z + size.z);
                 requests = AutomaticSourceAndMouth ? RiverPlanner.CreateRequests(anchors.Anchors, terrain.Heights) : Connections.Select(c => c.Capture()).ToArray();
