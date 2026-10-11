@@ -32,8 +32,15 @@ namespace TerraLoom.Tests
                     ()=>world.CreateGeneratedTerrainData(43)))
                 {
                     var expected=world.CaptureAnchors(prepared.Data,43,true,world.ManualAnchors).Anchors;
-                    var pathInput=paths.CaptureInput(paths.CaptureProfile(),out _,out _,prepared);
-                    var riverInput=rivers.CaptureInput(out _,out _,prepared);
+                    var requestedPaths=new[]{new PathConnectionSettings{Id="staged-path",StartId=expected[0].Id,EndId=expected[1].Id}.Capture()};
+                    var requestedRivers=new[]{new RiverConnectionSettings{Id="staged-river",SourceId=expected[0].Id,MouthId=expected[1].Id}.Capture()};
+                    var pathInput=paths.CaptureInput(paths.CaptureProfile(),out _,out var pathGraph,prepared,
+                        requestedConnections:requestedPaths);
+                    var riverInput=rivers.CaptureInput(out _,out var riverRequests,prepared,requestedRivers);
+                    Assert.That(pathGraph.Single().Id,Is.EqualTo("staged-path"));
+                    Assert.That(riverRequests.Single().Id,Is.EqualTo("staged-river"));
+                    Assert.That(paths.Connections,Is.Empty);
+                    Assert.That(rivers.Connections,Is.Empty);
                     Assert.That(pathInput.Anchors.Count,Is.EqualTo(expected.Count));
                     Assert.That(riverInput.Anchors.Count,Is.EqualTo(expected.Count));
                     for(int i=0;i<expected.Count;i++)

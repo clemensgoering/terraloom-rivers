@@ -80,7 +80,7 @@ namespace TerraLoom.Rivers.Unity
         public PlanSnapshot CaptureInput(out WorldBounds bounds,out IReadOnlyList<RiverRequest> requests)
             => CaptureInput(out bounds,out requests,null);
         public PlanSnapshot CaptureInput(out WorldBounds bounds, out IReadOnlyList<RiverRequest> requests,
-            WorldSourcePublication.PreparedSource source)
+            WorldSourcePublication.PreparedSource source,IReadOnlyList<RiverRequest> requestedRequests=null)
         {
             if (!World || !World.Terrain || !World.Terrain.terrainData) throw new InvalidOperationException("Assign a Core world with terrain.");
             var selected = World.Terrain; var current = selected.terrainData;
@@ -93,7 +93,8 @@ namespace TerraLoom.Rivers.Unity
                     :World.CaptureAnchors(data,source.Seed,source.UseSeedAnchors,source.ManualAnchors);
                 Vector3 origin = selected.transform.position, size = data.size;
                 bounds = new WorldBounds(origin.x, origin.z, origin.x + size.x, origin.z + size.z);
-                requests = AutomaticSourceAndMouth ? RiverPlanner.CreateRequests(anchors.Anchors, terrain.Heights) : Connections.Select(c => c.Capture()).ToArray();
+                requests = requestedRequests != null ? requestedRequests.ToArray()
+                    : AutomaticSourceAndMouth ? RiverPlanner.CreateRequests(anchors.Anchors, terrain.Heights) : Connections.Select(c => c.Capture()).ToArray();
                 if (requests.Count == 0) throw new InvalidOperationException("At least two distinct targets are required.");
                 int nx = (int)Math.Ceiling(size.x / CellSize), nz = (int)Math.Ceiling(size.z / CellSize);
                 if ((long)(nx+1)*(nz+1) > Math.Min(MaximumNodes,65536)) throw new InvalidOperationException("Increase cell size: landscape capture exceeds its node budget.");
