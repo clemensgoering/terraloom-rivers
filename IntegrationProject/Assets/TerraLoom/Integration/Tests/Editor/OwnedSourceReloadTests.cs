@@ -2,6 +2,9 @@ using System;
 using System.Linq;
 using NUnit.Framework;
 using TerraLoom.Integration;
+using TerraLoom.Paths.Editor;
+using TerraLoom.Rivers.Editor;
+using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
@@ -9,6 +12,57 @@ namespace TerraLoom.Tests
 {
     public sealed class OwnedSourceReloadTests
     {
+        [Test] public void BakedOwnedSeedWorldReopensWithSourceAndCarveBindings()
+        {
+            const string folder="Assets/TerraLoomAtomicReloadTest";
+            var setup=EditorSceneManager.GetSceneManagerSetup();
+            try
+            {
+                EditorSceneManager.OpenScene("Assets/TerraLoom/Integration/Generated/TerraLoomDynamic.unity");
+                var recipe=UnityEngine.Object.FindFirstObjectByType<SeededWorldDemo>();
+                recipe.Seed=2042;Assert.That(recipe.Rebuild(),Is.True,recipe.Diagnostics);
+                long authoredRevision=recipe.Composition.World.Revision;
+                recipe.Seed=2043;Assert.That(recipe.Rebuild(),Is.True,recipe.Diagnostics);
+                var c=recipe.Composition;
+                Assert.That(c.World.Revision,Is.EqualTo(authoredRevision));
+                Assert.That(c.LastSourceInput.Identity.Seed,Is.EqualTo(2043));
+                Assert.That(c.LastSourceInput.Identity.Revision,Is.EqualTo(authoredRevision));
+                string sourceDigest=c.World.CaptureTerrainFingerprint(c.Rivers.OriginalTerrainData);
+                var riverIds=c.Rivers.Connections.Select(x=>x.Id).ToArray();
+                var pathIds=c.Paths.Connections.Select(x=>x.Id).ToArray();
+                int natureCount=recipe.Decoration.PlacedCount;
+                Assert.That(AssetDatabase.CreateFolder("Assets","TerraLoomAtomicReloadTest"),Is.Not.Empty);
+                RiversSampleBuilder.Bake(c.Rivers,folder+"/Rivers");
+                PathsSampleBuilder.Bake(c.Paths,folder+"/Paths");
+                Assert.That(EditorSceneManager.SaveScene(c.gameObject.scene,folder+"/Atomic.unity",true),Is.True);
+                EditorSceneManager.OpenScene(folder+"/Atomic.unity");
+                var loaded=UnityEngine.Object.FindFirstObjectByType<TerraLoomIntegration>();
+                Assert.That(loaded.World.OwnsTerrain,Is.True);
+                Assert.That(loaded.World.Seed,Is.EqualTo(2043));
+                Assert.That(loaded.World.Revision,Is.EqualTo(authoredRevision));
+                Assert.That(loaded.Rivers.OriginalTerrainData,Is.Not.Null);
+                Assert.That(AssetDatabase.Contains(loaded.Rivers.OriginalTerrainData),Is.True);
+                Assert.That(loaded.World.CaptureTerrainFingerprint(loaded.Rivers.OriginalTerrainData),Is.EqualTo(sourceDigest));
+                Assert.That(loaded.Rivers.Connections.Select(x=>x.Id),Is.EqualTo(riverIds));
+                Assert.That(loaded.Paths.Connections.Select(x=>x.Id),Is.EqualTo(pathIds));
+                Assert.That(loaded.World.Terrain.terrainData,Is.SameAs(loaded.Rivers.CarvedTerrainData));
+                Assert.That(loaded.World.Terrain.GetComponent<TerrainCollider>().terrainData,Is.SameAs(loaded.Rivers.CarvedTerrainData));
+                Assert.That(loaded.Paths.GeneratedRoot,Is.Not.Null);
+                Assert.That(loaded.Rivers.GeneratedRoot,Is.Not.Null);
+                var reopenedRecipe=loaded.GetComponent<SeededWorldDemo>();
+                Assert.That(reopenedRecipe.Decoration.GeneratedRoot,Is.Not.Null);
+                Assert.That(reopenedRecipe.Decoration.PlacedCount,Is.EqualTo(natureCount));
+                reopenedRecipe.Seed=71;
+                Assert.That(reopenedRecipe.Rebuild(),Is.True,reopenedRecipe.Diagnostics);
+                Assert.That(loaded.World.Seed,Is.EqualTo(71));
+            }
+            finally
+            {
+                if(setup.Any(s=>s.isLoaded&&s.isActive&&!string.IsNullOrEmpty(s.path)))EditorSceneManager.RestoreSceneManagerSetup(setup);
+                else EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
+                AssetDatabase.DeleteAsset(folder);
+            }
+        }
         [Test] public void ChangedSeedFailureRetainsCompleteWorldThenRetryPublishesDecoration()
         {
             var setup=EditorSceneManager.GetSceneManagerSetup();

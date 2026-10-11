@@ -8,7 +8,9 @@
     "TerraLoom.Paths.Unity",
     "TerraLoom.Rivers.Runtime",
     "TerraLoom.Rivers.Unity",
-    "TerraLoom.Core.Editor"
+    "TerraLoom.Core.Editor",
+    "TerraLoom.Paths.Editor",
+    "TerraLoom.Rivers.Editor"
   ],
   "includePlatforms": [
     "Editor"
