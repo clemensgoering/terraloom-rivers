@@ -103,6 +103,7 @@ namespace TerraLoom.Integration.Editor
             paths.Connections.Add(new PathConnectionSettings { Id="settlement-road",StartId="west",EndId="east" });
             paths.GroundMaterial=MakeMaterial("Gravel",new Color(.55f,.42f,.26f),false);
             paths.BridgeMaterial=MakeMaterial("Bridge",new Color(.29f,.16f,.065f),true);
+            ConfigureBridgeWood(paths.BridgeMaterial);
             paths.BridgeClearance=1.2f; paths.MaximumSlope=.35f;
             var integration=world.gameObject.AddComponent<TerraLoomIntegration>(); integration.World=world; integration.Paths=paths; integration.Rivers=rivers;
             if (!integration.Generate()) throw new InvalidOperationException(integration.Diagnostics);
@@ -141,6 +142,7 @@ namespace TerraLoom.Integration.Editor
             var pathHost=new GameObject("Paths (optional module)");pathHost.transform.SetParent(host.transform,false);TerraLoomEditorIcons.Apply(pathHost,"Paths");
             var paths=pathHost.AddComponent<TerraLoomPaths>();paths.World=world;paths.BridgeClearance=1.2f;paths.MaximumSlope=.35f;
             paths.GroundMaterial=AssetDatabase.LoadAssetAtPath<Material>(Root+"/Gravel.mat");paths.BridgeMaterial=AssetDatabase.LoadAssetAtPath<Material>(Root+"/Bridge.mat");
+            ConfigureBridgeWood(paths.BridgeMaterial);
             var composition=host.AddComponent<TerraLoomIntegration>();composition.World=world;composition.Paths=paths;composition.Rivers=rivers;
             var decoration=host.AddComponent<RegionDecoration>();decoration.World=world;decoration.Profiles=SeasonalSampleBuilder.BuildProfiles();
             var runtime=host.AddComponent<SeededWorldDemo>();runtime.Composition=composition;runtime.Decoration=decoration;runtime.Profiles=decoration.Profiles;
@@ -152,6 +154,22 @@ namespace TerraLoom.Integration.Editor
             var driver=host.AddComponent<IntegrationTestDriver>();driver.Composition=composition;driver.View=camera;
             AssetDatabase.SaveAssets();EditorSceneManager.SaveScene(scene,Root+"/TerraLoomDynamic.unity");
             Debug.Log("Configuration-only dynamic scene saved; all world geometry is generated at runtime from the seed.");
+        }
+        /// <summary>Only the sample bridge uses fixed timber; regional winter shaders remain on terrain and nature.</summary>
+        public static void ConfigureBridgeWoodBatch()
+        {
+            ConfigureBridgeWood(AssetDatabase.LoadAssetAtPath<Material>(Root+"/Bridge.mat"));
+            AssetDatabase.SaveAssets();
+        }
+        private static void ConfigureBridgeWood(Material material)
+        {
+            if(!material)throw new InvalidOperationException("Build the bridge material first.");
+            var shader=Shader.Find("Universal Render Pipeline/Lit");
+            if(!shader)throw new InvalidOperationException("URP Lit shader is required for the timber bridge sample.");
+            material.shader=shader;
+            material.SetColor("_BaseColor",new Color(.29f,.16f,.065f));
+            material.SetFloat("_Smoothness",.07f);
+            EditorUtility.SetDirty(material);
         }
         internal static Material MakeMaterial(string name,Color tint,bool wood)
         {

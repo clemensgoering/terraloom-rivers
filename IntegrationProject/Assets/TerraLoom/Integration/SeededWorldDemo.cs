@@ -97,6 +97,11 @@ namespace TerraLoom.Integration
                 yield return new WaitForFixedUpdate();
                 if(!Composition.Paths.LastPlan.Routes.Any(r=>r.Surfaces.Contains(TerraLoom.Paths.PathSurface.Bridge))||Decoration.PlacedCount<250)
                 {Debug.LogError("TERRALOOM_RUNTIME_SMOKE_FAILED missing bridge or regional instances");Application.Quit(1);yield break;}
+                if(Seed==2043)
+                {
+                    try{ProbeBridgePassage();}
+                    catch(Exception ex){Debug.LogError("TERRALOOM_RUNTIME_SMOKE_FAILED bridge passage: "+ex.Message);Application.Quit(1);yield break;}
+                }
                 Debug.Log("TERRALOOM_RUNTIME_SEED_OK "+Seed+" "+diagnostics);
                 if(index>=0&&index+1<args.Length)
                 {
@@ -117,6 +122,55 @@ namespace TerraLoom.Integration
                 catch(Exception ex){Debug.LogError("TERRALOOM_RUNTIME_SMOKE_FAILED "+ex.Message);Application.Quit(1);yield break;}
             }
             Debug.Log("TERRALOOM_RUNTIME_SMOKE_SUCCESS");Application.Quit(0);
+        }
+
+        private void ProbeBridgePassage()
+        {
+            var route=Composition.Paths.LastPlan.Routes.First(r=>r.Surfaces.Contains(TerraLoom.Paths.PathSurface.Bridge));
+            int first=route.Surfaces.ToList().IndexOf(TerraLoom.Paths.PathSurface.Bridge),last=first;
+            while(last<route.Surfaces.Count&&route.Surfaces[last]==TerraLoom.Paths.PathSurface.Bridge)last++;
+            int begin=Math.Max(0,first-1),end=Math.Min(route.Waypoints.Count-1,last+1);
+            var bridge=Composition.Paths.GeneratedRoot.GetComponentsInChildren<TerraLoom.Paths.Unity.PathGeneratedGeometry>()
+                .FirstOrDefault(g=>g.Role==TerraLoom.Paths.Unity.PathGeometryRole.BridgeDeck);
+            if(bridge)
+            {
+                var renderer=bridge.GetComponent<MeshRenderer>();var centre=renderer.bounds.center;
+                float terrain=Composition.World.Terrain.SampleHeight(centre)+Composition.World.Terrain.transform.position.y;
+                Debug.Log("TERRALOOM_RUNTIME_BRIDGE_VISUAL seed=2043 deckY="+renderer.bounds.center.y+
+                    " terrainY="+terrain+" material="+renderer.sharedMaterial.name+
+                    " regions="+renderer.sharedMaterial.GetFloat("_UseWorldRegions")+
+                    " deckCenter="+centre+" deckSize="+renderer.bounds.size+
+                    " routeStart="+route.Waypoints[first].X+","+route.Waypoints[first].Z+
+                    " routeEnd="+route.Waypoints[last].X+","+route.Waypoints[last].Z);
+            }
+            var walker=new GameObject("Seed 2043 bridge passage probe");
+            try
+            {
+                var controller=walker.AddComponent<CharacterController>();
+                controller.height=1.8f;controller.radius=.3f;controller.stepOffset=.25f;controller.slopeLimit=40;
+                var start=route.Waypoints[begin];controller.enabled=false;
+                walker.transform.position=new Vector3((float)start.X,(float)start.Y+1,(float)start.Z);
+                controller.enabled=true;Physics.SyncTransforms();controller.Move(Vector3.down*.2f);
+                if(!controller.isGrounded)throw new InvalidOperationException("Approach is not grounded.");
+                int stepsTaken=0;
+                for(int s=begin;s<end;s++)
+                {
+                    var a=route.Waypoints[s];var b=route.Waypoints[s+1];
+                    int steps=Mathf.Max(1,Mathf.CeilToInt(Vector2.Distance(new Vector2((float)a.X,(float)a.Z),new Vector2((float)b.X,(float)b.Z))/.1f));
+                    for(int i=1;i<=steps;i++)
+                    {
+                        float t=(float)i/steps;
+                        var target=new Vector3(Mathf.Lerp((float)a.X,(float)b.X,t),walker.transform.position.y,Mathf.Lerp((float)a.Z,(float)b.Z,t));
+                        controller.Move(target-walker.transform.position+Vector3.down*.06f);
+                        if(Vector2.Distance(new Vector2(walker.transform.position.x,walker.transform.position.z),new Vector2(target.x,target.z))>.2f)
+                            throw new InvalidOperationException("Blocked at segment "+s+", step "+i+".");
+                        stepsTaken++;
+                    }
+                }
+                if(!controller.isGrounded)throw new InvalidOperationException("Far landing is not grounded.");
+                Debug.Log("TERRALOOM_RUNTIME_BRIDGE_WALK_OK seed=2043 steps="+stepsTaken+" segments="+(end-begin));
+            }
+            finally{Destroy(walker);}
         }
 
         /// <summary>Explicit full rebuild. Clear restores the source before Core replaces its own terrain.
