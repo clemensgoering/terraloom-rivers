@@ -14,10 +14,36 @@ namespace TerraLoom.Integration.Editor
     public sealed class CompositionWorkbenchExtension : WorldModuleEditorExtension
     {
         public override string Id=>"consumer.composition";
-        public override string Title=>"Shared generation / runtime seed recipe";
+        public override string Title=>"Shared generation";
         public override string Icon=>"Core";
         public override int Order=>10;
         public override Color Color=>new Color(.7f,.6f,1);
+        public override bool CoordinatesGeometry=>true;
+        public override bool IncludesDecoration(Component component)=>component&&component.GetComponent<SeededWorldDemo>();
+        public override bool PreparesTerrain(Component component)=>component&&component.GetComponent<SeededWorldDemo>();
+        public override void Generate(Component component)
+        {
+            var composition=(TerraLoomIntegration)component;
+            var recipe=composition.GetComponent<SeededWorldDemo>();
+            if(recipe)
+            {
+                if(!recipe.Rebuild())throw new InvalidOperationException(recipe.Diagnostics);
+                EditorUtility.SetDirty(recipe);
+            }
+            else if(composition.World && composition.World.OwnsTerrain)
+            {
+                if(!composition.GenerateOwnedSource())throw new InvalidOperationException(composition.Diagnostics);
+            }
+            else if(!composition.Generate())throw new InvalidOperationException(composition.Diagnostics);
+            EditorUtility.SetDirty(composition);
+        }
+        public override bool CanDetach(Component component,out string reason)
+        {
+            var composition=(TerraLoomIntegration)component;
+            reason=composition.Paths&&composition.Paths.GeneratedRoot||composition.Rivers&&composition.Rivers.GeneratedRoot
+                ?"Clear generated composition first.":null;
+            return reason==null;
+        }
         public override Component[] Find(TerraLoomWorld world)=>Object.FindObjectsByType<TerraLoomIntegration>(FindObjectsSortMode.None).Where(c=>c.World==world).Cast<Component>().ToArray();
         public override Component Add(TerraLoomWorld world,bool separateObject)
         {

@@ -56,6 +56,7 @@ namespace TerraLoom.Integration
         /// <summary>Optional retirement callback; failures are post-commit diagnostics, with default cleanup fallback.</summary>
         public Action<GameObject> PathRetirement;
         private bool generating;
+        private WorldSourcePublication ownedSourcePublication;
         private static GenerationSchedule Schedule() => new GenerationSchedule(new[] {
             new GenerationStep("01-capture-source",Array.Empty<string>(),new[]{"source-snapshot"}),
             new GenerationStep("02-plan-water",new[]{"source-snapshot"},new[]{"river-plan","water-offers"}),
@@ -72,6 +73,42 @@ namespace TerraLoom.Integration
         }
         private void Start() { if (GenerateOnStart && !Generate()) Debug.LogError(diagnostics,this); }
         public bool Generate(CancellationToken cancellation = default) => GenerateCore(null,cancellation);
+
+        /// <summary>Rebuilds a Core-owned source without using the currently rendered River carve
+        /// as input. A failed plan keeps the previous source, river, path and collider bindings.</summary>
+        public bool GenerateOwnedSource(CancellationToken cancellation = default)
+        {
+            if (!World || !World.OwnsTerrain || !World.Terrain || !World.Terrain.terrainData || !Rivers)
+                throw new InvalidOperationException("GenerateOwnedSource requires a Core-owned Terrain and Rivers.");
+            var original=Rivers.CarvedTerrainData ? Rivers.OriginalTerrainData : World.Terrain.terrainData;
+            if (!original || (Rivers.CarvedTerrainData && World.Terrain.terrainData!=Rivers.CarvedTerrainData))
+                throw new InvalidOperationException("The saved River carve and Core source are not consistently bound.");
+            if (ownedSourcePublication==null)
+                ownedSourcePublication=new WorldSourcePublication(World,original,original);
+            else if (ownedSourcePublication.CurrentSource && original!=ownedSourcePublication.CurrentSource)
+                throw new InvalidOperationException("The Core source changed outside this composition. Clear before rebuilding.");
+            int requestedSeed=World.Seed;bool seedAnchors=World.UseSeedAnchors;
+            var manualAnchors=World.ManualAnchors;
+            return GenerateWithSource(()=>ownedSourcePublication.PrepareFreshSource(requestedSeed,seedAnchors,manualAnchors,()=>
+            {
+                var data=World.CreateGeneratedTerrainData(requestedSeed);
+                try
+                {
+                    var profiles=UnityEngine.Object.FindObjectsByType<RegionDecoration>(FindObjectsInactive.Include,FindObjectsSortMode.None)
+                        .Where(d=>d.World==World&&d.Profiles!=null).SelectMany(d=>d.Profiles)
+                        .Where(p=>p&&p.TerrainLayer).GroupBy(p=>p.RegionId,StringComparer.Ordinal)
+                        .Select(group=>group.Distinct().Count()==1?group.First():throw new InvalidOperationException("Conflicting terrain profiles for region "+group.Key))
+                        .ToArray();
+                    if(profiles.Length>0)RegionSurfacePainter.PaintUnboundTerrain(World,data,profiles);
+                    return data;
+                }
+                catch
+                {
+                    if(Application.isPlaying)Destroy(data);else DestroyImmediate(data);
+                    throw;
+                }
+            },cancellation),cancellation);
+        }
 
         /// <summary>Prepares an owned source inside the same lifecycle as both module outputs.</summary>
         public bool GenerateWithSource(Func<WorldSourcePublication.PreparedSource> prepareSource,CancellationToken cancellation=default)
@@ -242,6 +279,16 @@ namespace TerraLoom.Integration
         private static string Digest(string value)
         {using(var sha=System.Security.Cryptography.SHA256.Create())return Convert.ToBase64String(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(value??"")));}
         private Material[] Materials()=>new[]{Paths.GroundMaterial,Paths.BridgeMaterial,Rivers.WaterMaterial,Rivers.BedMaterial,Rivers.BankMaterial};
-        public void Clear() { if(generating)throw new InvalidOperationException("Cannot clear during composition generation.");generationState=GenerationRunState.Pending;activeStep="";generationTrace="Cleared in reverse order: Paths, Rivers.\n";if (Paths) Paths.Clear(); if (Rivers) Rivers.Clear(); }
+        public void Clear()
+        {
+            if(generating)throw new InvalidOperationException("Cannot clear during composition generation.");
+            generationState=GenerationRunState.Pending;activeStep="";
+            generationTrace="Cleared in reverse order: Paths, Rivers, owned Core source.\n";
+            if(Paths)Paths.Clear();if(Rivers)Rivers.Clear();
+            if(ownedSourcePublication!=null)
+            {
+                ownedSourcePublication.Clear();ownedSourcePublication.Dispose();ownedSourcePublication=null;
+            }
+        }
     }
 }
