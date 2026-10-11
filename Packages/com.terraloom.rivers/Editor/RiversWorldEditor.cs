@@ -20,18 +20,37 @@ namespace TerraLoom.Rivers.Editor
             using (new EditorGUILayout.HorizontalScope())
             {
                 EditorGUILayout.LabelField(new GUIContent("TerraLoom Rivers", TerraLoomEditorIcons.Get("Rivers")), EditorStyles.boldLabel);
-                using (new EditorGUI.DisabledScope(!rivers.World))
-                    if (GUILayout.Button("Open World Workbench")) TerraLoomWorldWindow.Open(rivers.World);
+                if (!WorldWorkbenchGUI.IsDrawingEmbedded)
+                    using (new EditorGUI.DisabledScope(!rivers.World))
+                        if (GUILayout.Button("Open World Workbench")) TerraLoomWorldWindow.Open(rivers.World);
             }
-            WorldInspectorSections.Draw(serializedObject, "rivers.core", "Core link / startup", true, "World", "GenerateOnStart");
-            WorldInspectorSections.Draw(serializedObject, "rivers.targets", "Targets / network", true, "AutomaticSourceAndMouth", "Connections");
-            WorldInspectorSections.Draw(serializedObject, "rivers.shape", "Shape / grade", true, "Width", "Depth", "BankWidth", "WaterInset", "MinimumBendRadius", "MaximumSlope", "BridgeClearance", "CarveTerrainCopy", "TerrainBrush");
-            WorldInspectorSections.Draw(serializedObject, "rivers.regions", "Regions / protected", true, "RegionCosts", "ProtectedAreas");
-            if(serializedObject.FindProperty("TerrainBrush").boolValue)
-                WorldInspectorSections.Draw(serializedObject,"rivers.materials","Water material (ground uses Terrain layers)",true,"WaterMaterial");
-            else WorldInspectorSections.Draw(serializedObject, "rivers.materials", "Materials", true, "WaterMaterial", "BedMaterial", "BankMaterial");
-            if(serializedObject.FindProperty("TerrainBrush").boolValue)
+            WorldInspectorSections.DrawGeneral(serializedObject,
+                "Link Core for terrain, targets and regions. Rivers can be generated here or at runtime from the same settings.",
+                "World", "GenerateOnStart");
+            WorldInspectorSections.DrawDetails(serializedObject, "rivers.targets", "02  Source and mouth", true, () =>
             {
+                var automatic = serializedObject.FindProperty("AutomaticSourceAndMouth");
+                EditorGUILayout.PropertyField(automatic);
+                if (!automatic.boolValue) EditorGUILayout.PropertyField(serializedObject.FindProperty("Connections"), true);
+                EditorGUILayout.HelpBox(automatic.boolValue
+                    ? "Source and mouth follow Core targets, including seed-generated worlds."
+                    : "Edit source-to-mouth connections below. Inputs may also be supplied dynamically at runtime.", MessageType.None);
+            });
+            WorldInspectorSections.DrawExplained(serializedObject, "rivers.shape", "03  Channel and terrain rules", true,
+                "Width and bank width define the carved channel. Inset controls water height; bend and grade constrain its route.",
+                "Width", "Depth", "BankWidth", "WaterInset", "MinimumBendRadius", "MaximumSlope", "BridgeClearance", "CarveTerrainCopy", "TerrainBrush");
+            WorldInspectorSections.DrawExplained(serializedObject, "rivers.regions", "04  Landscape response and exclusions", false,
+                "Region costs steer the river; protected areas keep it out of reserved world space.", "RegionCosts", "ProtectedAreas");
+            WorldInspectorSections.DrawDetails(serializedObject, "rivers.materials", "05  Water and bank appearance", false, () =>
+            {
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("WaterMaterial"));
+                if (!serializedObject.FindProperty("TerrainBrush").boolValue)
+                {
+                    EditorGUILayout.PropertyField(serializedObject.FindProperty("BedMaterial"));
+                    EditorGUILayout.PropertyField(serializedObject.FindProperty("BankMaterial"));
+                    EditorGUILayout.HelpBox("Mesh mode draws visible bed and bank surfaces. Terrain Brush uses the terrain itself for those surfaces.", MessageType.None);
+                    return;
+                }
                 var linked=serializedObject.FindProperty("World").objectReferenceValue as TerraLoom.Core.Unity.TerraLoomWorld;
                 var layers=linked&&linked.Terrain&&linked.Terrain.terrainData?linked.Terrain.terrainData.terrainLayers:Array.Empty<TerrainLayer>();
                 var labels=new string[layers.Length+1];labels[0]="Keep source textures";
@@ -43,9 +62,11 @@ namespace TerraLoom.Rivers.Editor
                 if(EditorGUI.EndChangeCheck())sediment.intValue=choice-1;
                 if(sediment.intValue>=0)EditorGUILayout.PropertyField(serializedObject.FindProperty("SedimentExposureDepth"));
                 EditorGUILayout.HelpBox("Sediment uses the realized cut and smooth brush mask on the owned terrain copy. Other layer proportions are retained; Clear restores source textures. No new layer is added at runtime.",MessageType.Info);
-            }
-            WorldInspectorSections.Draw(serializedObject, "rivers.budgets", "Budgets", false, "CellSize", "SampleSpacing", "MaximumNodes", "TotalSearchBudget", "TotalSampleBudget", "MaximumGeometryVertices");
+            });
+            WorldInspectorSections.Draw(serializedObject, "rivers.budgets", "06  Advanced / search and mesh budgets", false, "CellSize", "SampleSpacing", "MaximumNodes", "TotalSearchBudget", "TotalSampleBudget", "MaximumGeometryVertices");
             serializedObject.ApplyModifiedProperties();
+            WorldInspectorSections.DrawDetails(serializedObject, "rivers.technical", "Technical details / terrain and clearance", false, () =>
+            {
             if(!rivers.TerrainBrush)EditorGUILayout.HelpBox("Bed and Banks are visible channel surfaces with colliders. Depth lowers the bed below water. Water Inset lowers water below captured centre terrain (plus 2 cm); positive inset is experimental, requires terrain carving, extends water to sampled bank intersections and rejects actual terrain penetration before publication. Bank heights still follow local terrain. Clear restores the source terrain.", MessageType.Info);
             if(rivers.TerrainBrush)EditorGUILayout.HelpBox("Terrain Brush: the owned TerrainData forms bed and banks with a smooth outer falloff. Only water is rendered as a mesh; the TerrainCollider carries the channel. Width is flat bed width, Bank Width is the smooth transition on each side. Positive Water Inset and carving required. Clear restores the source. Existing terrain materials are preserved.",MessageType.Info);
             EditorGUILayout.LabelField("Terrain mode", rivers.CarveTerrainCopy ? "Excavation on an owned terrain copy; Clear restores the source" : "Mesh overlay; source terrain heights remain unchanged");
@@ -53,6 +74,8 @@ namespace TerraLoom.Rivers.Editor
                 EditorGUILayout.HelpBox("Inset water is clipped against the actual carved terrain at the planned water level. Dry pieces are removed; Bed/Banks and conservative wet reservations remain unchanged. Probe results are shown in Diagnostics. Clipping is sampled, not a continuous proof or a solution for natural bank materials. Combined bridge windows remain experimental.",MessageType.Warning);
             EditorGUILayout.HelpBox("Assign a Core world and Terrain (foreign Terrain supported). Generate carves a copy when enabled; Clear restores the original. Bake before saving generated content.", MessageType.Info);
             EditorGUILayout.HelpBox("Visible bank seams follow local captured terrain; crossing offers keep a separate conservative clearance envelope. Excavation follows the final channel triangles, never fills terrain, and is capped at twice Depth plus Water Inset plus 2 cm clearance. Brown live scene lines show the actual planned bank seams.", MessageType.Info);
+            });
+            EditorGUILayout.LabelField("07  Build and inspect", EditorStyles.boldLabel);
             using (new EditorGUI.DisabledScope(EditorApplication.isPlayingOrWillChangePlaymode))
             {
                 if (GUILayout.Button("Generate")) Run(() =>
@@ -99,12 +122,15 @@ namespace TerraLoom.Rivers.Editor
             }
             if (!string.IsNullOrEmpty(message)) EditorGUILayout.HelpBox(message, MessageType.Info);
             if (!string.IsNullOrEmpty(rivers.Diagnostics)) EditorGUILayout.HelpBox(rivers.Diagnostics, MessageType.None);
+            WorldInspectorSections.DrawDetails(serializedObject, "rivers.results", "08  Result details / route measurements", false, () =>
+            {
             if (rivers.LastPlan != null)
             {
                 EditorGUILayout.LabelField("Final planned water centrelines", EditorStyles.boldLabel);
                 foreach (var route in rivers.LastPlan.Routes) RouteInspectionGUI.Draw(route.Request.Id, route.WaterPolyline);
                 EditorGUILayout.HelpBox("Measurements read the final water plan, not a separate smoothed preview. Full bed/bank validation remains the planner's responsibility.", MessageType.None);
             }
+            });
         }
 
         private void Run(Action action)
