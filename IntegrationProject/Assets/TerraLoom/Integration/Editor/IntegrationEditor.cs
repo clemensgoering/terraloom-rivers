@@ -12,7 +12,8 @@ namespace TerraLoom.Integration.Editor
         {
             DrawDefaultInspector(); var instance=(TerraLoomIntegration)target;
             if (GUILayout.Button("Rebuild Core / Rivers / Paths")) { instance.Generate(); EditorUtility.SetDirty(instance); EditorSceneManager.MarkSceneDirty(instance.gameObject.scene); }
-            if (GUILayout.Button("Clear generated composition")) { instance.Clear(); EditorSceneManager.MarkSceneDirty(instance.gameObject.scene); }
+            if (GUILayout.Button("Clear generated composition (not undoable)")) { instance.Clear(); EditorSceneManager.MarkSceneDirty(instance.gameObject.scene); }
+            EditorGUILayout.HelpBox("Clear releases generated resources. To restore the world, generate its saved recipe again; Ctrl+Z does not restore a cleared composition.",MessageType.None);
             EditorGUILayout.LabelField("Geometry generation",instance.GenerationState.ToString());
             EditorGUILayout.HelpBox("Source snapshot → water offers → route negotiation → river earthworks → walkable geometry. Final terrain/material rules precede vegetation; navigation/details follow final collision. Rebuild the composition when upstream data changes.",MessageType.Info);
             if(!string.IsNullOrEmpty(instance.GenerationTrace))EditorGUILayout.HelpBox(instance.GenerationTrace,MessageType.None);

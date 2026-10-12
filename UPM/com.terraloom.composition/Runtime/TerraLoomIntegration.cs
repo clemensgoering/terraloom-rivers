@@ -390,12 +390,16 @@ namespace TerraLoom.Integration
         private static string Digest(string value)
         {using(var sha=System.Security.Cryptography.SHA256.Create())return Convert.ToBase64String(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(value??"")));}
         private Material[] Materials()=>new[]{Paths.GroundMaterial,Paths.BridgeMaterial,Rivers.WaterMaterial,Rivers.BedMaterial,Rivers.BankMaterial};
+        /// <summary>Releases generated decoration, geometry and owned source in reverse order.
+        /// This runtime operation is irreversible; recording scene fields alone cannot restore disposed resources.</summary>
         public void Clear()
         {
             if(generating)throw new InvalidOperationException("Cannot clear during composition generation.");
             generationState=GenerationRunState.Pending;activeStep="";
-            generationTrace="Cleared in reverse order: Paths, Rivers, owned Core source.\n";
+            generationTrace="Cleared in reverse order: decoration, Paths, Rivers, owned Core source.\n";
             PublishedSharedInput=null;
+            foreach(var decoration in UnityEngine.Object.FindObjectsByType<RegionDecoration>(FindObjectsInactive.Include,FindObjectsSortMode.None))
+                if(decoration.World==World&&World)decoration.Clear();
             if(Paths)Paths.Clear();if(Rivers)Rivers.Clear();
             if(ownedSourcePublication!=null)
             {

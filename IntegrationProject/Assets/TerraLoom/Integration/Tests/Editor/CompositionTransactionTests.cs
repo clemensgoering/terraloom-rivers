@@ -15,6 +15,51 @@ namespace TerraLoom.Tests
 {
     public sealed class CompositionTransactionTests
     {
+        [Test] public void RecipeClearReleasesOwnedOutputsAndKeepsEmptyUndoRedoConsistent()
+        {
+            var setup=EditorSceneManager.GetSceneManagerSetup();CompositionRecipe recipe=null;
+            try
+            {
+                EditorSceneManager.OpenScene("Assets/TerraLoom/Integration/Generated/TerraLoomDynamic.unity");
+                var demo=Object.FindFirstObjectByType<SeededWorldDemo>();demo.Seed=2042;
+                Assert.That(demo.Rebuild(),Is.True,demo.Diagnostics);
+                var c=demo.Composition;var decoration=demo.Decoration;
+                // Establish a bare owned Core source, without invoking the Clear under test.
+                c.Paths.Clear();c.Rivers.Clear();decoration.Clear();
+                var source=c.World.Terrain.terrainData;var collider=c.World.Terrain.GetComponent<TerrainCollider>();
+                var sourceCollider=collider.terrainData;
+                recipe=ScriptableObject.CreateInstance<CompositionRecipe>();recipe.CaptureFrom(c,decoration);
+                c.RecipeAsset=recipe;c.RecipeDecoration=decoration;recipe.Settings.Seed=2043;
+                var meshes=TransientIds<Mesh>();var terrains=TransientIds<TerrainData>();var objects=TransientIds<GameObject>();
+                Assert.That(c.GenerateRecipe(recipe,decoration),Is.True,c.Diagnostics);
+                var carve=c.World.Terrain.terrainData;var replacementSource=c.Rivers.OriginalTerrainData;
+                var river=c.Rivers.GeneratedRoot;var path=c.Paths.GeneratedRoot;var nature=decoration.GeneratedRoot;
+                Assert.That(nature,Is.Not.Null);
+                Undo.ClearAll();
+                c.Clear();
+                Assert.That(c.World.Terrain.terrainData,Is.SameAs(source));Assert.That(collider.terrainData,Is.SameAs(sourceCollider));
+                Assert.That(c.World.Seed,Is.EqualTo(2042));Assert.That(c.PublishedSharedInput,Is.Null);
+                Assert.That(c.Paths.GeneratedRoot==null&&c.Rivers.GeneratedRoot==null&&decoration.GeneratedRoot==null,Is.True,"Clear must release decoration along with geometry.");
+                Assert.That(carve==null&&replacementSource==null&&river==null&&path==null&&nature==null,Is.True);
+                Assert.That(c.Paths.LastPlan,Is.Null);Assert.That(c.Rivers.LastPlan,Is.Null);
+                Assert.That(c.Paths.PlanJson,Is.Empty);Assert.That(c.Rivers.PlanJson,Is.Empty);
+                // Clear is presently irreversible: no Undo command is registered by its editor.
+                // Empty-history Undo/Redo must not revive references to disposed resources.
+                Undo.PerformUndo();Undo.PerformRedo();c.Clear();
+                Assert.That(c.World.Terrain.terrainData,Is.SameAs(source));Assert.That(collider.terrainData,Is.SameAs(sourceCollider));
+                CollectionAssert.AreEquivalent(meshes,TransientIds<Mesh>());
+                CollectionAssert.AreEquivalent(terrains,TransientIds<TerrainData>());
+                CollectionAssert.AreEquivalent(objects,TransientIds<GameObject>());
+            }
+            finally
+            {
+                Undo.ClearAll();
+                if(setup.Any(s=>s.isLoaded&&s.isActive&&!string.IsNullOrEmpty(s.path)))EditorSceneManager.RestoreSceneManagerSetup(setup);
+                else EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
+                if(recipe)Object.DestroyImmediate(recipe);
+            }
+        }
+
         [Test] public void CancelledRecipeAfterPreparationRetainsPublicationAndReleasesCandidates()
         {
             var setup=EditorSceneManager.GetSceneManagerSetup();
