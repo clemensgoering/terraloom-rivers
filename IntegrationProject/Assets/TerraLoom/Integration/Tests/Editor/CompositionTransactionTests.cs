@@ -6,6 +6,7 @@ using NUnit.Framework;
 using TerraLoom.Core;
 using TerraLoom.Core.Unity;
 using TerraLoom.Integration;
+using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using Object=UnityEngine.Object;
@@ -14,6 +15,63 @@ namespace TerraLoom.Tests
 {
     public sealed class CompositionTransactionTests
     {
+        [Test] public void CancelledRecipeAfterPreparationRetainsPublicationAndReleasesCandidates()
+        {
+            var setup=EditorSceneManager.GetSceneManagerSetup();
+            CompositionRecipe recipe=null;
+            try
+            {
+                EditorSceneManager.OpenScene("Assets/TerraLoom/Integration/Generated/TerraLoomDynamic.unity");
+                var demo=Object.FindFirstObjectByType<SeededWorldDemo>();demo.Seed=2042;
+                Assert.That(demo.Rebuild(),Is.True,demo.Diagnostics);
+                var c=demo.Composition;var old=new Published(c);var published=c.PublishedSharedInput;
+                var decoration=demo.Decoration;var oldDecoration=decoration.GeneratedRoot;
+                int oldSeed=c.World.Seed;long oldRevision=c.World.Revision;
+                float oldSlopeCost=c.Paths.SlopeCost;
+                recipe=ScriptableObject.CreateInstance<CompositionRecipe>();recipe.CaptureFrom(c,decoration);
+                c.RecipeAsset=recipe;c.RecipeDecoration=decoration;
+                recipe.Settings.Seed=2043;recipe.Settings.Modules.Paths.SlopeCost=oldSlopeCost+.5f;
+                string requestedRecipe=JsonUtility.ToJson(recipe);
+                var meshes=TransientIds<Mesh>();var terrains=TransientIds<TerrainData>();var roots=TransientIds<GameObject>();
+                bool prepared=false;
+                using(var cancellation=new CancellationTokenSource())
+                {
+                    c.PublicationBoundary=boundary=>
+                    {
+                        if(boundary!="before-commit")return;
+                        prepared=true;
+                        Assert.That(TransientIds<Mesh>().Except(meshes).Any(),Is.True,"Expected staged meshes.");
+                        Assert.That(TransientIds<TerrainData>().Except(terrains).Any(),Is.True,"Expected staged source/carve.");
+                        Assert.That(TransientIds<GameObject>().Except(roots).Any(),Is.True,"Expected staged geometry/decoration roots.");
+                        cancellation.Cancel();
+                    };
+                    Assert.That(c.GenerateRecipe(recipe,decoration,cancellation.Token),Is.False,c.Diagnostics);
+                }
+                c.PublicationBoundary=null;
+                Assert.That(prepared,Is.True);Assert.That(c.GenerationState,Is.EqualTo(GenerationRunState.Cancelled),c.Diagnostics);
+                old.AssertUnchanged(c);Assert.That(c.PublishedSharedInput,Is.SameAs(published));
+                Assert.That(c.World.Seed,Is.EqualTo(oldSeed));Assert.That(c.World.Revision,Is.EqualTo(oldRevision));
+                Assert.That(c.Paths.SlopeCost,Is.EqualTo(oldSlopeCost));
+                Assert.That(c.RecipeAsset,Is.SameAs(recipe));Assert.That(c.RecipeDecoration,Is.SameAs(decoration));
+                Assert.That(JsonUtility.ToJson(recipe),Is.EqualTo(requestedRecipe),"Cancellation must not rewrite user recipe intent.");
+                Assert.That(decoration.GeneratedRoot,Is.SameAs(oldDecoration));Assert.That(oldDecoration.activeSelf,Is.True);
+                CollectionAssert.AreEquivalent(meshes,TransientIds<Mesh>(),"Cancelled recipe leaked transient meshes.");
+                CollectionAssert.AreEquivalent(terrains,TransientIds<TerrainData>(),"Cancelled recipe leaked transient terrain.");
+                CollectionAssert.AreEquivalent(roots,TransientIds<GameObject>(),"Cancelled recipe leaked staged objects.");
+                Assert.That(c.GenerateRecipe(recipe,decoration),Is.True,c.Diagnostics);
+                Assert.That(c.World.Seed,Is.EqualTo(2043));
+            }
+            finally
+            {
+                if(setup.Any(s=>s.isLoaded&&s.isActive&&!string.IsNullOrEmpty(s.path)))EditorSceneManager.RestoreSceneManagerSetup(setup);
+                else EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
+                if(recipe)Object.DestroyImmediate(recipe);
+            }
+        }
+
+        private static int[] TransientIds<T>() where T:Object => Resources.FindObjectsOfTypeAll<T>()
+            .Where(item=>!EditorUtility.IsPersistent(item)).Select(item=>item.GetInstanceID()).OrderBy(id=>id).ToArray();
+
         [TestCase("river-prepared")]
         [TestCase("before-commit")]
         [TestCase("river-bound")]
