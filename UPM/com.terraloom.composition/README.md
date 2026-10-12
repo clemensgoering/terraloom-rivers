@@ -8,8 +8,8 @@ not include sample scenes, art assets, or Editor assemblies.
 ## Install the tested package set
 
 Add these four entries to `Packages/manifest.json`. These are the exact Git
-revisions resolved by the fresh Unity 6000.3 consumer used for the 0.4.0
-Save/Reopen check. Keep the pins together; do not replace them with floating
+revisions resolved by the Unity 6000.3 consumer for the focused Clear check.
+The earlier schema-2 Save/Reopen check used 1ba05d2. Keep the pins together; do not replace them with floating
 branches or unrelated package revisions.
 
 ```json
@@ -17,8 +17,8 @@ branches or unrelated package revisions.
   "dependencies": {
     "com.terraloom.core": "https://github.com/clemensgoering/terraloom-core.git?path=/Packages/com.terraloom.core#014e4ce4fbdfe7bab988ca8b927ef8a17b80fc69",
     "com.terraloom.paths": "https://github.com/clemensgoering/terraloom-paths.git?path=/Packages/com.terraloom.paths#d1f4ef04fba9415571a8efd1f54cf585aeb94216",
-    "com.terraloom.rivers": "https://github.com/clemensgoering/terraloom-rivers.git?path=/Packages/com.terraloom.rivers#1ba05d2d73bad6dd5e229eb954b72ca12ae998bb",
-    "com.terraloom.composition": "https://github.com/clemensgoering/terraloom-rivers.git?path=/UPM/com.terraloom.composition#1ba05d2d73bad6dd5e229eb954b72ca12ae998bb"
+    "com.terraloom.rivers": "https://github.com/clemensgoering/terraloom-rivers.git?path=/Packages/com.terraloom.rivers#7889dc7c73f3ada87074bfc5546fec75a731f262",
+    "com.terraloom.composition": "https://github.com/clemensgoering/terraloom-rivers.git?path=/UPM/com.terraloom.composition#7889dc7c73f3ada87074bfc5546fec75a731f262"
   }
 }
 ```
@@ -115,3 +115,14 @@ decoration together and retain the previous published world if preparation or
 publication fails. This package does not provide player-relative streaming,
 performance budgets, a complete buyer UI, visual acceptance, or a support matrix.
 Those remain project-specific validation and product-release gates.
+
+## Clear and Undo boundary
+
+`Clear()` releases matching world decoration, Paths, Rivers and the composed
+owned source in reverse order, restoring the borrowed Core terrain/collider.
+It does not delete recipe/profile/material assets. Repeated Clear is supported.
+The operation is currently irreversible in the Editor: Ctrl+Z cannot restore
+the destroyed transient meshes/TerrainData or the nonserialized source publisher.
+Regenerate the saved recipe to reconstruct the world. The sample Clear button
+states this limitation. A full resource-aware Undo/Redo adapter is still pending;
+recording component fields alone would restore invalid resource references.

@@ -6,8 +6,8 @@ consumer's `Packages/manifest.json` dependencies (retain its other packages):
 ```json
 "com.terraloom.core": "https://github.com/clemensgoering/terraloom-core.git?path=/Packages/com.terraloom.core#014e4ce4fbdfe7bab988ca8b927ef8a17b80fc69",
 "com.terraloom.paths": "https://github.com/clemensgoering/terraloom-paths.git?path=/Packages/com.terraloom.paths#d1f4ef04fba9415571a8efd1f54cf585aeb94216",
-"com.terraloom.rivers": "https://github.com/clemensgoering/terraloom-rivers.git?path=/Packages/com.terraloom.rivers#1ba05d2d73bad6dd5e229eb954b72ca12ae998bb",
-"com.terraloom.composition": "https://github.com/clemensgoering/terraloom-rivers.git?path=/UPM/com.terraloom.composition#1ba05d2d73bad6dd5e229eb954b72ca12ae998bb"
+"com.terraloom.rivers": "https://github.com/clemensgoering/terraloom-rivers.git?path=/Packages/com.terraloom.rivers#7889dc7c73f3ada87074bfc5546fec75a731f262",
+"com.terraloom.composition": "https://github.com/clemensgoering/terraloom-rivers.git?path=/UPM/com.terraloom.composition#7889dc7c73f3ada87074bfc5546fec75a731f262"
 ```
 
 Git authentication is required for private repositories. Use complete hashes.
@@ -27,7 +27,9 @@ the TerraLoom workspace. No Library or lock file was copied into it. Its lock
 records `source=git` and exact hashes for all four packages; no TerraLoom local
 file dependencies. Native compile and the focused
 `OwnedSourceReloadTests.BakedOwnedSeedWorldReopensWithSourceAndCarveBindings`
-passed 1/1 (`.artifacts/editmode-v1.xml`). Composition 0.4.0 uses recipe schema 2.
+passed 1/1 at implementation revision `1ba05d2` (reported in Core NEXT-CHAT;
+the rotating `.artifacts/editmode-v1.xml` is overwritten by later runs).
+Composition 0.4.0 uses recipe schema 2.
 The extended existing test saves a
 schema-2 recipe and a baked world with deliberately conflicting scene defaults, reopens the scene, reconstructs through
 `GenerateRecipe`, checks identical source heights, rejects schema 999 without
@@ -43,6 +45,20 @@ The regular local Integration project also uses the extracted package through
 its development file reference; native batch compile exited 0 after migration
 (`Integration/.artifacts/CompositionCompile-20261012.log`). Prior copied host/manifest files are backed up
 under `.bootstrap-tools/composition-migration-backup`.
+
+At current pin `7889dc7`, native compile and the focused
+`RecipeClearReleasesOwnedOutputsAndKeepsEmptyUndoRedoConsistent` pass 1/1.
+Before/after evidence is preserved in the fixture at
+`.artifacts/M2Clear-20261012/{before,after}/editmode.xml`.
+The failing before run demonstrated retained decoration. Clear now releases
+all world decoration before geometry/source disposal. The after run restores
+original render/collider data and exact baseline transient Mesh/TerrainData/
+GameObject sets, including repeated Clear and empty-history Undo/Redo.
+This is not a reversible Clear implementation: its editor has no Undo command,
+and disposed native resources plus the nonserialized source publisher cannot
+be restored by field-only Undo. That resource-aware editor lifecycle remains
+open, as does Player deferred destruction. The Cancel proof is reused from
+`6637856`; it was not rerun in this block.
 
 Schema 2 adds explicit planner/search limits, geometry and carving settings,
 region costs/protections, routing bounds, material/layer asset references and
