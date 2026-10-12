@@ -1,53 +1,117 @@
-# TerraLoom Composition
+# TerraLoom Composition 0.4.0
 
-Optional UPM package for a world that uses Core, Paths and Rivers together.
-Install all four Git-pinned packages in the consumer manifest. Composition
-depends on the three modules when installed; none of the three depends on
-Composition. Its location under `UPM` keeps it out of the standalone Rivers
-project's embedded packages. No example art or editor assemblies are included.
+Composition is an optional UPM host for projects that use TerraLoom Core, Paths
+and Rivers together. The packages retain their independent dependencies;
+Composition depends on all three. The package contains runtime code only: it does
+not include sample scenes, art assets, or Editor assemblies.
 
-Git URL: `https://github.com/clemensgoering/terraloom-rivers.git?path=/UPM/com.terraloom.composition#<full-commit>`.
-Use matching 0.3.0 Core/Paths/Rivers Git pins at the manifest root because those
-packages are not hosted on a public Unity registry.
+## Install the tested package set
 
-Create **Assets > Create > TerraLoom > Composition Recipe**. Assign Core,
-Paths, Rivers and RegionDecoration components to a `TerraLoomIntegration`
-component. Every module and decoration must reference the same Core world.
-Assign the recipe and decoration to the host for Generate On Start, or call:
+Add these four entries to `Packages/manifest.json`. These are the exact Git
+revisions resolved by the fresh Unity 6000.3 consumer used for the 0.4.0
+Save/Reopen check. Keep the pins together; do not replace them with floating
+branches or unrelated package revisions.
 
-```csharp
-bool ready = composition.GenerateRecipe(recipe, decoration);
-if (!ready) Debug.LogError(composition.Diagnostics);
+```json
+{
+  "dependencies": {
+    "com.terraloom.core": "https://github.com/clemensgoering/terraloom-core.git?path=/Packages/com.terraloom.core#014e4ce4fbdfe7bab988ca8b927ef8a17b80fc69",
+    "com.terraloom.paths": "https://github.com/clemensgoering/terraloom-paths.git?path=/Packages/com.terraloom.paths#d1f4ef04fba9415571a8efd1f54cf585aeb94216",
+    "com.terraloom.rivers": "https://github.com/clemensgoering/terraloom-rivers.git?path=/Packages/com.terraloom.rivers#1ba05d2d73bad6dd5e229eb954b72ca12ae998bb",
+    "com.terraloom.composition": "https://github.com/clemensgoering/terraloom-rivers.git?path=/UPM/com.terraloom.composition#1ba05d2d73bad6dd5e229eb954b72ca12ae998bb"
+  }
+}
 ```
 
-`CompositionRecipe.CaptureFrom(composition, decoration)` copies current source
-settings into an asset. Save that asset through the editor as usual. Schema 2
-stores seed, terrain recipe/resolution/size/frequency, manual anchors, regions,
-river/path connections and decoration profiles/count/selection. Unknown schema
-versions fail before generation with an explicit supported-version diagnostic.
-Schema 2 also persists module planner/search budgets, widths/slopes/radii,
-region costs and protected areas, bridge construction, mesh/carving parameters,
-material and terrain-layer asset references, routing bounds, and decoration
-sampling filters. Schema 1 is not silently filled from scene defaults: recapture
-the intended source scene into a new schema-2 recipe. Other unknown versions
-are rejected before parameter application.
+Composition 0.4.0 targets Unity 6000.3 and depends on Core, Paths and Rivers
+0.3.0. The Git pins above are the tested installation set, not a claim that
+other Unity versions or render pipelines have been qualified.
 
-The public namespace remains `TerraLoom.Integration` to preserve existing source
-consumers. The assembly is `TerraLoom.Composition.Unity`; asmdefs referencing
-the host/request must now reference it. The host MonoScript GUID is preserved.
-The sample supplies its assets and derives demo-specific seed placements, then
-uses this same publication engine. There is no duplicate planning algorithm.
+## First recipe
 
-The recipe reconstructs owned procedural terrain. With supplied terrain use
-`Generate()` instead; this API does not overwrite external TerrainData.
-Initial creation bootstraps Core terrain before downstream publication; atomic
-retention applies to subsequent generations of an existing owned world.
-Recipe parameters are applied for the shared generation; failed publication
-restores the previous scene parameters as well as previous geometry. Profile,
-material and terrain-layer assets must be shipped by the consumer. Their contents
-are referenced, not copied or frozen. Scene ownership, transforms and external
-crossing-policy delegates remain host responsibilities. Automatic network/target
-policies are replaced by the recipe's explicit connection/anchor inputs.
-Generated geometry is not
-stored in the recipe; bake separately if the scene needs persisted outputs.
-This package does not claim streaming, visual acceptance or a complete buyer UI.
+1. Add `TerraLoomWorld`, `TerraLoomPaths`, `TerraLoomRivers`, and
+   `RegionDecoration` to your scene. Assign the same Core world to all four
+   components. Configure the required path, water, bed and bank materials and
+   decoration profile assets.
+2. Add `TerraLoomIntegration` and assign Core, Paths and Rivers. Create an asset
+   with **Assets > Create > TerraLoom > Composition Recipe**.
+3. Capture the authored settings into that asset from an Editor setup script,
+   then save it:
+
+   ```csharp
+   using UnityEditor;
+   using TerraLoom.Integration;
+
+   var recipe = ScriptableObject.CreateInstance<CompositionRecipe>();
+   recipe.CaptureFrom(composition, decoration);
+   AssetDatabase.CreateAsset(recipe, "Assets/TerraLoom/WorldRecipe.asset");
+   AssetDatabase.SaveAssets();
+   ```
+
+   `CaptureFrom` is an Editor authoring operation because it creates a project
+   asset. Keep the asset and its referenced profiles/materials in source
+   control.
+4. Assign the recipe and decoration to the composition host, then generate:
+
+   ```csharp
+   composition.RecipeAsset = recipe;
+   composition.RecipeDecoration = decoration;
+   bool ready = composition.GenerateRecipe(recipe, decoration);
+   if (!ready) Debug.LogError(composition.Diagnostics);
+   ```
+
+   Alternatively, enable **Generate On Start** on the host after assigning both
+   references. Generation reconstructs owned procedural terrain. For supplied
+   terrain, use `Generate()`; recipe generation refuses to replace external
+   `TerrainData`.
+
+The public namespace is `TerraLoom.Integration`; the assembly is
+`TerraLoom.Composition.Unity`. Add that assembly reference to your own asmdef
+when your scripts use the host, recipe or prepared-request types.
+
+Schema 2 persists the seed, terrain recipe/resolution/size/frequency, anchors,
+regions, river/path connections, decoration profiles/count/selection, and module
+planning, construction, carving, material, layer, routing, and sampling settings.
+Unknown schema versions fail before generation. Generated geometry is not stored
+in the recipe; bake it separately if you need scene-persistent outputs.
+
+## Move a Schema 1 recipe to Schema 2 safely
+
+Schema 1 is not silently upgraded from current scene defaults. Its module settings
+may not be present, and overwriting the original asset could lose authoring data.
+
+1. Duplicate or commit the original scene and Schema 1 recipe. Keep both intact.
+2. Open that source scene and restore the intended Core, Paths, Rivers and
+   decoration component values. Compare the old recipe's seed, anchors, regions,
+   connections and decoration references with the scene; manually restore any
+   values that exist only in the old recipe before capture.
+3. Create a **new** Composition Recipe asset and call `CaptureFrom` on those
+   restored components. Do not change the old asset's `SchemaVersion` by hand.
+4. Compare the new asset's seed, connections, profiles, module limits, bridge
+   settings and material/layer references with the source scene. Save a copy of
+   the scene using the new asset, close and reopen it, then run
+   `GenerateRecipe` and validate the resulting world.
+5. Keep the original scene and recipe until Save/Reopen and regeneration succeed.
+   If anything differs, return to that source and recapture; do not delete the
+   originals as part of migration.
+
+## Consumer-owned data and limits
+
+Recipes reference profile, material and terrain-layer assets; they do not copy,
+freeze or grant redistribution rights to those assets. The consumer must provide
+them and verify each asset's license before distributing a project or store
+package. TerraLoom's own package and third-party asset licenses must also be
+checked independently; no redistribution rights are implied by this README.
+
+Scene ownership and component transforms are host responsibilities and are not
+stored in the recipe. External `CrossingPermissions` delegates are runtime host
+policy and are not serialized or granted by a saved plan. The recipe uses its
+explicit anchors and connections instead of automatic target/network discovery.
+The host must rebind its transforms and crossing policy after loading a scene.
+
+Initial blank-scene creation bootstraps owned Core terrain before downstream
+publication; later recipe generations prepare the source, Rivers, Paths and
+decoration together and retain the previous published world if preparation or
+publication fails. This package does not provide player-relative streaming,
+performance budgets, a complete buyer UI, visual acceptance, or a support matrix.
+Those remain project-specific validation and product-release gates.
