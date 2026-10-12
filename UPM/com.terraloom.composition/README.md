@@ -25,7 +25,12 @@ settings into an asset. Save that asset through the editor as usual. Schema 1
 stores seed, terrain recipe/resolution/size/frequency, manual anchors, regions,
 river/path connections and decoration profiles/count/selection. Unknown schema
 versions fail before generation with an explicit supported-version diagnostic.
-Schema migration is deliberately explicit; unknown versions are never guessed.
+Schema 2 also persists module planner/search budgets, widths/slopes/radii,
+region costs and protected areas, bridge construction, mesh/carving parameters,
+material and terrain-layer asset references, routing bounds, and decoration
+sampling filters. Schema 1 is not silently filled from scene defaults: recapture
+the intended source scene into a new schema-2 recipe. Other unknown versions
+are rejected before parameter application.
 
 The public namespace remains `TerraLoom.Integration` to preserve existing source
 consumers. The assembly is `TerraLoom.Composition.Unity`; asmdefs referencing
@@ -37,7 +42,12 @@ The recipe reconstructs owned procedural terrain. With supplied terrain use
 `Generate()` instead; this API does not overwrite external TerrainData.
 Initial creation bootstraps Core terrain before downstream publication; atomic
 retention applies to subsequent generations of an existing owned world.
-Module planner settings and materials remain on the scene components. Profile
-asset references must be shipped by the consumer. Generated geometry is not
+Recipe parameters are applied for the shared generation; failed publication
+restores the previous scene parameters as well as previous geometry. Profile,
+material and terrain-layer assets must be shipped by the consumer. Their contents
+are referenced, not copied or frozen. Scene ownership, transforms and external
+crossing-policy delegates remain host responsibilities. Automatic network/target
+policies are replaced by the recipe's explicit connection/anchor inputs.
+Generated geometry is not
 stored in the recipe; bake separately if the scene needs persisted outputs.
 This package does not claim streaming, visual acceptance or a complete buyer UI.

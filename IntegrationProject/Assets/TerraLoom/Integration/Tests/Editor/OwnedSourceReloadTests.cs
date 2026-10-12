@@ -39,6 +39,14 @@ namespace TerraLoom.Tests
                 AssetDatabase.SaveAssets();
                 RiversSampleBuilder.Bake(c.Rivers,folder+"/Rivers");
                 PathsSampleBuilder.Bake(c.Paths,folder+"/Paths");
+                // Deliberately persist incompatible scene defaults: only the recipe may repair them.
+                c.Paths.Width=9;c.Paths.CellSize=8;c.Paths.MaximumSlope=.01f;c.Paths.MaximumNodes=1;
+                c.Paths.GroundMaterial=null;c.Paths.BridgeMaterial=null;c.Paths.TimberTrussBridge=true;
+                c.Rivers.Width=1;c.Rivers.Depth=.01f;c.Rivers.WaterMaterial=null;c.Rivers.CarveTerrainCopy=false;
+                c.Rivers.TotalSearchBudget=1;c.Rivers.SedimentExposureDepth=9;
+                c.RestrictPathRouting=true;c.PathRoutingZone=new Rect(0,0,4,4);
+                c.World.GeneratedTerrainMaterial=null;c.World.BlendResolution=16;c.World.RockSlopeStart=1;
+                recipe.Decoration.SeedOffset=997;recipe.Decoration.Margin=24;recipe.Decoration.MaximumSlope=1;
                 Assert.That(EditorSceneManager.SaveScene(c.gameObject.scene,folder+"/Atomic.unity",true),Is.True);
                 EditorSceneManager.OpenScene(folder+"/Atomic.unity");
                 var loaded=UnityEngine.Object.FindFirstObjectByType<TerraLoomIntegration>();
@@ -63,7 +71,19 @@ namespace TerraLoom.Tests
                 Assert.That(savedRecipe.Settings.Seed,Is.EqualTo(2043));
                 Assert.That(savedRecipe.Settings.Paths.Select(x=>x.Id),Is.EqualTo(pathIds));
                 Assert.That(savedRecipe.Settings.Rivers.Select(x=>x.Id),Is.EqualTo(riverIds));
+                Assert.That(loaded.Paths.Width,Is.EqualTo(9));
+                Assert.That(loaded.Paths.BridgeMaterial,Is.Null);
+                Assert.That(loaded.Rivers.CarveTerrainCopy,Is.False);
                 Assert.That(loaded.GenerateRecipe(savedRecipe,reopenedRecipe.Decoration),Is.True,loaded.Diagnostics);
+                var roundtrip=ScriptableObject.CreateInstance<CompositionRecipe>();
+                try
+                {
+                    roundtrip.CaptureFrom(loaded,reopenedRecipe.Decoration);
+                    Assert.That(JsonUtility.ToJson(roundtrip.Settings.Modules),Is.EqualTo(JsonUtility.ToJson(savedRecipe.Settings.Modules)));
+                }
+                finally{UnityEngine.Object.DestroyImmediate(roundtrip);}
+                Assert.That(loaded.World.Terrain.materialTemplate,Is.SameAs(savedRecipe.Settings.Modules.Core.GeneratedTerrainMaterial));
+                Assert.That(reopenedRecipe.Decoration.PlacedCount,Is.EqualTo(natureCount));
                 Assert.That(loaded.World.CaptureTerrainFingerprint(loaded.Rivers.OriginalTerrainData),Is.EqualTo(sourceDigest));
                 var publishedTerrain=loaded.World.Terrain.terrainData;
                 savedRecipe.SchemaVersion=999;
@@ -71,6 +91,15 @@ namespace TerraLoom.Tests
                 StringAssert.Contains("schema 999",loaded.Diagnostics);
                 Assert.That(loaded.World.Terrain.terrainData,Is.SameAs(publishedTerrain));
                 savedRecipe.SchemaVersion=CompositionRecipe.CurrentSchemaVersion;
+                loaded.Paths.Width=5;
+                loaded.PublicationBoundary=boundary=>{if(boundary=="before-commit")throw new InvalidOperationException("Recipe rollback probe");};
+                try
+                {
+                    Assert.That(loaded.GenerateRecipe(savedRecipe,reopenedRecipe.Decoration),Is.False);
+                    Assert.That(loaded.Paths.Width,Is.EqualTo(5),"Failed publication must restore scene authoring parameters.");
+                    Assert.That(loaded.World.Terrain.terrainData,Is.SameAs(publishedTerrain));
+                }
+                finally{loaded.PublicationBoundary=null;}
                 savedRecipe.Settings.Seed=71;
                 Assert.That(loaded.GenerateRecipe(savedRecipe,reopenedRecipe.Decoration),Is.True,loaded.Diagnostics);
                 Assert.That(loaded.World.Seed,Is.EqualTo(71));

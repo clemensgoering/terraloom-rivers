@@ -11,7 +11,7 @@ namespace TerraLoom.Integration
     [CreateAssetMenu(menuName="TerraLoom/Composition Recipe",fileName="WorldRecipe")]
     public sealed class CompositionRecipe : ScriptableObject
     {
-        public const int CurrentSchemaVersion=1;
+        public const int CurrentSchemaVersion=2;
         public int SchemaVersion=CurrentSchemaVersion;
         public CompositionRecipeSettings Settings=new CompositionRecipeSettings();
 
@@ -20,6 +20,8 @@ namespace TerraLoom.Integration
             if(SchemaVersion!=CurrentSchemaVersion)
                 throw new InvalidOperationException("Unsupported TerraLoom composition recipe schema "+SchemaVersion+"; supported schema is "+CurrentSchemaVersion+". No generation was started.");
             if(Settings==null)throw new InvalidOperationException("Composition recipe settings are missing.");
+            if(Settings.Modules==null)throw new InvalidOperationException("Schema 2 module parameters are missing; recapture the source recipe.");
+            Settings.Modules.Validate();
             if(!Enum.IsDefined(typeof(TerrainRecipe),Settings.TerrainRecipe))throw new InvalidOperationException("Unknown terrain recipe.");
             if(Settings.Anchors==null||Settings.Regions==null||Settings.Rivers==null||Settings.Paths==null||Settings.DecorationProfiles==null)
                 throw new InvalidOperationException("Recipe arrays must be present; use empty arrays for empty inputs.");
@@ -38,15 +40,19 @@ namespace TerraLoom.Integration
                 Seed=world.Seed,TerrainRecipe=world.Recipe,Resolution=world.Resolution,Size=world.TerrainSize,Frequency=world.Frequency,
                 Anchors=world.ManualAnchors,Regions=world.Areas,
                 Rivers=composition.Rivers.Connections.ToArray(),Paths=composition.Paths.Connections.ToArray(),
-                DecorationProfiles=decoration.Profiles,DecorationCount=decoration.Count,ProfileSelection=decoration.ProfileSelection
+                DecorationProfiles=decoration.Profiles,DecorationCount=decoration.Count,ProfileSelection=decoration.ProfileSelection,
+                Modules=CompositionModuleSettings.Capture(composition,decoration)
             });
             SchemaVersion=CurrentSchemaVersion;
         }
 
-        internal PreparedSeededWorldRequest Prepare(TerraLoomWorld world,RegionDecoration decoration)
+        internal CompositionRecipeSettings Snapshot()
         {
             Validate();
-            var s=Freeze(Settings);
+            return Freeze(Settings);
+        }
+        internal PreparedSeededWorldRequest Prepare(TerraLoomWorld world,RegionDecoration decoration,CompositionRecipeSettings s)
+        {
             var terrain=world.CreateGeneratedTerrainData(s.Seed,s.TerrainRecipe,s.Resolution,s.Size,s.Frequency);
             try
             {
@@ -61,7 +67,7 @@ namespace TerraLoom.Integration
             => JsonUtility.FromJson<CompositionRecipeSettings>(JsonUtility.ToJson(value));
     }
 
-    /// <summary>Schema 1 source recipe. Region/profile IDs are explicit; biomes are not required.</summary>
+    /// <summary>Schema 2 source and module inputs. Region/profile IDs are explicit; biomes are not required.</summary>
     [Serializable]
     public sealed class CompositionRecipeSettings
     {
@@ -77,5 +83,6 @@ namespace TerraLoom.Integration
         public RegionalStyleProfile[] DecorationProfiles=Array.Empty<RegionalStyleProfile>();
         public int DecorationCount=900;
         public RegionalProfileSelection ProfileSelection=RegionalProfileSelection.PriorityWinner;
+        public CompositionModuleSettings Modules=new CompositionModuleSettings();
     }
 }

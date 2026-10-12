@@ -82,26 +82,38 @@ namespace TerraLoom.Integration
         /// Initial creation bootstraps an owned Core terrain; later reloads retain the previous world on failure.</summary>
         public bool GenerateRecipe(CompositionRecipe recipe,RegionDecoration decoration,CancellationToken cancellation=default)
         {
+            CompositionModuleSettings previous=null;
+            bool accepted=false;
             try
             {
                 if(!recipe)throw new InvalidOperationException("Assign a composition recipe asset.");
-                recipe.Validate();cancellation.ThrowIfCancellationRequested();
+                var settings=recipe.Snapshot();cancellation.ThrowIfCancellationRequested();
                 if(!World||!Paths||!Rivers||!decoration||Paths.World!=World||Rivers.World!=World||decoration.World!=World)
                     throw new InvalidOperationException("Assign Core, Paths, Rivers and decoration bound to the same world.");
                 if(World.Terrain&&!World.OwnsTerrain)
                     throw new InvalidOperationException("Seed recipes require Core-owned terrain. Use Generate for supplied terrain.");
+                previous=CompositionModuleSettings.Capture(this,decoration);
+                settings.Modules.Apply(this,decoration);
                 if(!World.Terrain)
                 {
-                    var s=recipe.Settings;
+                    var s=settings;
                     World.Seed=s.Seed;World.Recipe=s.TerrainRecipe;World.Resolution=s.Resolution;World.TerrainSize=s.Size;World.Frequency=s.Frequency;
                     World.GenerateTerrain();
                 }
-                using(var request=recipe.Prepare(World,decoration))return GenerateSeedRequest(request,cancellation);
+                using(var request=recipe.Prepare(World,decoration,settings))accepted=GenerateSeedRequest(request,cancellation);
+                if(accepted&&World.Terrain)World.Terrain.materialTemplate=settings.Modules.Core.GeneratedTerrainMaterial;
+                return accepted;
             }
             catch(Exception ex)
             {
                 generationState=ex is OperationCanceledException?GenerationRunState.Cancelled:GenerationRunState.Failed;
                 activeStep="recipe-preflight";diagnostics=ex.Message;return false;
+            }
+            finally
+            {
+                // Source/module publication owns geometry rollback. Restore authoring parameters
+                // as well when preparation or publication fails; shared assets are never mutated.
+                if(!accepted&&previous!=null)previous.Apply(this,decoration);
             }
         }
 
