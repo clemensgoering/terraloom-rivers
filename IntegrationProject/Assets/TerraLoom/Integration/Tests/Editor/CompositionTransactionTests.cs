@@ -15,6 +15,49 @@ namespace TerraLoom.Tests
 {
     public sealed class CompositionTransactionTests
     {
+        [Test] public void EditorClearCancellationPreservesWorldAndConfirmedClearRestoresSavedRecipe()
+        {
+            var setup=EditorSceneManager.GetSceneManagerSetup();CompositionRecipe recipe=null;
+            try
+            {
+                EditorSceneManager.OpenScene("Assets/TerraLoom/Integration/Generated/TerraLoomDynamic.unity");
+                var demo=Object.FindFirstObjectByType<SeededWorldDemo>();demo.Seed=2042;
+                Assert.That(demo.Rebuild(),Is.True,demo.Diagnostics);
+                var c=demo.Composition;var decoration=demo.Decoration;
+                recipe=ScriptableObject.CreateInstance<CompositionRecipe>();recipe.CaptureFrom(c,decoration);
+                c.RecipeAsset=recipe;c.RecipeDecoration=decoration;
+                var before=new Published(c);var nature=decoration.GeneratedRoot;
+                var meshes=TransientIds<Mesh>();var terrains=TransientIds<TerrainData>();var objects=TransientIds<GameObject>();
+                string pathJson=c.Paths.PlanJson,riverJson=c.Rivers.PlanJson;
+                string fingerprint=c.World.CaptureTerrainFingerprint(c.World.Terrain.terrainData);
+                int count=decoration.PlacedCount;
+                Undo.ClearAll();
+                Assert.That(TerraLoom.Integration.Editor.IntegrationEditor.ClearConfirmed(c,()=>false),Is.False);
+                before.AssertUnchanged(c);Assert.That(decoration.GeneratedRoot,Is.SameAs(nature));
+                CollectionAssert.AreEquivalent(meshes,TransientIds<Mesh>());
+                CollectionAssert.AreEquivalent(terrains,TransientIds<TerrainData>());
+                CollectionAssert.AreEquivalent(objects,TransientIds<GameObject>());
+                Assert.That(TerraLoom.Integration.Editor.IntegrationEditor.ClearConfirmed(c,()=>true),Is.True);
+                Assert.That(c.Paths.GeneratedRoot==null&&c.Rivers.GeneratedRoot==null&&decoration.GeneratedRoot==null,Is.True);
+                Undo.PerformUndo();Undo.PerformRedo();
+                Assert.That(c.Paths.GeneratedRoot==null&&c.Rivers.GeneratedRoot==null&&decoration.GeneratedRoot==null,Is.True);
+                // Deliberately conflicting scene values must not become the restoration input.
+                c.Paths.Width+=3;c.Rivers.Width+=2;
+                TerraLoom.Integration.Editor.IntegrationEditor.RestoreSavedRecipe(c);
+                Assert.That(c.ValidateCurrent(out var reason),Is.True,reason);
+                Assert.That(c.Paths.PlanJson,Is.EqualTo(pathJson));Assert.That(c.Rivers.PlanJson,Is.EqualTo(riverJson));
+                Assert.That(c.World.CaptureTerrainFingerprint(c.World.Terrain.terrainData),Is.EqualTo(fingerprint));
+                Assert.That(decoration.PlacedCount,Is.EqualTo(count));Assert.That(decoration.GeneratedRoot,Is.Not.Null);
+            }
+            finally
+            {
+                Undo.ClearAll();
+                if(setup.Any(s=>s.isLoaded&&s.isActive&&!string.IsNullOrEmpty(s.path)))EditorSceneManager.RestoreSceneManagerSetup(setup);
+                else EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
+                if(recipe)Object.DestroyImmediate(recipe);
+            }
+        }
+
         [Test] public void RecipeClearReleasesOwnedOutputsAndKeepsEmptyUndoRedoConsistent()
         {
             var setup=EditorSceneManager.GetSceneManagerSetup();CompositionRecipe recipe=null;

@@ -2,6 +2,7 @@
   "name": "TerraLoom.Integration.EditorTests",
   "references": [
     "TerraLoom.Integration",
+    "TerraLoom.Integration.Editor",
     "TerraLoom.Core.Runtime",
     "TerraLoom.Core.Unity",
     "TerraLoom.Paths.Runtime",

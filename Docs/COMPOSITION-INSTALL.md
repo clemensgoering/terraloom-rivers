@@ -74,3 +74,30 @@ recipes require Core-owned terrain. Use `Generate()` for supplied terrain.
 Schema migration, streaming, a complete buyer workbench, Player visual parity
 and sales acceptance are not claimed. The portable structural audit passes;
 portable `--compile` is unavailable because this machine lacks a .NET SDK.
+
+## Editor Clear and recipe recovery (12 October)
+
+The sample Composition inspector asks for confirmation before destructive Clear.
+Cancel performs no mutation. Clear does not register an Undo operation: native
+meshes/TerrainData are destroyed and the nonserialized source publisher is
+disposed, so field-only Undo cannot restore a complete publication.
+Assign a saved schema-2 `CompositionRecipe` to `RecipeAsset` and its decoration
+component to `RecipeDecoration`. After Clear, use **Rebuild from saved recipe**.
+Without a recipe the button is disabled and the confirmation warns that none
+is assigned. Rebuilding restores recorded recipe settings through GenerateRecipe;
+it is not an exact snapshot of unsaved edits, transforms or external asset contents.
+Unsupported recipes/failing generation produce an inline error.
+
+One focused consumer test passed 1/1, Unity6000.3.9f1, seed2042:
+`EditorClearCancellationPreservesWorldAndConfirmedClearRestoresSavedRecipe`.
+It checks cancellation preserves publication and exact transient resource IDs,
+confirmed Clear leaves no generated roots, empty-history Undo/Redo does not
+revive roots, and recipe regeneration over conflicting scene widths produces
+identical river/path JSON, carved terrain fingerprint and vegetation count.
+Evidence: `.bootstrap-tools/composition-consumer-20261012/.artifacts/`
+`M2EditorRestore-20261012/editmode.xml` and `attempt2.log`. Attempt1 failed
+compilation because the test assembly lacked its sample Editor reference; fixed
+before the second run. No third run, production runtime change or Epos edit.
+The earlier Player-open note above is superseded by the focused Player lifecycle
+proof documented in Core `Docs/NEXT-CHAT.md` (Rivers probe6e404b6).
+Full resource-aware Undo/Redo and visual/buyer-workbench acceptance remain open.
