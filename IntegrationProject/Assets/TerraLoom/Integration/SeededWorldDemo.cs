@@ -97,7 +97,7 @@ namespace TerraLoom.Integration
                 yield return new WaitForFixedUpdate();
                 if(!Composition.Paths.LastPlan.Routes.Any(r=>r.Surfaces.Contains(TerraLoom.Paths.PathSurface.Bridge))||Decoration.PlacedCount<250)
                 {Debug.LogError("TERRALOOM_RUNTIME_SMOKE_FAILED missing bridge or regional instances");Application.Quit(1);yield break;}
-                if(Seed==2043)
+                if(Seed==2042||Seed==2043)
                 {
                     try{ProbeBridgePassage();}
                     catch(Exception ex){Debug.LogError("TERRALOOM_RUNTIME_SMOKE_FAILED bridge passage: "+ex.Message);Application.Quit(1);yield break;}
@@ -143,7 +143,18 @@ namespace TerraLoom.Integration
                     " routeStart="+route.Waypoints[first].X+","+route.Waypoints[first].Z+
                     " routeEnd="+route.Waypoints[last].X+","+route.Waypoints[last].Z);
             }
-            var walker=new GameObject("Seed 2043 bridge passage probe");
+            var terrainBounds=Composition.World.Terrain.terrainData.bounds;
+            var terrainOrigin=Composition.World.Terrain.transform.position;
+            float margin=float.PositiveInfinity;
+            for(int s=begin;s<=end;s++)
+            {
+                var point=route.Waypoints[s];
+                margin=Mathf.Min(margin,(float)point.X-terrainOrigin.x,terrainOrigin.x+terrainBounds.size.x-(float)point.X,
+                    (float)point.Z-terrainOrigin.z,terrainOrigin.z+terrainBounds.size.z-(float)point.Z);
+            }
+            Debug.Log("TERRALOOM_RUNTIME_BRIDGE_MARGIN seed="+Seed+" routeMargin="+margin+" width="+Composition.Paths.Width+
+                " terrainOrigin="+terrainOrigin+" terrainSize="+terrainBounds.size);
+            var walker=new GameObject("Seed bridge passage probe");
             try
             {
                 var controller=walker.AddComponent<CharacterController>();
@@ -168,7 +179,7 @@ namespace TerraLoom.Integration
                     }
                 }
                 if(!controller.isGrounded)throw new InvalidOperationException("Far landing is not grounded.");
-                Debug.Log("TERRALOOM_RUNTIME_BRIDGE_WALK_OK seed=2043 steps="+stepsTaken+" segments="+(end-begin));
+                Debug.Log("TERRALOOM_RUNTIME_BRIDGE_WALK_OK seed="+Seed+" steps="+stepsTaken+" segments="+(end-begin));
             }
             finally{Destroy(walker);}
         }
