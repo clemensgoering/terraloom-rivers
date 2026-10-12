@@ -1,0 +1,9 @@
+{
+  "name": "TerraLoom.Composition.Unity",
+  "references": [
+    "TerraLoom.Core.Runtime", "TerraLoom.Core.Unity",
+    "TerraLoom.Paths.Runtime", "TerraLoom.Paths.Unity",
+    "TerraLoom.Rivers.Runtime", "TerraLoom.Rivers.Unity"
+  ],
+  "autoReferenced": true
+}

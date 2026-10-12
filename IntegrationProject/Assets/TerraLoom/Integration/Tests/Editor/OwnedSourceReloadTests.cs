@@ -32,6 +32,11 @@ namespace TerraLoom.Tests
                 var pathIds=c.Paths.Connections.Select(x=>x.Id).ToArray();
                 int natureCount=recipe.Decoration.PlacedCount;
                 Assert.That(AssetDatabase.CreateFolder("Assets","TerraLoomAtomicReloadTest"),Is.Not.Empty);
+                var persistentRecipe=ScriptableObject.CreateInstance<CompositionRecipe>();
+                persistentRecipe.CaptureFrom(c,recipe.Decoration);
+                AssetDatabase.CreateAsset(persistentRecipe,folder+"/WorldRecipe.asset");
+                c.RecipeAsset=persistentRecipe;c.RecipeDecoration=recipe.Decoration;
+                AssetDatabase.SaveAssets();
                 RiversSampleBuilder.Bake(c.Rivers,folder+"/Rivers");
                 PathsSampleBuilder.Bake(c.Paths,folder+"/Paths");
                 Assert.That(EditorSceneManager.SaveScene(c.gameObject.scene,folder+"/Atomic.unity",true),Is.True);
@@ -52,8 +57,22 @@ namespace TerraLoom.Tests
                 var reopenedRecipe=loaded.GetComponent<SeededWorldDemo>();
                 Assert.That(reopenedRecipe.Decoration.GeneratedRoot,Is.Not.Null);
                 Assert.That(reopenedRecipe.Decoration.PlacedCount,Is.EqualTo(natureCount));
-                reopenedRecipe.Seed=71;
-                Assert.That(reopenedRecipe.Rebuild(),Is.True,reopenedRecipe.Diagnostics);
+                var savedRecipe=AssetDatabase.LoadAssetAtPath<CompositionRecipe>(folder+"/WorldRecipe.asset");
+                Assert.That(loaded.RecipeAsset,Is.SameAs(savedRecipe));
+                Assert.That(savedRecipe.SchemaVersion,Is.EqualTo(CompositionRecipe.CurrentSchemaVersion));
+                Assert.That(savedRecipe.Settings.Seed,Is.EqualTo(2043));
+                Assert.That(savedRecipe.Settings.Paths.Select(x=>x.Id),Is.EqualTo(pathIds));
+                Assert.That(savedRecipe.Settings.Rivers.Select(x=>x.Id),Is.EqualTo(riverIds));
+                Assert.That(loaded.GenerateRecipe(savedRecipe,reopenedRecipe.Decoration),Is.True,loaded.Diagnostics);
+                Assert.That(loaded.World.CaptureTerrainFingerprint(loaded.Rivers.OriginalTerrainData),Is.EqualTo(sourceDigest));
+                var publishedTerrain=loaded.World.Terrain.terrainData;
+                savedRecipe.SchemaVersion=999;
+                Assert.That(loaded.GenerateRecipe(savedRecipe,reopenedRecipe.Decoration),Is.False);
+                StringAssert.Contains("schema 999",loaded.Diagnostics);
+                Assert.That(loaded.World.Terrain.terrainData,Is.SameAs(publishedTerrain));
+                savedRecipe.SchemaVersion=CompositionRecipe.CurrentSchemaVersion;
+                savedRecipe.Settings.Seed=71;
+                Assert.That(loaded.GenerateRecipe(savedRecipe,reopenedRecipe.Decoration),Is.True,loaded.Diagnostics);
                 Assert.That(loaded.World.Seed,Is.EqualTo(71));
             }
             finally

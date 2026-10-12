@@ -1,0 +1,12 @@
+{
+  "name": "com.terraloom.composition",
+  "version": "0.3.0",
+  "displayName": "TerraLoom Composition",
+  "description": "Optional shared Core, Rivers and Paths publication with versioned world recipes.",
+  "unity": "6000.3",
+  "dependencies": {
+    "com.terraloom.core": "0.3.0",
+    "com.terraloom.paths": "0.3.0",
+    "com.terraloom.rivers": "0.3.0"
+  }
+}

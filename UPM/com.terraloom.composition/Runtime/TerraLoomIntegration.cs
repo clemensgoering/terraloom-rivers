@@ -11,13 +11,15 @@ using UnityEngine;
 
 namespace TerraLoom.Integration
 {
-    /// <summary>Consumer example: neither product module imports the other. Uses one captured Core input.</summary>
+    /// <summary>Optional shared publication host. Core, Paths and Rivers remain independent packages.</summary>
     [DefaultExecutionOrder(300)]
     public sealed class TerraLoomIntegration : MonoBehaviour
     {
         public TerraLoomWorld World;
         public TerraLoomPaths Paths;
         public TerraLoomRivers Rivers;
+        public CompositionRecipe RecipeAsset;
+        public RegionDecoration RecipeDecoration;
         public bool GenerateOnStart;
         [Tooltip("Consumer routing constraint only; grants no crossing or terrain-edit rights. Rivers still use the full terrain domain.")]
         public bool RestrictPathRouting;
@@ -73,8 +75,35 @@ namespace TerraLoom.Integration
             if(Paths)Paths.GenerateOnStart=false;
             if(Rivers)Rivers.GenerateOnStart=false;
         }
-        private void Start() { if (GenerateOnStart && !Generate()) Debug.LogError(diagnostics,this); }
+        private void Start() { if (GenerateOnStart && !(RecipeAsset?GenerateRecipe(RecipeAsset,RecipeDecoration):Generate())) Debug.LogError(diagnostics,this); }
         public bool Generate(CancellationToken cancellation = default) => GenerateCore(null,cancellation);
+
+        /// <summary>Reconstructs source inputs from a versioned asset using the shared prepared publication.
+        /// Initial creation bootstraps an owned Core terrain; later reloads retain the previous world on failure.</summary>
+        public bool GenerateRecipe(CompositionRecipe recipe,RegionDecoration decoration,CancellationToken cancellation=default)
+        {
+            try
+            {
+                if(!recipe)throw new InvalidOperationException("Assign a composition recipe asset.");
+                recipe.Validate();cancellation.ThrowIfCancellationRequested();
+                if(!World||!Paths||!Rivers||!decoration||Paths.World!=World||Rivers.World!=World||decoration.World!=World)
+                    throw new InvalidOperationException("Assign Core, Paths, Rivers and decoration bound to the same world.");
+                if(World.Terrain&&!World.OwnsTerrain)
+                    throw new InvalidOperationException("Seed recipes require Core-owned terrain. Use Generate for supplied terrain.");
+                if(!World.Terrain)
+                {
+                    var s=recipe.Settings;
+                    World.Seed=s.Seed;World.Recipe=s.TerrainRecipe;World.Resolution=s.Resolution;World.TerrainSize=s.Size;World.Frequency=s.Frequency;
+                    World.GenerateTerrain();
+                }
+                using(var request=recipe.Prepare(World,decoration))return GenerateSeedRequest(request,cancellation);
+            }
+            catch(Exception ex)
+            {
+                generationState=ex is OperationCanceledException?GenerationRunState.Cancelled:GenerationRunState.Failed;
+                activeStep="recipe-preflight";diagnostics=ex.Message;return false;
+            }
+        }
 
         /// <summary>Rebuilds a Core-owned source without using the currently rendered River carve
         /// as input. A failed plan keeps the previous source, river, path and collider bindings.</summary>
