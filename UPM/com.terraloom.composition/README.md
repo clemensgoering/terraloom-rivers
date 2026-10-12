@@ -21,7 +21,7 @@ if (!ready) Debug.LogError(composition.Diagnostics);
 ```
 
 `CompositionRecipe.CaptureFrom(composition, decoration)` copies current source
-settings into an asset. Save that asset through the editor as usual. Schema 1
+settings into an asset. Save that asset through the editor as usual. Schema 2
 stores seed, terrain recipe/resolution/size/frequency, manual anchors, regions,
 river/path connections and decoration profiles/count/selection. Unknown schema
 versions fail before generation with an explicit supported-version diagnostic.
