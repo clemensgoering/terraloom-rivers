@@ -14,6 +14,68 @@ namespace TerraLoom.Tests
 {
     public sealed class RiverFallEarthworksSiteTests
     {
+        [Test] public void BoundaryReceivingEarthworksPrepareFourJoinedWaterSurfacesWithoutPublishing()
+        {
+            var host=new GameObject("Boundary fall staging");Terrain terrain=null;TerrainData source=null;
+            Material water=null,rock=null;
+            try
+            {
+                var world=host.AddComponent<TerraLoomWorld>();world.WorldId="fall-boundary";
+                world.Resolution=129;world.TerrainSize=new Vector3(32,16,32);world.GenerateTerrain();
+                terrain=world.Terrain;source=terrain.terrainData;
+                var heights=new float[129,129];
+                for(int z=0;z<129;z++)for(int x=0;x<129;x++)heights[z,x]=(x<64?8f:2f)/16f;
+                source.SetHeights(0,0,heights);
+                world.UseSeedAnchors=false;
+                world.ManualAnchors=new[]{
+                    new ManualWorldAnchor{Id="source",Position=new Vector3(4,8,16)},
+                    new ManualWorldAnchor{Id="fall",Position=new Vector3(16,8,16)},
+                    new ManualWorldAnchor{Id="mouth",Position=new Vector3(32,2,16)}};
+                var rivers=host.AddComponent<TerraLoomRivers>();rivers.World=world;rivers.AutomaticSourceAndMouth=false;
+                rivers.Connections.Add(new RiverConnectionSettings{Id="main",SourceId="source",MouthId="mouth",FallId="main-fall",FallAnchorId="fall"});
+                var request=new RiverRequest("main","source","mouth",new RiverFallSite("main-fall","fall",true,true));
+                var snapshot=rivers.CaptureInput(out var bounds,out var ignored);
+                var profile=rivers.CaptureProfile();var plan=RiverPlanner.Plan(snapshot,profile,bounds,new[]{request});
+                Assert.That(plan.FallCandidates.Count,Is.EqualTo(1),string.Join(";",plan.Reports.Select(r=>r.Detail)));
+                var candidate=plan.FallCandidates.Single();
+                Assert.That(candidate.LowerReach,Is.Not.Null);
+                water=new Material(Shader.Find("Universal Render Pipeline/Lit"));rock=new Material(water);
+                rivers.WaterMaterial=water;rivers.FallRockMaterial=rock;
+                Assert.That(()=>rivers.PrepareFromSnapshot(snapshot,bounds,new[]{request}),
+                    Throws.InvalidOperationException.With.Message.Contains("staging-only"));
+                Assert.That(terrain.terrainData,Is.SameAs(source));
+                Assert.That(rivers.GeneratedRoot,Is.Null);
+                using(var prepared=PreparedFallEarthworks.Prepare(candidate,snapshot,world,source,profile))
+                {
+                    Assert.That(prepared.Water.Length,Is.EqualTo(4));
+                    Assert.That(prepared.Water[3].vertexCount,Is.GreaterThan(17));
+                    Assert.That(candidate.LowerReach.Water.Last().X,Is.EqualTo(32).Within(.001));
+                    Assert.That(prepared.TerrainData,Is.Not.SameAs(source));
+                    Assert.That(terrain.terrainData,Is.SameAs(source));
+                    Assert.That(prepared.TerrainData.GetInterpolatedHeight(1,.5f),
+                        Is.LessThan(source.GetInterpolatedHeight(1,.5f)-.2f));
+                }
+                Assert.That(terrain.terrainData,Is.SameAs(source));
+                Assert.That(rivers.GeneratedRoot,Is.Null);
+                using(var cancelled=new CancellationTokenSource())
+                {
+                    cancelled.Cancel();
+                    Assert.Throws<OperationCanceledException>(()=>PreparedFallEarthworks.Prepare(
+                        candidate,snapshot,world,source,profile,cancelled.Token));
+                }
+                var changed=source.GetHeights(0,0,129,129);changed[8,8]+=.01f;
+                source.SetHeights(0,0,changed);
+                Assert.Throws<InvalidOperationException>(()=>PreparedFallEarthworks.Prepare(candidate,snapshot,world,source,profile));
+            }
+            finally
+            {
+                if(terrain)Object.DestroyImmediate(terrain.gameObject);
+                if(host)Object.DestroyImmediate(host);
+                if(source)Object.DestroyImmediate(source);
+                if(water)Object.DestroyImmediate(water);
+                if(rock)Object.DestroyImmediate(rock);
+            }
+        }
         [Test] public void OwnedSingleTilePreflightIsReadOnlyAndRejectsStaleOrOccupiedSite()
         {
             var host=new GameObject("Owned fall test");TerrainData data=null;Terrain terrain=null;

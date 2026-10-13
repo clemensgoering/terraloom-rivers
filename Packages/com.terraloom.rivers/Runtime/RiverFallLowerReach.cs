@@ -14,6 +14,7 @@ namespace TerraLoom.Rivers
         public PlanIdentity PlanIdentity { get; }
         public string RequestId { get; }
         public double JoinStation { get; }
+        public double ChannelHalfWidth { get; }
         public IReadOnlyList<WorldPoint> Water { get; }
         public IReadOnlyList<WorldPoint> Bed { get; }
         public IReadOnlyList<WorldPoint> LeftBank { get; }
@@ -22,11 +23,11 @@ namespace TerraLoom.Rivers
         public IReadOnlyList<AreaReservation> Reservations { get; }
         public IReadOnlyList<CrossingCandidate> CrossingOffers { get; }
 
-        private RiverFallLowerReach(PlanIdentity core,PlanIdentity plan,string request,double join,WorldPoint[] water,
+        private RiverFallLowerReach(PlanIdentity core,PlanIdentity plan,string request,double join,double halfWidth,WorldPoint[] water,
             WorldPoint[] bed,WorldPoint[] left,WorldPoint[] right,WaterCorridor[] corridors,
             AreaReservation[] reservations,CrossingCandidate[] crossings)
         {
-            CoreInputIdentity=core;PlanIdentity=plan;RequestId=request;JoinStation=join;
+            CoreInputIdentity=core;PlanIdentity=plan;RequestId=request;JoinStation=join;ChannelHalfWidth=halfWidth;
             Water=Array.AsReadOnly(water);Bed=Array.AsReadOnly(bed);
             LeftBank=Array.AsReadOnly(left);RightBank=Array.AsReadOnly(right);
             Corridors=Array.AsReadOnly(corridors);Reservations=Array.AsReadOnly(reservations);
@@ -58,6 +59,12 @@ namespace TerraLoom.Rivers
             var water=new WorldPoint[count+1];var bed=new WorldPoint[count+1];
             var left=new WorldPoint[count+1];var right=new WorldPoint[count+1];
             var across=recipe.Fall.Across;double radius=profile.Width*.5+profile.BankWidth;
+            var tile=source.Terrain.Heights as GridHeightSource;
+            if(request.FallSite.WorldBoundaryMouth&&tile==null)
+            {diagnostic="Boundary receiving route requires a finite height grid.";return false;}
+            WorldBounds Clip(WorldBounds area)=>tile==null||!request.FallSite.WorldBoundaryMouth?area:
+                new WorldBounds(Math.Max(area.MinX,tile.MinX),Math.Max(area.MinZ,tile.MinZ),
+                    Math.Min(area.MaxX,tile.MaxX),Math.Min(area.MaxZ,tile.MaxZ));
             for(int i=0;i<=count;i++)
             {
                 cancellation.ThrowIfCancellationRequested();
@@ -94,8 +101,8 @@ namespace TerraLoom.Rivers
             {
                 cancellation.ThrowIfCancellationRequested();
                 string id="fall:"+request.FallSite.Id+":lower:"+i;
-                var wet=Envelope(water[i],water[i+1],profile.Width*.5);
-                var banks=Envelope(water[i],water[i+1],radius);
+                var wet=Clip(Envelope(water[i],water[i+1],profile.Width*.5));
+                var banks=Clip(Envelope(water[i],water[i+1],radius));
                 if(!bounds.Contains(banks)||source.Reservations.Any(r=>r.Strength==ReservationStrength.Hard&&r.Bounds.Overlaps(banks)))
                 {diagnostic="Receiving corridor intersects bounds or a hard reservation at segment "+i;return false;}
                 double waterTop=Math.Max(water[i].Y,water[i+1].Y);
@@ -107,12 +114,15 @@ namespace TerraLoom.Rivers
                 reservations.Add(new AreaReservation(id+":bank",id,banks,ReservationStrength.Soft,
                     ReservationPurpose.RiverBank,profile.BankTransitionCost,"fall-bank:"+request.Id));
                 // Keep the pool and the first channel width downstream free of crossings.
-                if(join+distance*i/count>=join+profile.Width+radius)
+                if(join+distance*i/count>=join+profile.Width+radius&&
+                    (!request.FallSite.WorldBoundaryMouth||
+                     i<count-1&&banks.MinX>tile.MinX&&banks.MaxX<tile.MaxX&&
+                     banks.MinZ>tile.MinZ&&banks.MaxZ<tile.MaxZ))
                     crossings.Add(new CrossingCandidate(id+":bridge",id,banks,CrossingKind.Bridge,profile.BridgeClearance));
             }
             var domain=RiverPlanner.ProfileVersion(profile,bounds,new[]{request});
             var planIdentity=RiverPlanner.IdentityFor(source.Identity,domain);
-            reach=new RiverFallLowerReach(source.Identity,planIdentity,request.Id,join,water,bed,left,right,
+            reach=new RiverFallLowerReach(source.Identity,planIdentity,request.Id,join,profile.Width*.5,water,bed,left,right,
                 corridors.ToArray(),reservations.ToArray(),crossings.ToArray());
             return true;
         }

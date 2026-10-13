@@ -13,9 +13,14 @@ namespace TerraLoom.Rivers
         /// <summary>Opt in to rejecting a fall whose receiving route cannot be planned.
         /// Legacy local previews retain their earlier site contract.</summary>
         public bool RequirePlannedLowerReach { get; }
-        public RiverFallSite(string id, string anchorId,bool requirePlannedLowerReach=false)
+        /// <summary>Explicit first publication policy: the receiving water exits a
+        /// finite height grid at its downstream edge, not at an interior land point.</summary>
+        public bool WorldBoundaryMouth { get; }
+        public RiverFallSite(string id, string anchorId,bool requirePlannedLowerReach=false,bool worldBoundaryMouth=false)
         { RiverHash.Id(id); RiverHash.Id(anchorId); Id = id; AnchorId = anchorId;
-          RequirePlannedLowerReach=requirePlannedLowerReach; }
+          if(worldBoundaryMouth&&!requirePlannedLowerReach)
+              throw new ArgumentException("Boundary mouth requires a planned lower reach.");
+          RequirePlannedLowerReach=requirePlannedLowerReach;WorldBoundaryMouth=worldBoundaryMouth; }
     }
 
     /// <summary>Validated straight transition intent, deliberately not a RiverRoute or publication permit.</summary>
@@ -91,6 +96,18 @@ namespace TerraLoom.Rivers
             bool Height(WorldPoint p,double lateral,out double h)=>heights.TryGetHeight(p.X+ax*lateral,p.Z+az*lateral,out h)&&RiverHash.Finite(h);
             if(!Height(upperPoint,0,out double upper)||!Height(lowerPoint,0,out double lower))
             {diagnostic="Lip or impact terrain unavailable.";return false;}
+            if(request.FallSite.WorldBoundaryMouth)
+            {
+                if(!(heights is GridHeightSource tile))
+                {diagnostic="Boundary mouth requires a finite owned-style height grid.";return false;}
+                const double tolerance=1e-5;
+                bool exitX=fx>.999999&&Math.Abs(end.Position.X-tile.MaxX)<tolerance||
+                    fx<-.999999&&Math.Abs(end.Position.X-tile.MinX)<tolerance;
+                bool exitZ=fz>.999999&&Math.Abs(end.Position.Z-tile.MaxZ)<tolerance||
+                    fz<-.999999&&Math.Abs(end.Position.Z-tile.MinZ)<tolerance;
+                if(!exitX&&!exitZ)
+                {diagnostic="Mouth must lie on the downstream edge of the source height grid.";return false;}
+            }
             if(upper-lower<Math.Max(1,profile.Depth*2))
             {diagnostic="Fall site lacks a distinct vertical drop.";return false;}
             foreach(double lateral in new[]{-bankRadius,bankRadius})

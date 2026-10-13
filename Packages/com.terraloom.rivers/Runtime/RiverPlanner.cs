@@ -53,7 +53,8 @@ namespace TerraLoom.Rivers
                 foreach (var r in ordered) { w.Write(r.Id); w.Write(r.SourceId); w.Write(r.MouthId);
                     // Ordinary requests retain their existing domain fingerprint.
                     if (r.FallSite != null) { w.Write("fall-site-v1"); w.Write(r.FallSite.Id); w.Write(r.FallSite.AnchorId);
-                        if(r.FallSite.RequirePlannedLowerReach)w.Write("fall-lower-route-v1"); }
+                        if(r.FallSite.RequirePlannedLowerReach)w.Write("fall-lower-route-v1");
+                        if(r.FallSite.WorldBoundaryMouth)w.Write("fall-boundary-mouth-v1"); }
                 }
             });
         }

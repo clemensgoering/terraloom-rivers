@@ -60,12 +60,17 @@ namespace TerraLoom.Rivers.Unity
                 result.TerrainData=Object.Instantiate(source);
                 result.TerrainData.name="Prepared owned fall terrain";
                 CarvePool(result.TerrainData,world.Terrain.transform.position,candidate,profile,cancellation);
+                if(candidate.Site.WorldBoundaryMouth)
+                    CarveReceiving(result.TerrainData,world.Terrain.transform.position,candidate,profile,cancellation);
                 cancellation.ThrowIfCancellationRequested();
                 var holes=new bool[site.HoleHeight,site.HoleWidth];
                 result.TerrainData.SetHoles(site.HoleX,site.HoleZ,holes);
                 result.Solid=BuildSolid(source,result.TerrainData,world.Terrain.transform.position,candidate,site,profile,cancellation);
                 result.Water=WaterfallWaterGeometry.Build(candidate.Recipe,(float)site.UpperLength,
-                    (float)site.LowerLength,cancelled:()=>cancellation.IsCancellationRequested);
+                    (float)(candidate.Site.WorldBoundaryMouth?candidate.LowerReach.JoinStation:site.LowerLength),
+                    cancelled:()=>cancellation.IsCancellationRequested);
+                if(candidate.Site.WorldBoundaryMouth)
+                    result.Water=result.Water.Concat(new[]{BuildReceivingWater(candidate.LowerReach,cancellation)}).ToArray();
                 ValidateWaterJoins(result.Water);
                 ValidateContacts(result,world.Terrain.transform.position,profile,cancellation);
                 cancellation.ThrowIfCancellationRequested();
@@ -123,7 +128,8 @@ namespace TerraLoom.Rivers.Unity
                     if(lateral>section.HalfWidth+profile.BankWidth)continue;
                     double blend=1-Smooth((lateral-section.HalfWidth)/Math.Max(.01,profile.BankWidth));
                     // The outlet transition ends at the unmodified terrain instead of a hard cut.
-                    double endFade=Math.Min(1,(finish-station)/Math.Max(.25,profile.Width*.5));
+                    double endFade=candidate.Site.WorldBoundaryMouth?1:
+                        Math.Min(1,(finish-station)/Math.Max(.25,profile.Width*.5));
                     blend*=Smooth(endFade);
                     double old=origin.y+values[z,x]*size.y;
                     double bed=section.Surface.Y-section.CentreDepth;
@@ -134,6 +140,70 @@ namespace TerraLoom.Rivers.Unity
                 }
             }
             data.SetHeights(0,0,values);
+        }
+
+        private static void CarveReceiving(TerrainData data,Vector3 origin,RiverFallCandidate candidate,
+            RiverProfile profile,CancellationToken cancellation)
+        {
+            var route=candidate.LowerReach;
+            if(route==null)throw new InvalidOperationException("Boundary fall has no planned receiving route.");
+            int n=data.heightmapResolution;
+            var values=data.GetHeights(0,0,n,n);var size=data.size;var fall=candidate.Recipe.Fall;
+            double finish=(candidate.LowerEnd.X-fall.Impact.X)*fall.Forward.X+
+                (candidate.LowerEnd.Z-fall.Impact.Z)*fall.Forward.Z;
+            double start=route.JoinStation,firstY=route.Water[0].Y,lastY=route.Water[route.Water.Count-1].Y;
+            for(int z=0;z<n;z++)
+            {
+                cancellation.ThrowIfCancellationRequested();
+                double wz=origin.z+size.z*z/(n-1);
+                for(int x=0;x<n;x++)
+                {
+                    double wx=origin.x+size.x*x/(n-1),dx=wx-fall.Impact.X,dz=wz-fall.Impact.Z;
+                    double station=dx*fall.Forward.X+dz*fall.Forward.Z;
+                    if(station<start||station>finish)continue;
+                    double lateral=Math.Abs(dx*fall.Across.X+dz*fall.Across.Z);
+                    if(lateral>profile.Width*.5+profile.BankWidth)continue;
+                    double blend=1-Smooth((lateral-profile.Width*.5)/Math.Max(.01,profile.BankWidth));
+                    double water=firstY+(lastY-firstY)*(station-start)/(finish-start);
+                    double bed=water-profile.Depth,old=origin.y+values[z,x]*size.y;
+                    double lowered=Math.Min(old,old+(bed-old)*blend);
+                    if(lowered<origin.y||lowered>origin.y+size.y)
+                        throw new InvalidOperationException("Receiving channel leaves the owned terrain height range.");
+                    values[z,x]=(float)((lowered-origin.y)/size.y);
+                }
+            }
+            data.SetHeights(0,0,values);
+        }
+
+        private static Mesh BuildReceivingWater(RiverFallLowerReach route,CancellationToken cancellation)
+        {
+            if(route==null)throw new InvalidOperationException("No receiving route to tessellate.");
+            const int across=16,stride=across+1;
+            var vertices=new Vector3[route.Water.Count*stride];var triangles=new int[(route.Water.Count-1)*across*6];
+            var uv=new Vector2[vertices.Length];
+            for(int i=0;i<route.Water.Count;i++)
+            {
+                cancellation.ThrowIfCancellationRequested();
+                var centre=route.Water[i];var left=route.LeftBank[i];var right=route.RightBank[i];
+                // Bank points encode the local transverse direction; water uses channel half-width.
+                var axis=new Vector2((float)(right.X-left.X),(float)(right.Z-left.Z)).normalized;
+                for(int j=0;j<stride;j++)
+                {
+                    float fraction=j/(float)across;
+                    float lateral=(fraction*2-1)*(float)route.ChannelHalfWidth;
+                    vertices[i*stride+j]=new Vector3((float)centre.X+axis.x*lateral,
+                        (float)centre.Y+.01f,(float)centre.Z+axis.y*lateral);
+                    uv[i*stride+j]=new Vector2(fraction,i);
+                }
+            }
+            int t=0;
+            for(int i=0;i<route.Water.Count-1;i++)for(int j=0;j<across;j++)
+            {int a=i*stride+j;triangles[t++]=a;triangles[t++]=a+stride;triangles[t++]=a+1;
+             triangles[t++]=a+1;triangles[t++]=a+stride;triangles[t++]=a+stride+1;}
+            var mesh=new Mesh{name="Prepared fall receiving water"};
+            if(vertices.Length>65535)mesh.indexFormat=UnityEngine.Rendering.IndexFormat.UInt32;
+            mesh.vertices=vertices;mesh.uv=uv;mesh.triangles=triangles;mesh.RecalculateNormals();mesh.RecalculateBounds();
+            return mesh;
         }
 
         private static Mesh BuildSolid(TerrainData source,TerrainData carved,Vector3 origin,
@@ -222,13 +292,16 @@ namespace TerraLoom.Rivers.Unity
 
         private static void ValidateWaterJoins(Mesh[] meshes)
         {
-            if(meshes==null||meshes.Length!=3)throw new InvalidOperationException("Fall needs upper, vertical and lower water meshes.");
+            if(meshes==null||(meshes.Length!=3&&meshes.Length!=4))
+                throw new InvalidOperationException("Fall needs upper, vertical, pool and optional receiving water meshes.");
             var upper=meshes[0].vertices;var fall=meshes[1].vertices;var lower=meshes[2].vertices;
             for(int i=0;i<17;i++)
             {
                 if(Vector3.Distance(upper[upper.Length-17+i],fall[i])>.0001f||
                    Vector3.Distance(fall[fall.Length-17+i],lower[i])>.0001f)
                     throw new InvalidOperationException("Fall water edges are discontinuous.");
+                if(meshes.Length==4&&Vector3.Distance(lower[lower.Length-17+i],meshes[3].vertices[i])>.0001f)
+                    throw new InvalidOperationException("Pool/receiving-water edge is discontinuous.");
             }
         }
         private static void ValidateContacts(PreparedFallEarthworks prepared,Vector3 origin,
@@ -270,7 +343,8 @@ namespace TerraLoom.Rivers.Unity
                     if(Vector3.Distance(wall.point,atWater)>.2f)
                         throw new InvalidOperationException("Fall wall is too far from the water surface.");
                 }
-                double length=prepared.Site.LowerLength;
+                double length=prepared.Candidate.Site.WorldBoundaryMouth
+                    ?prepared.Candidate.LowerReach.JoinStation:prepared.Site.LowerLength;
                 int stations=Math.Max(4,Math.Min(128,(int)Math.Ceiling(length/.5)));
                 for(int i=1;i<=stations;i++)
                 {
@@ -284,6 +358,34 @@ namespace TerraLoom.Rivers.Unity
                         double depth=surface.Y-Down(point);
                         if(depth<Math.Min(.15,sample.CentreDepth*.4)||depth>sample.CentreDepth+.3)
                             throw new InvalidOperationException("Fall pool/outlet bed loses full-width water contact at station "+station+", lateral "+lateral+": depth "+depth);
+                    }
+                }
+                if(prepared.Candidate.Site.WorldBoundaryMouth)
+                {
+                    var receiving=prepared.Candidate.LowerReach;
+                    for(int i=0;i<receiving.Water.Count;i++)
+                    {
+                        cancellation.ThrowIfCancellationRequested();
+                        var centre=receiving.Water[i];
+                        foreach(double lateral in new[]{0.0,-receiving.ChannelHalfWidth*.8,receiving.ChannelHalfWidth*.8})
+                        {
+                            var point=new Vector3((float)(centre.X+fall.Across.X*lateral),(float)centre.Y,
+                                (float)(centre.Z+fall.Across.Z*lateral));
+                            if(i==receiving.Water.Count-1)point-=forward*.02f;
+                            double depth=point.y-Down(point);
+                            if(depth<Math.Min(.15,profile.Depth*.4)||depth>profile.Depth+.3)
+                                throw new InvalidOperationException("Receiving route loses collider-backed bed at station "+i+", lateral "+lateral+": depth "+depth);
+                        }
+                    }
+                    var end=receiving.Water[receiving.Water.Count-1];
+                    var data=prepared.TerrainData;var size=data.size;
+                    foreach(double lateral in new[]{0.0,-receiving.ChannelHalfWidth*.8,receiving.ChannelHalfWidth*.8})
+                    {
+                        float x=(float)((end.X+fall.Across.X*lateral-origin.x)/size.x);
+                        float z=(float)((end.Z+fall.Across.Z*lateral-origin.z)/size.z);
+                        double depth=end.Y-(origin.y+data.GetInterpolatedHeight(x,z));
+                        if(depth<Math.Min(.15,profile.Depth*.4)||depth>profile.Depth+.3)
+                            throw new InvalidOperationException("Boundary mouth TerrainData loses the receiving bed at lateral "+lateral+": depth "+depth);
                     }
                 }
             }

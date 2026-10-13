@@ -218,6 +218,8 @@ namespace TerraLoom.Rivers.Unity
         private PreparedPublication PrepareFallPublication(PlanSnapshot input,RiverPlan candidatePlan,
             RiverProfile profile,WorldSourcePublication.PreparedSource source,CancellationToken cancellation)
         {
+            if(candidatePlan.FallCandidates[0].Site.WorldBoundaryMouth)
+                throw new InvalidOperationException("Planned boundary receiving reach is staging-only until its full terrain, route contribution and saved-plan publication are validated together.");
             if(source!=null)throw new InvalidOperationException("The first physical fall release requires one already bound Core-owned tile; prepared external sources are unsupported.");
             if(!World.OwnsTerrain||!CarveTerrainCopy||TerrainBrush||!FallRockMaterial||!WaterMaterial)
                 throw new InvalidOperationException("Explicit fall needs a Core-owned terrain copy, rock and water materials; Terrain Brush mode is unsupported for this first fall release.");

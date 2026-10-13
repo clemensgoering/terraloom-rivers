@@ -182,6 +182,26 @@ internal static class RiverPlannerTests
                 RiverPlanner.ProfileVersion(profile,Bounds,new[]{FallRequest()}),
                 "Opt-in receiving contract did not change the stable domain identity.");
         });
+        Check("boundary mouth is explicit and receiving corridors stop at the tile edge", () =>
+        {
+            const int resolution=97;
+            var values=new double[resolution*resolution];
+            for(int z=0;z<resolution;z++)for(int x=0;x<resolution;x++)
+                values[z*resolution+x]=x<48?8:2;
+            var grid=new GridHeightSource(-12,12,-12,12,resolution,resolution,values);
+            var profile=new RiverProfile(bankWidth:.5,maximumSlope:.5,allowExcavation:true);
+            var request=FallRequest(requireLower:true,boundary:true);
+            var input=FallInput(grid,mouthX:12);
+            var plan=Plan(input,profile,new[]{request});
+            Require(plan.FallCandidates.Count==1,Detail(plan));
+            var lower=plan.FallCandidates.Single().LowerReach;
+            Near(lower.Water.Last().X,12);
+            Require(lower.Corridors.All(c=>c.Banks.MaxX<=12&&c.Bed.MaxX<=12)&&
+                lower.CrossingOffers.All(c=>c.Bounds.MaxX<12),
+                "Boundary corridor or crossing offer escaped the owned grid.");
+            var interior=Plan(FallInput(grid,mouthX:10),profile,new[]{request});
+            Require(interior.FallCandidates.Count==0&&Detail(interior).Contains("downstream edge"),Detail(interior));
+        });
         Check("undersized fall footprints reject before sampling or publication", () =>
         {
             var input=FallInput();var request=FallRequest();
@@ -388,8 +408,8 @@ internal static class RiverPlannerTests
         IAnchorSource anchors = null, IEnumerable<LandscapeSample> landscape = null, string fingerprint = "height-content-v1", TerrainSnapshot terrainOverride = null) =>
         new PlanningInput(42, 1, "shared-core-v1", "shared-profile-v1", terrainOverride ?? new TerrainSnapshot("world", 1, "metres", heights ?? new FlatHeightSource(0)),
             fingerprint, anchors ?? Anchors(), landscape ?? Array.Empty<LandscapeSample>(), areas ?? Array.Empty<AreaReservation>());
-    private static RiverRequest FallRequest(bool requireLower=false)=>new RiverRequest("main","source","mouth",
-        new RiverFallSite("main-fall","fall",requireLower));
+    private static RiverRequest FallRequest(bool requireLower=false,bool boundary=false)=>new RiverRequest("main","source","mouth",
+        new RiverFallSite("main-fall","fall",requireLower,boundary));
     private static PlanningInput FallInput(IHeightSource heights=null,IEnumerable<AreaReservation> areas=null,double mouthX=8)
     {
         var anchors=new ManualAnchorSource("fall-anchors",1,new[]{
