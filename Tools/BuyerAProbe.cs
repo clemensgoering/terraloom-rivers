@@ -19,6 +19,8 @@ public static class BuyerAProbe
         var elapsed=Stopwatch.StartNew();
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
         const string root="Assets/BuyerA";
+        if(AssetDatabase.IsValidFolder(root))AssetDatabase.DeleteAsset(root);
+        AssetDatabase.CreateFolder("Assets","BuyerA");
         var ground=Material("Ground",new Color(.31f,.36f,.25f));
         var bridge=Material("Bridge",new Color(.32f,.19f,.08f));
         var water=Material("Water",new Color(.08f,.35f,.58f));
@@ -31,10 +33,11 @@ public static class BuyerAProbe
         var treeAsset=PrefabUtility.SaveAsPrefabAsset(tree,root+"/Tree.prefab");
         UnityEngine.Object.DestroyImmediate(tree);
         data.treePrototypes=new[]{new TreePrototype{prefab=treeAsset}};
-        data.treeInstances=new[]{new TreeInstance {
-            position=new Vector3(.5f,0,.5f),prototypeIndex=0,widthScale=1,heightScale=1,
-            color=Color.white,lightmapColor=Color.white
-        }};
+        data.treeInstances=new[]{
+            Tree(.5f,.5f), // channel
+            Tree(.25f,.5625f), // road approach, on the final curved route
+            Tree(.1f,.1f)  // adjacent vegetation must survive
+        };
         var grass=new Texture2D(2,2);grass.SetPixels(new[]{Color.green,Color.green,Color.green,Color.green});grass.Apply();
         AssetDatabase.CreateAsset(grass,root+"/Grass.asset");
         data.detailPrototypes=new[]{new DetailPrototype{
@@ -66,6 +69,8 @@ public static class BuyerAProbe
         EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(),root+"/Authored.unity");
         Debug.Log("BUYER_A_SETUP_SECONDS "+elapsed.Elapsed.TotalSeconds.ToString("F2")+" script-authored; human clicks not measured");
         var originalHeights=data.GetHeights(0,0,129,129);
+        var originalTrees=data.treeInstances.Select(t=>t.position).ToArray();
+        var originalDetails=data.GetDetailLayer(0,0,128,128,0);
         IntegrationEditor.GenerateOnSuppliedTerrain(composition);
         Debug.Log("BUYER_A_GENERATE_SECONDS "+elapsed.Elapsed.TotalSeconds.ToString("F2")+" "+composition.Diagnostics);
         if(!paths.LastPlan.Routes.Any(r=>r.Surfaces.Contains(PathSurface.Bridge)))
@@ -74,14 +79,28 @@ public static class BuyerAProbe
             throw new InvalidOperationException("BUYER_A_BLOCKER source terrain changed or carved terrain/collider not bound together.");
         var published=terrain.terrainData;
         var treeAtRiver=published.treeInstances.Any(t=>NearRiver(new Vector2(t.position.x*96,t.position.z*96),rivers,3.5f));
+        var roadTree=published.treeInstances.Any(t=>Mathf.Abs(t.position.x-.25f)<.001f&&Mathf.Abs(t.position.z-.5625f)<.001f);
+        var adjacentTree=published.treeInstances.Any(t=>Mathf.Abs(t.position.x-.1f)<.001f&&Mathf.Abs(t.position.z-.1f)<.001f);
         var centerDetails=published.GetDetailLayer(62,62,4,4,0).Cast<int>().Sum();
+        var roadDetails=published.GetDetailLayer(32,72,1,1,0)[0,0];
+        var adjacentDetails=published.GetDetailLayer(2,2,4,4,0).Cast<int>().Sum();
         Debug.Log("BUYER_A_VEGETATION originalTrees="+data.treeInstanceCount+" publishedTrees="+published.treeInstanceCount+
-            " treeInRiverCorridor="+treeAtRiver+" detailsCenter4x4="+centerDetails+
+            " treeInRiverCorridor="+treeAtRiver+" roadTree="+roadTree+" adjacentTree="+adjacentTree+
+            " detailsCenter4x4="+centerDetails+" roadCenterCell="+roadDetails+" adjacentDetails4x4="+adjacentDetails+
             " bridgeCount="+paths.LastPlan.Routes.Sum(r=>r.Surfaces.Count(s=>s==PathSurface.Bridge)));
-        if(treeAtRiver||centerDetails>0)
+        if(treeAtRiver||roadTree||centerDetails>0||roadDetails>0||!adjacentTree||adjacentDetails!=32||
+            !data.treeInstances.Select(t=>t.position).SequenceEqual(originalTrees)||
+            !data.GetDetailLayer(0,0,128,128,0).Cast<int>().SequenceEqual(originalDetails.Cast<int>()))
             throw new InvalidOperationException("BUYER_A_BLOCKER existing Terrain TreeInstances/details remain in the generated river/road corridor.");
+        composition.Clear();
+        if(terrain.terrainData!=data||collider.terrainData!=data)
+            throw new InvalidOperationException("BUYER_A_BLOCKER clearing did not restore the original terrain binding.");
         Debug.Log("BUYER_A_READY_FOR_PLAYER seconds="+elapsed.Elapsed.TotalSeconds.ToString("F2"));
     }
+
+    private static TreeInstance Tree(float x,float z)=>new TreeInstance{
+        position=new Vector3(x,0,z),prototypeIndex=0,widthScale=1,heightScale=1,
+        color=Color.white,lightmapColor=Color.white};
 
     private static bool NearRiver(Vector2 point,TerraLoomRivers rivers,float radius)
     {

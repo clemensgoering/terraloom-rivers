@@ -258,6 +258,13 @@ namespace TerraLoom.Integration
                 Step("05-publish-walkable",()=>{
                     preparedPaths=Paths.PrepareFromSnapshot(shared,CapturePathBounds(bounds),preparedRiver.CaptureFinalHeights(),graph,cancellation,
                         currentPermissions:CrossingPermissions==null?(Func<PathCrossingPermissions>)null:()=>CrossingPermissions?.Invoke(shared));
+                    // The final path is replanned against the carved grid. Clear only the
+                    // unpublished terrain copy, using that exact path and river geometry.
+                    if(Rivers.CarveTerrainCopy)
+                        CompositionVegetationClearance.Apply(preparedRiver.FinalTerrainData,
+                            source?.Data??(Rivers.CarvedTerrainData?Rivers.OriginalTerrainData:World.Terrain.terrainData),
+                            World.Terrain.transform.position,riverPlan,Rivers.CaptureProfile(source?.Data),
+                            Paths.LastAttemptPlan,Paths.CaptureProfile(),cancellation);
                     if(request!=null)
                     {
                         preparedDecoration=request.Decoration.PrepareCandidate(preparedRiver.FinalTerrainData,request.Seed,
