@@ -27,6 +27,14 @@ retained the source, persistent carved TerrainData, a 1,944-vertex truss mesh,
 collider and ramps. Windows Player passed 479 walking/collision probes and
 captured five views, including side and underside.
 
+Reproducible fixture source is in `Tools/BuyerBForeignProbe.cs`,
+`Tools/BuyerBForeignPlayerCapture.cs`, `Tools/BuyerBReviewedCrossing.cs`,
+`Tools/BuyerBForeignReopenAudit.cs` and
+`Tools/BuyerBForeignBakedReopenAudit.cs`. The reviewed candidate IDs are
+specific to this exact captured terrain and package pin set; changing the
+seed or river deliberately invalidates the approval. Run the probe only in
+a fresh Unity test project; it refuses to overwrite an existing fixture.
+
 Local ignored evidence:
 
 - `.bootstrap-tools/composition-buyer-b-final-20261013/.artifacts/buyer-b-foreign-builtinsource-build.log`

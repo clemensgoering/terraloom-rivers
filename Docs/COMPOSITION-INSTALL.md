@@ -1,16 +1,27 @@
 # Optional Composition package: tested Git installation
 
-Tested 12 October 2026 with Unity 6000.3.9f1. Add these entries to the
+Tested 13 October 2026 with Unity 6000.3.9f1. Add these entries to the
 consumer's `Packages/manifest.json` dependencies (retain its other packages):
 
 ```json
-"com.terraloom.core": "https://github.com/clemensgoering/terraloom-core.git?path=/Packages/com.terraloom.core#014e4ce4fbdfe7bab988ca8b927ef8a17b80fc69",
-"com.terraloom.paths": "https://github.com/clemensgoering/terraloom-paths.git?path=/Packages/com.terraloom.paths#d1f4ef04fba9415571a8efd1f54cf585aeb94216",
-"com.terraloom.rivers": "https://github.com/clemensgoering/terraloom-rivers.git?path=/Packages/com.terraloom.rivers#7889dc7c73f3ada87074bfc5546fec75a731f262",
-"com.terraloom.composition": "https://github.com/clemensgoering/terraloom-rivers.git?path=/UPM/com.terraloom.composition#7889dc7c73f3ada87074bfc5546fec75a731f262"
+"com.terraloom.core": "https://github.com/clemensgoering/terraloom-core.git?path=/Packages/com.terraloom.core#a66deea564d19ca2137516f5d99f7f689f991254",
+"com.terraloom.paths": "https://github.com/clemensgoering/terraloom-paths.git?path=/Packages/com.terraloom.paths#0cbebb81f17656955df1902e724950b7e91baaa4",
+"com.terraloom.rivers": "https://github.com/clemensgoering/terraloom-rivers.git?path=/Packages/com.terraloom.rivers#ec972d831541d87f92f48d1334315ca50df6b81d",
+"com.terraloom.composition": "https://github.com/clemensgoering/terraloom-rivers.git?path=/UPM/com.terraloom.composition#ec972d831541d87f92f48d1334315ca50df6b81d"
 ```
 
 Git authentication is required for private repositories. Use complete hashes.
+The four pins above were resolved together in the Buyer B Unity 6000.3.9f1
+consumer. Its authored physical truss scene regenerated after reopen with
+one explicit current grant. The preceding tested pin set also built and ran
+the Windows Player with 479 walkability probes. See
+[Buyer B physical kit](BUYER-B-PHYSICAL-KIT.md); the sample source for a fresh
+consumer is under `Tools/BuyerBForeign*.cs` and
+`Tools/BuyerBReviewedCrossing.cs`. Copy the capture script into `Assets`, the
+probe/audits into `Assets/Editor`, and run only in an empty test project because
+the fixed reviewed IDs belong to that fixture's captured river. The probe
+refuses to overwrite its existing output folder.
+
 Composition is opt-in: installing it requires the three modules. Core, Paths
 and Rivers have no dependency on Composition; their standalone installations
 remain possible. No package automatically discovers third-party modules.
@@ -46,7 +57,7 @@ its development file reference; native batch compile exited 0 after migration
 (`Integration/.artifacts/CompositionCompile-20261012.log`). Prior copied host/manifest files are backed up
 under `.bootstrap-tools/composition-migration-backup`.
 
-At current pin `7889dc7`, native compile and the focused
+At earlier pin `7889dc7`, native compile and the focused
 `RecipeClearReleasesOwnedOutputsAndKeepsEmptyUndoRedoConsistent` pass 1/1.
 Before/after evidence is preserved in the fixture at
 `.artifacts/M2Clear-20261012/{before,after}/editmode.xml`.
@@ -104,7 +115,7 @@ Full resource-aware Undo/Redo and visual/buyer-workbench acceptance remain open.
 
 ## Packaged recipe Inspector (13 October)
 
-Composition 0.5.0 now ships `TerraLoom.Composition.Editor`. Its single custom
+Composition 0.5.0 introduced `TerraLoom.Composition.Editor`. Its single custom
 Inspector moved from the Integration sample into the UPM package, with the
 original script GUID retained. The sample duplicate was removed. The Inspector
 resolves one matching Region Decoration or requires an explicit reference when
