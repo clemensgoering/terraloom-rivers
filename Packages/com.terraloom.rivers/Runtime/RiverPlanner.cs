@@ -14,6 +14,9 @@ namespace TerraLoom.Rivers
     {
         public const string AlgorithmVersion = "rivers-inset-shoreline-v6-soft-cost-provenance";
         private const int MaximumCurvePoints = 16384;
+        internal static PlanIdentity IdentityFor(PlanIdentity core,string domain)=>
+            new PlanIdentity(core.Seed,core.Revision,AlgorithmVersion,domain,
+                RiverHash.Digest(w=>{RiverHash.Identity(w,core);w.Write(domain);}));
 
         /// <summary>Selects one main river from manual or seeded Core anchors. Highest bed to lowest bed;
         /// equal mouth heights prefer greatest horizontal distance, then ordinal ID. Other anchors are not tributary requests.</summary>
@@ -49,7 +52,8 @@ namespace TerraLoom.Rivers
                 w.Write(ordered.Length);
                 foreach (var r in ordered) { w.Write(r.Id); w.Write(r.SourceId); w.Write(r.MouthId);
                     // Ordinary requests retain their existing domain fingerprint.
-                    if (r.FallSite != null) { w.Write("fall-site-v1"); w.Write(r.FallSite.Id); w.Write(r.FallSite.AnchorId); }
+                    if (r.FallSite != null) { w.Write("fall-site-v1"); w.Write(r.FallSite.Id); w.Write(r.FallSite.AnchorId);
+                        if(r.FallSite.RequirePlannedLowerReach)w.Write("fall-lower-route-v1"); }
                 }
             });
         }
@@ -74,8 +78,7 @@ namespace TerraLoom.Rivers
             if (!bounds.IsValid) throw new ArgumentException("Finite routing bounds required.");
             var ordered = Requests(requests);
             string domain = ProfileVersion(profile, bounds, ordered);
-            var identity = new PlanIdentity(snapshot.Identity.Seed, snapshot.Identity.Revision, AlgorithmVersion, domain,
-                RiverHash.Digest(w => { RiverHash.Identity(w, snapshot.Identity); w.Write(domain); }));
+            var identity = IdentityFor(snapshot.Identity,domain);
             var routes = new List<RiverRoute>(); var reports = new List<RiverReport>();
             var fallCandidates = new List<RiverFallCandidate>();
             var work = new Work(profile, cancellation);
@@ -102,8 +105,10 @@ namespace TerraLoom.Rivers
                         throw new Stop(RiverOutcome.MissingTerrain, "Terrain height unavailable at source or mouth.");
                     if (request.FallSite != null)
                     {
-                        if (RiverFallCandidatePlanner.TryCreate(snapshot, snapshot.Identity, bounds, request, profile,
-                            out var candidate, out detail))
+                        if(ordered.Length!=1)
+                        {outcome=RiverOutcome.NoRoute;detail="First fall/receiving-route contract requires exactly one river request.";}
+                        else if (RiverFallCandidatePlanner.TryCreate(snapshot, snapshot.Identity, bounds, request, profile,
+                            out var candidate, out detail,cancellation))
                         { fallCandidates.Add(candidate); outcome = RiverOutcome.FallCandidateOnly; }
                         else outcome = RiverOutcome.NoRoute;
                         reports.Add(new RiverReport(request, outcome, detail, work.Nodes-beforeNodes, work.Samples-beforeSamples,
@@ -119,6 +124,7 @@ namespace TerraLoom.Rivers
                     }
                 }
                 catch (Stop stop) { outcome = stop.Outcome; detail = stop.Message; }
+                catch (OperationCanceledException) { outcome=RiverOutcome.Cancelled; detail="Fall receiving-route planning cancelled; no partial route published."; }
                 reports.Add(new RiverReport(request, outcome, detail, work.Nodes - beforeNodes, work.Samples - beforeSamples,
                     identity, snapshot.Identity, profile.Fingerprint));
             }

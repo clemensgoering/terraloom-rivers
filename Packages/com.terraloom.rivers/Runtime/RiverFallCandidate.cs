@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading;
 using TerraLoom.Core;
 
 namespace TerraLoom.Rivers
@@ -9,8 +10,12 @@ namespace TerraLoom.Rivers
     {
         public string Id { get; }
         public string AnchorId { get; }
-        public RiverFallSite(string id, string anchorId)
-        { RiverHash.Id(id); RiverHash.Id(anchorId); Id = id; AnchorId = anchorId; }
+        /// <summary>Opt in to rejecting a fall whose receiving route cannot be planned.
+        /// Legacy local previews retain their earlier site contract.</summary>
+        public bool RequirePlannedLowerReach { get; }
+        public RiverFallSite(string id, string anchorId,bool requirePlannedLowerReach=false)
+        { RiverHash.Id(id); RiverHash.Id(anchorId); Id = id; AnchorId = anchorId;
+          RequirePlannedLowerReach=requirePlannedLowerReach; }
     }
 
     /// <summary>Validated straight transition intent, deliberately not a RiverRoute or publication permit.</summary>
@@ -26,16 +31,20 @@ namespace TerraLoom.Rivers
         public WorldPoint Outlet => Recipe.OutletSill;
         public WorldPoint LowerEnd { get; }
         public WaterfallRecipe Recipe { get; }
+        public RiverFallLowerReach LowerReach { get; }
         public bool Publishable => false;
-        internal RiverFallCandidate(PlanIdentity identity, RiverRequest request, WorldPoint upper, WorldPoint lower, WaterfallRecipe recipe)
-        { CoreInputIdentity=identity;RequestId=request.Id;Site=request.FallSite;UpperStart=upper;LowerEnd=lower;Recipe=recipe; }
+        internal RiverFallCandidate(PlanIdentity identity, RiverRequest request, WorldPoint upper, WorldPoint lower,
+            WaterfallRecipe recipe,RiverFallLowerReach lowerReach)
+        { CoreInputIdentity=identity;RequestId=request.Id;Site=request.FallSite;UpperStart=upper;LowerEnd=lower;
+            Recipe=recipe;LowerReach=lowerReach; }
     }
 
     /// <summary>Finite, read-only candidate inspection. No terrain writes, route search or output publication.</summary>
     public static class RiverFallCandidatePlanner
     {
         public static bool TryCreate(PlanSnapshot source, PlanIdentity expected, WorldBounds bounds,
-            RiverRequest request, RiverProfile profile, out RiverFallCandidate candidate, out string diagnostic)
+            RiverRequest request, RiverProfile profile, out RiverFallCandidate candidate, out string diagnostic,
+            CancellationToken cancellation=default)
         {
             candidate=null;
             if(source==null||request==null||profile==null||request.FallSite==null)throw new ArgumentException("Explicit source, request, profile and fall site required.");
@@ -95,35 +104,46 @@ namespace TerraLoom.Rivers
             for(int i=0;i<=poolSteps;i++)
             foreach(double lateral in new[]{0.0,-bankRadius,bankRadius})
             {
+                cancellation.ThrowIfCancellationRequested();
                 double station=support+(outletStation+lowerMin-support)*i/poolSteps;
                 var p=new WorldPoint(centre.X+fx*station,0,centre.Z+fz*station);
                 if(!Height(p,lateral,out double ground)||ground<lower-profile.Depth-.05)
                 {diagnostic="Pool/outlet or lower bank lacks terrain support.";return false;}
             }
             // Ordinary reaches remain subject to the unmodified slope limit.
-            if(!Reach(start.Position,upperPoint,upper,heights,profile,true)
-                ||!Reach(lowerPoint,end.Position,lower,heights,profile,false))
+            if(!Reach(start.Position,upperPoint,upper,heights,profile,true,cancellation)
+                ||!Reach(lowerPoint,end.Position,lower,heights,profile,false,cancellation))
             {diagnostic="Upper or lower reach is missing, uphill or exceeds ordinary maximum slope.";return false;}
             double high=upper+profile.SurfaceOffset-profile.WaterInset;
             double low=lower+profile.SurfaceOffset-profile.WaterInset;
+            if(!heights.TryGetHeight(end.Position.X,end.Position.Z,out double mouthGround)||!RiverHash.Finite(mouthGround))
+            {diagnostic="Mouth terrain unavailable for the receiving grade.";return false;}
+            double lowerLength=length-siteStation;
+            double transition=profile.Width;
             WorldPoint OnAxis(double station,double y)=>new WorldPoint(centre.X+fx*station,y,centre.Z+fz*station);
             WaterfallRecipe recipe;
             try
             {
                 recipe=new WaterfallRecipe(OnAxis(0,high),OnAxis(0,low),OnAxis(poolStation,low),OnAxis(outletStation,low),
                     fx,fz,profile.Width,profile.Width*1.35,profile.Depth,profile.Depth*1.3,profile.Depth*.7,
-                    upstreamSlope:0,downstreamSlope:0,outletTransitionLength:profile.Width);
+                    upstreamSlope:0,downstreamSlope:0,outletTransitionLength:transition);
             }
             catch(ArgumentException error)
             {diagnostic="Fall recipe is outside bounded geometry: "+error.Message;return false;}
+            bool hasReceiving=RiverFallLowerReach.TryBuild(source,bounds,request,profile,recipe,lowerLength,
+                out var receiving,out diagnostic,cancellation);
+            if(!hasReceiving&&request.FallSite.RequirePlannedLowerReach)return false;
             candidate=new RiverFallCandidate(source.Identity,request,
                 new WorldPoint(start.Position.X,high,start.Position.Z),
-                new WorldPoint(end.Position.X,low,end.Position.Z),recipe);
-            diagnostic="Valid local fall candidate; a planned continuous lower RiverRoute, corridor and crossing offers are not yet available.";
+                new WorldPoint(end.Position.X,mouthGround+profile.SurfaceOffset-profile.WaterInset,end.Position.Z),recipe,receiving);
+            diagnostic=hasReceiving
+                ?"Valid local fall candidate with sampled straight receiving route; physical full-reach publication remains unavailable."
+                :"Valid local fall candidate only; receiving route unavailable: "+diagnostic;
             return true;
         }
 
-        private static bool Reach(WorldPoint a,WorldPoint b,double edgeHeight,IHeightSource terrain,RiverProfile profile,bool upper)
+        private static bool Reach(WorldPoint a,WorldPoint b,double edgeHeight,IHeightSource terrain,RiverProfile profile,bool upper,
+            CancellationToken cancellation)
         {
             double distance=Math.Sqrt((b.X-a.X)*(b.X-a.X)+(b.Z-a.Z)*(b.Z-a.Z));
             double raw=Math.Ceiling(distance/Math.Min(profile.SampleSpacing,.5));
@@ -131,7 +151,7 @@ namespace TerraLoom.Rivers
             int steps=(int)raw;
             double previous=0;
             for(int i=0;i<=steps;i++)
-            {double t=(double)i/steps,x=a.X+(b.X-a.X)*t,z=a.Z+(b.Z-a.Z)*t;
+            {cancellation.ThrowIfCancellationRequested();double t=(double)i/steps,x=a.X+(b.X-a.X)*t,z=a.Z+(b.Z-a.Z)*t;
                 if(!terrain.TryGetHeight(x,z,out double y)||!RiverHash.Finite(y))return false;
                 if((upper&&i==steps||!upper&&i==0)&&Math.Abs(y-edgeHeight)>.1)return false;
                 if(i>0&&previous-y>profile.MaximumSlope*distance/steps+1e-8)return false;

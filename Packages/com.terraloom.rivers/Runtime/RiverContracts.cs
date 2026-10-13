@@ -172,8 +172,7 @@ namespace TerraLoom.Rivers
             IEnumerable<RiverFallCandidate> fallCandidates = null,IEnumerable<RiverPublishedFall> publishedFalls = null)
         {
             CoreInputIdentity = core; ProfileFingerprint = profile.Fingerprint; DomainFingerprint = domain;
-            Identity = new PlanIdentity(core.Seed, core.Revision, RiverPlanner.AlgorithmVersion, domain,
-                RiverHash.Digest(w => { RiverHash.Identity(w, core); w.Write(domain); }));
+            Identity = RiverPlanner.IdentityFor(core,domain);
             Routes = Array.AsReadOnly(routes.ToArray()); Reports = Array.AsReadOnly(reports.ToArray());
             FallCandidates = Array.AsReadOnly((fallCandidates ?? Array.Empty<RiverFallCandidate>()).ToArray());
             PublishedFalls = Array.AsReadOnly((publishedFalls ?? Array.Empty<RiverPublishedFall>()).ToArray());

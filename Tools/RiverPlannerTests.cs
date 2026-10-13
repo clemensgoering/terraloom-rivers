@@ -145,6 +145,43 @@ internal static class RiverPlannerTests
             Require(!RiverFallCandidatePlanner.TryCreate(input.BaseSnapshot,stale,Bounds,request,p,out var candidate,out var reason)
                 &&candidate==null&&reason.Contains("Stale"),"Stale revision accepted.");
         });
+        Check("fall receiving route is continuous, bounded and offers bridges only beyond the outlet", () =>
+        {
+            var input=FallInput(mouthX:10);var profile=new RiverProfile(bankWidth:.5,maximumSlope:.5,allowExcavation:true);
+            var plan=Plan(input,profile,new[]{FallRequest(requireLower:true)});
+            Require(plan.FallCandidates.Count==1,Detail(plan));
+            var candidate=plan.FallCandidates.Single();var lower=candidate.LowerReach;
+            Require(lower!=null&&lower.CoreInputIdentity==input.Identity&&lower.PlanIdentity==plan.Identity&&
+                lower.RequestId==candidate.RequestId,
+                "Receiving route lost common source identity.");
+            Require(lower.Water.Count==lower.Bed.Count&&lower.Water.Count==lower.LeftBank.Count&&
+                lower.Water.Count==lower.RightBank.Count&&lower.Corridors.Count==lower.Water.Count-1,
+                "Receiving station geometry and corridors are not aligned.");
+            Near(lower.Water[0].X,candidate.Recipe.OutletStation+candidate.Recipe.OutletTransitionLength);
+            Near(lower.Water[0].Y,candidate.Recipe.SampleLowerReach(lower.JoinStation).Surface.Y);
+            Near(lower.Water.Last().X,candidate.LowerEnd.X);Near(lower.Water.Last().Y,candidate.LowerEnd.Y);
+            Require(lower.Reservations.Count==lower.Corridors.Count*2&&lower.CrossingOffers.Count>0,
+                "Receiving reservations or distant bridge offers are missing.");
+            for(int i=1;i<lower.Water.Count;i++)
+                Require(lower.Water[i].Y<=lower.Water[i-1].Y&&lower.Bed[i].Y<=lower.Bed[i-1].Y,
+                    "Receiving water or bed rises between stations.");
+            Require(lower.CrossingOffers.All(c=>c.AllowedKinds==CrossingKind.Bridge&&
+                c.Bounds.MinX>=lower.JoinStation+profile.Width-1e-6),
+                "Pool or immediate outlet offered an unreviewed crossing.");
+            var again=Plan(input,profile,new[]{FallRequest(requireLower:true)}).FallCandidates.Single().LowerReach;
+            Require(again.Corridors.Select(c=>c.Id).SequenceEqual(lower.Corridors.Select(c=>c.Id))&&
+                again.Water.Last().Y==lower.Water.Last().Y,"Receiving route replay changed.");
+            var unsupported=FallInput(new Height((x,z)=>x<0?8:x>7&&Math.Abs(z)>1?1:2),mouthX:10);
+            var rejected=Plan(unsupported,profile,new[]{FallRequest(requireLower:true)});
+            Require(rejected.FallCandidates.Count==0&&Detail(rejected).Contains("Receiving bank"),Detail(rejected));
+            var steep=FallInput(new Height((x,z)=>x<0?8:x<=7?2:2-(x-7)*.9),mouthX:10);
+            var noSteep=Plan(steep,profile,new[]{FallRequest(requireLower:true)});
+            Require(noSteep.FallCandidates.Count==0&&noSteep.Reports.Single().Outcome==RiverOutcome.NoRoute,
+                "Unsupported steep receiving grade became a fall plan.");
+            Require(RiverPlanner.ProfileVersion(profile,Bounds,new[]{FallRequest(requireLower:true)})!=
+                RiverPlanner.ProfileVersion(profile,Bounds,new[]{FallRequest()}),
+                "Opt-in receiving contract did not change the stable domain identity.");
+        });
         Check("undersized fall footprints reject before sampling or publication", () =>
         {
             var input=FallInput();var request=FallRequest();
@@ -351,7 +388,8 @@ internal static class RiverPlannerTests
         IAnchorSource anchors = null, IEnumerable<LandscapeSample> landscape = null, string fingerprint = "height-content-v1", TerrainSnapshot terrainOverride = null) =>
         new PlanningInput(42, 1, "shared-core-v1", "shared-profile-v1", terrainOverride ?? new TerrainSnapshot("world", 1, "metres", heights ?? new FlatHeightSource(0)),
             fingerprint, anchors ?? Anchors(), landscape ?? Array.Empty<LandscapeSample>(), areas ?? Array.Empty<AreaReservation>());
-    private static RiverRequest FallRequest()=>new RiverRequest("main","source","mouth",new RiverFallSite("main-fall","fall"));
+    private static RiverRequest FallRequest(bool requireLower=false)=>new RiverRequest("main","source","mouth",
+        new RiverFallSite("main-fall","fall",requireLower));
     private static PlanningInput FallInput(IHeightSource heights=null,IEnumerable<AreaReservation> areas=null,double mouthX=8)
     {
         var anchors=new ManualAnchorSource("fall-anchors",1,new[]{
