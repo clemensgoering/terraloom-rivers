@@ -19,7 +19,7 @@ floating branches or unrelated package revisions.
     "com.terraloom.core": "https://github.com/clemensgoering/terraloom-core.git?path=/Packages/com.terraloom.core#014e4ce4fbdfe7bab988ca8b927ef8a17b80fc69",
     "com.terraloom.paths": "https://github.com/clemensgoering/terraloom-paths.git?path=/Packages/com.terraloom.paths#d1f4ef04fba9415571a8efd1f54cf585aeb94216",
     "com.terraloom.rivers": "https://github.com/clemensgoering/terraloom-rivers.git?path=/Packages/com.terraloom.rivers#7889dc7c73f3ada87074bfc5546fec75a731f262",
-    "com.terraloom.composition": "https://github.com/clemensgoering/terraloom-rivers.git?path=/UPM/com.terraloom.composition#8838eb76588316baad2683799549d02a5d68406f"
+    "com.terraloom.composition": "https://github.com/clemensgoering/terraloom-rivers.git?path=/UPM/com.terraloom.composition#0c20acddc4dc8a174673a8473d96c8560fca9d2d"
   }
 }
 ```
@@ -27,10 +27,16 @@ floating branches or unrelated package revisions.
 Composition 0.5.0 targets Unity 6000.3 and depends on Core, Paths and Rivers
 0.3.0. The Git pins above are the tested installation set, not a claim that
 other Unity versions or render pipelines have been qualified.
-The isolated consumer test confirmed that Unity selects the package Inspector,
-missing Bridge Material prevents asset creation, and a saved recipe restores
-its materials and deterministic path/river plans after scene values change.
-The actual first-time buyer clickthrough and visual result remain to be checked.
+The isolated consumer recipe test confirmed that Unity selects the package
+Inspector, missing Bridge Material prevents asset creation, and a saved recipe
+restores its materials and deterministic path/river plans after scene values
+change. A second empty Unity 6000.3.9f1 URP consumer using the four Git pins
+above confirmed the World Workbench menu, exactly one packaged Composition
+coordinator, module attachment to one Core world, rediscovery of the
+Composition tab, and selection of the package Inspector. Its evidence is
+`TerraLoom/.bootstrap-tools/composition-buyer-b-git-20261013/.artifacts/entry-audit.txt`.
+This entry audit does not prove a complete new-world recipe, saved baked scene,
+Player view, or first-time human clickthrough.
 
 ## First recipe
 

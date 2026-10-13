@@ -113,6 +113,17 @@ capturing a new schema-2 recipe asset. Existing assets are not overwritten.
 The saved recipe drives GenerateRecipe on Core-owned terrain; supplied terrain
 has a separate Paths + Rivers action and still needs its own decoration step.
 
+At `0c20acd`, the Composition World Workbench extension also lives in the
+optional UPM package. Its Integration sample duplicate was removed. A fresh
+Unity 6000.3.9f1 URP consumer with Core `014e4ce`, Paths `d1f4ef0`, Rivers
+`7889dc7` and Composition `0c20acd` resolved four Git packages and passed an
+empty-scene entry audit: one coordinator, Workbench menu, same-world module
+attachment, Composition tab rediscovery and package Inspector selection.
+Evidence: `TerraLoom/.bootstrap-tools/composition-buyer-b-git-20261013/`
+`.artifacts/entry-audit.txt` and `entry.log`. Recipe capture, actual generation,
+baked Save/Reopen and Player-height visual inspection remain separate Buyer B
+gates; this audit does not claim them.
+
 Fresh Git consumer: `.bootstrap-tools/composition-buyer-ui-20261013`, Unity
 6000.3.9f1, Core014e4ce, Pathsd1f4ef0, Rivers7889dc7, Composition8838eb7.
 Focused EditMode `PackageInspectorCapturesNewAssetAndGeneratesFromSavedSettings`
