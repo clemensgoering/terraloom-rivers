@@ -84,6 +84,15 @@ described below. Building the world does not silently create that asset.
    input must be regenerated first. A failed bake can leave partial assets in
    the chosen folder; choose a fresh folder on retry.
 
+After generation, Composition reports whether each bridge is a surface-only
+deck or a physical timber kit with crossing bindings verified at generation. The Inspector
+shows non-blocking visual review warnings for a surface-only deck, a route
+longer than 1.5 times its direct target distance with more than 10 m excess,
+or a bridge footprint closer to the terrain edge than the larger of 6 m and
+the path/river corridor-derived margin. It displays measured distances and
+deck coordinates. These warnings are saved with the scene, do not change a
+route or grant, and do not certify the result visually.
+
 The public namespace is `TerraLoom.Integration`; the assembly is
 `TerraLoom.Composition.Unity`; the Inspector assembly is
 `TerraLoom.Composition.Editor`. Add the runtime assembly reference to your own

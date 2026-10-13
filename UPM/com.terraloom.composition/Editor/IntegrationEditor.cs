@@ -235,6 +235,8 @@ namespace TerraLoom.Integration.Editor
             if(GUILayout.Button("Check input/output freshness"))
             {bool current=instance.ValidateCurrent(out var reason);EditorUtility.DisplayDialog(current?"Composition current":"Composition stale",reason,"OK");}
             EditorGUILayout.HelpBox(instance.Diagnostics,MessageType.Info);
+            if(!string.IsNullOrWhiteSpace(instance.PresentationWarnings))
+                EditorGUILayout.HelpBox("Review last published composition:\n"+instance.PresentationWarnings,MessageType.Warning);
         }
     }
 }

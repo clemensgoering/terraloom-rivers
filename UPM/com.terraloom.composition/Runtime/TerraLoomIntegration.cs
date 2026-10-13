@@ -33,6 +33,7 @@ namespace TerraLoom.Integration
             return selected;
         }
         [SerializeField, TextArea] private string diagnostics;
+        [SerializeField, HideInInspector] private string presentationWarnings;
         [SerializeField] private GenerationRunState generationState;
         [SerializeField] private string activeStep;
         [SerializeField, TextArea] private string generationTrace;
@@ -44,6 +45,8 @@ namespace TerraLoom.Integration
         [SerializeField, HideInInspector] private Material[] builtMaterials;
         [SerializeField, HideInInspector] private Matrix4x4 builtPathsTransform, builtRiversTransform;
         public string Diagnostics => diagnostics;
+        /// <summary>Non-blocking review of the last committed route geometry, retained with a saved scene.</summary>
+        public string PresentationWarnings => presentationWarnings;
         public GenerationRunState GenerationState => generationState;
         public string ActiveStep => activeStep;
         public string GenerationTrace => generationTrace;
@@ -319,7 +322,9 @@ namespace TerraLoom.Integration
                             try{decoration.Clear();}catch(Exception ex){cleanupDiagnostics+="\nDecoration invalidation: "+ex.Message;}
                 });
                 activeStep="";
-                diagnostics="Core + Rivers + Paths: "+riverPlan.Routes.Count+" river, "+pathPlan.Routes.Count+" path; "+pathPlan.Routes.Sum(r=>r.Surfaces.Count(s=>s==PathSurface.Bridge))+" negotiated bridge deck(s).";
+                diagnostics="Core + Rivers + Paths: "+riverPlan.Routes.Count+" river, "+pathPlan.Routes.Count+" path; "+CompositionPresentationReview.BridgeStatus(pathPlan,Paths)+".";
+                try{presentationWarnings=CompositionPresentationReview.Warnings(pathPlan,World,Paths,Rivers);}
+                catch(Exception ex){presentationWarnings="Presentation review unavailable: "+ex.Message;}
                 if(!string.IsNullOrWhiteSpace(cleanupDiagnostics))diagnostics+="\nPost-commit cleanup: "+cleanupDiagnostics.Trim();
                 return true;
             }
@@ -413,6 +418,7 @@ namespace TerraLoom.Integration
             if(generating)throw new InvalidOperationException("Cannot clear during composition generation.");
             generationState=GenerationRunState.Pending;activeStep="";
             generationTrace="Cleared in reverse order: decoration, Paths, Rivers, owned Core source.\n";
+            presentationWarnings="";
             PublishedSharedInput=null;
             foreach(var decoration in UnityEngine.Object.FindObjectsByType<RegionDecoration>(FindObjectsInactive.Include,FindObjectsSortMode.None))
                 if(decoration.World==World&&World)decoration.Clear();

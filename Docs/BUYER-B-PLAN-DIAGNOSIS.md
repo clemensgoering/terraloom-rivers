@@ -74,3 +74,5 @@ Local evidence: `.artifacts/plan-diagnosis.txt`, `crossing-candidates.csv`,
 `route-window-diagnosis.txt`, and the four `.artifacts/PlayerViews/*.png` in
 the frozen consumer. The Player build and execution passed structurally;
 the visual gate remains open.
+
+The read-only contract proposal is [ADR-SOFT-BANK-COST.md](ADR-SOFT-BANK-COST.md).
