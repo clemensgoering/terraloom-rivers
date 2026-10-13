@@ -2,8 +2,9 @@
 
 Composition is an optional UPM host for projects that use TerraLoom Core, Paths
 and Rivers together. The packages retain their independent dependencies;
-Composition depends on all three. The package includes a runtime host and an
-Editor inspector; it does not include sample scenes or art assets.
+Composition depends on all three. The package includes a runtime host, an
+Editor inspector, and a World Workbench extension for coordinated generation;
+it does not include sample scenes or art assets.
 
 ## Install the tested package set
 
@@ -32,6 +33,13 @@ its materials and deterministic path/river plans after scene values change.
 The actual first-time buyer clickthrough and visual result remain to be checked.
 
 ## First recipe
+
+The **Tools > TerraLoom > World Workbench** menu can add Paths, Rivers, and
+Shared Rivers + Paths generation to a Core world. The Composition package
+registers exactly one coordinator in a package-only project, so **Generate
+world** can discover the shared order. A saved Composition Recipe is still a
+separate asset: capture and generate it through the Composition Inspector as
+described below. Building the world does not silently create that asset.
 
 1. Add `TerraLoomWorld`, `TerraLoomPaths`, `TerraLoomRivers`, and
    `RegionDecoration` to your scene. Assign the same Core world to all four

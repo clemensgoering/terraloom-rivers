@@ -134,7 +134,7 @@ namespace TerraLoom.Tests
                 Assert.That(Object.FindObjectsByType<MeshFilter>(FindObjectsSortMode.None),Is.Empty);
                 Assert.That(recipe.Composition.Paths.gameObject,Is.Not.SameAs(recipe.Composition.World.gameObject));
                 Assert.That(recipe.Composition.Rivers.gameObject,Is.Not.SameAs(recipe.Composition.World.gameObject));
-                foreach(string id in new[] {"paths","rivers","core.decoration","consumer.composition"})
+                foreach(string id in new[] {"paths","rivers","core.decoration","composition"})
                 {var extension=WorldEditorExtensions.All.Single(e=>e.Id==id);Assert.That(extension.Find(recipe.Composition.World).Length,Is.EqualTo(1));Assert.That(TerraLoomEditorIcons.Get(extension.Icon),Is.Not.Null);}
             }
             finally{if(setup.Any(s=>s.isLoaded&&s.isActive&&!string.IsNullOrEmpty(s.path)))EditorSceneManager.RestoreSceneManagerSetup(setup);else EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);}

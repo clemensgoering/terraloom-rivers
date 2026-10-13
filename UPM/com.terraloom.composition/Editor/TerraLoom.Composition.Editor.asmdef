@@ -4,6 +4,7 @@
     "TerraLoom.Composition.Unity",
     "TerraLoom.Core.Runtime",
     "TerraLoom.Core.Unity",
+    "TerraLoom.Core.Editor",
     "TerraLoom.Paths.Unity",
     "TerraLoom.Rivers.Unity"
   ],
