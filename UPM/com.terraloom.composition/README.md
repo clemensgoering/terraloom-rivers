@@ -68,6 +68,16 @@ described below. Building the world does not silently create that asset.
    terrain** in this inspector; that operation leaves regional decoration to
    its separate component. Recipe generation refuses to replace external
    `TerrainData`.
+5. For a scene that must survive closing Unity, choose **Bake generated world
+   for scene save** in the Composition Inspector, select a new empty folder
+   under `Assets`, then save the scene. This action delegates to the existing
+   Rivers bake (which persists the original and carved TerrainData and river
+   meshes) followed by the Paths mesh bake. Keep the bake folder, profiles,
+   materials, recipe and scene together in source control. Saving a scene
+   before baking leaves transient TerrainData references that will be missing
+   after reopening. The button requires a current generated recipe; a changed
+   input must be regenerated first. A failed bake can leave partial assets in
+   the chosen folder; choose a fresh folder on retry.
 
 The public namespace is `TerraLoom.Integration`; the assembly is
 `TerraLoom.Composition.Unity`; the Inspector assembly is

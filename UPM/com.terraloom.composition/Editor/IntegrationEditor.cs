@@ -1,7 +1,10 @@
 using System;
+using System.IO;
 using System.Linq;
 using TerraLoom.Core.Unity;
 using TerraLoom.Integration;
+using TerraLoom.Paths.Editor;
+using TerraLoom.Rivers.Editor;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -117,6 +120,44 @@ namespace TerraLoom.Integration.Editor
         {
             GenerateSavedRecipe(instance);
         }
+        /// <summary>Persist the existing shared output through the two module bake contracts.
+        /// Require a fresh folder so an unrelated user asset cannot be replaced by a bake.</summary>
+        public static void BakeGeneratedForScene(TerraLoomIntegration instance,string directory)
+        {
+            if(!instance||!instance.RecipeAsset||!instance.World||!instance.World.OwnsTerrain||!instance.World.Terrain||
+                !instance.World.Terrain.terrainData||!instance.Paths||!instance.Paths.GeneratedRoot||
+                !instance.Rivers||!instance.Rivers.GeneratedRoot)
+                throw new InvalidOperationException("Generate the saved Core-owned Composition Recipe with Rivers and Paths before baking.");
+            var decoration=ResolveDecoration(instance);
+            if(decoration.World!=instance.World||!decoration.GeneratedRoot)
+                throw new InvalidOperationException("Generate the recipe's regional decoration before baking.");
+            if(!instance.ValidateCurrent(out var freshness))
+                throw new InvalidOperationException("Composition output is stale: "+freshness);
+            if(string.IsNullOrWhiteSpace(directory)||!directory.StartsWith("Assets/",StringComparison.Ordinal)||
+                directory.Contains("..")||directory.EndsWith("/",StringComparison.Ordinal))
+                throw new InvalidOperationException("Choose a new folder inside Assets for the composition bake.");
+            string absolute=Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Application.dataPath),directory));
+            string assets=Path.GetFullPath(Application.dataPath).TrimEnd(Path.DirectorySeparatorChar,Path.AltDirectorySeparatorChar);
+            if(!absolute.StartsWith(assets+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("The bake folder must be inside this project's Assets folder.");
+            if((Directory.Exists(absolute)&&Directory.EnumerateFileSystemEntries(absolute).Any())||
+                (AssetDatabase.IsValidFolder(directory)&&AssetDatabase.FindAssets("",new[]{directory}).Length>0))
+                throw new InvalidOperationException("Choose an empty bake folder. Existing assets are never overwritten by the Composition action.");
+            RiversSampleBuilder.Bake(instance.Rivers,directory+"/Rivers");
+            PathsSampleBuilder.Bake(instance.Paths,directory+"/Paths");
+            AssetDatabase.SaveAssets();
+            EditorUtility.SetDirty(instance);
+            EditorSceneManager.MarkSceneDirty(instance.gameObject.scene);
+        }
+        private static string AssetDirectoryFromAbsolute(string absolute)
+        {
+            if(string.IsNullOrEmpty(absolute))return null;
+            string assets=Path.GetFullPath(Application.dataPath).TrimEnd(Path.DirectorySeparatorChar,Path.AltDirectorySeparatorChar);
+            string chosen=Path.GetFullPath(absolute).TrimEnd(Path.DirectorySeparatorChar,Path.AltDirectorySeparatorChar);
+            if(!chosen.StartsWith(assets+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("The bake folder must be inside this project's Assets folder.");
+            return "Assets/"+chosen.Substring(assets.Length+1).Replace('\\','/');
+        }
         public override void OnInspectorGUI()
         {
             DrawDefaultInspector(); var instance=(TerraLoomIntegration)target;
@@ -144,6 +185,21 @@ namespace TerraLoom.Integration.Editor
                     try{GenerateSavedRecipe(instance);actionError=null;}
                     catch(Exception ex){actionError=ex.Message;}
                 }
+            if(GUILayout.Button("Bake generated world for scene save"))
+            {
+                try
+                {
+                    string folder=EditorUtility.SaveFolderPanel("Bake TerraLoom composition into a new folder",Application.dataPath,"TerraLoomWorldBake");
+                    if(!string.IsNullOrEmpty(folder))
+                    {
+                        BakeGeneratedForScene(instance,AssetDirectoryFromAbsolute(folder));
+                        actionError=null;
+                        EditorUtility.DisplayDialog("Composition assets baked",
+                            "Rivers, Paths and both terrain copies are saved as project assets. Save the scene now, and keep the bake folder with it.","OK");
+                    }
+                }
+                catch(Exception ex){actionError=ex.Message;}
+            }
             if(GUILayout.Button("Generate Paths + Rivers on supplied terrain"))
             {
                 try

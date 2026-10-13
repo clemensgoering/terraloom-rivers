@@ -6,7 +6,9 @@
     "TerraLoom.Core.Unity",
     "TerraLoom.Core.Editor",
     "TerraLoom.Paths.Unity",
-    "TerraLoom.Rivers.Unity"
+    "TerraLoom.Paths.Editor",
+    "TerraLoom.Rivers.Unity",
+    "TerraLoom.Rivers.Editor"
   ],
   "includePlatforms": ["Editor"],
   "autoReferenced": true

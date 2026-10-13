@@ -124,6 +124,21 @@ Evidence: `TerraLoom/.bootstrap-tools/composition-buyer-b-git-20261013/`
 baked Save/Reopen and Player-height visual inspection remain separate Buyer B
 gates; this audit does not claim them.
 
+Buyer B generation on that fresh consumer then passed with original Core
+seasonal assets, Rivers water styles, project-owned URP path/bridge/terrain
+materials and two regional profiles. The shipped Inspector saved schema-2
+`WorldRecipe.asset`; the shared build reported one river, one path and one
+negotiated bridge deck. A plain scene save lost transient TerrainData on a
+separate Unity process reopen. Existing Rivers→Paths bake actions followed by
+scene save retained owned original/carved terrain, recipe, both generated roots
+and 65 placed regional instances after reopening. The optional Composition
+Inspector now exposes one guarded **Bake generated world for scene save**
+action that delegates to those two existing bakes, requires current outputs and
+a fresh empty Assets folder, and instructs a scene save. The centralized
+local-package bake and separate-process reopen passed; evidence is in the same
+consumer `.artifacts/{recipe-audit,reopen-audit,central-bake-audit,reopen-central-audit}.txt`.
+Player-height visual acceptance is still separate from these structural checks.
+
 Fresh Git consumer: `.bootstrap-tools/composition-buyer-ui-20261013`, Unity
 6000.3.9f1, Core014e4ce, Pathsd1f4ef0, Rivers7889dc7, Composition8838eb7.
 Focused EditMode `PackageInspectorCapturesNewAssetAndGeneratesFromSavedSettings`
