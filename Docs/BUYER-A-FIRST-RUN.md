@@ -113,3 +113,38 @@ legitimate 9.511811 m, explicitly authorized local TimberTruss construction
 probe. It validates a local body and approaches but records rejection of its
 unchanged full target route. It cannot be substituted for successful Buyer-A
 composition or whole-route Player acceptance.
+
+**Separate authorized-truss consumer on the same foreign-terrain recipe:**
+`BuyerAProbe.RunAuthorizedTruss` keeps the 96 m height field, terrain layers,
+TreeInstances/details, source/mouth at X 48 / Z 4–92, river brush, seed 42,
+path slope/clearance and TimberTruss limits. It has its own authored folder
+`Assets/BuyerA-AuthorizedTruss`; the original `RunStructural` case, its
+west/east targets at Z 48 and its single-section grants remain unchanged.
+The positive case places west/east at X 24/72, Z 57 and restricts routing to
+X 16–80 / Z 54–64. Its consumer policy grants only selected partial crossing
+sections that actually overlap each deck strip inside the **same** X 24–64 /
+Z 54–64 authorization zone. This yields six current collective grants. It
+does not authorize a crossing at the previously selected Z 8.5 headwater
+detour or change a construction limit.
+
+With Git-pinned Core, Paths `312ac793d49736f7a06698f6e9543610978960be`,
+Rivers and Composition `b901c1b0ac204e8b37c2266ab733b953c0222783`,
+`authorized-truss-final-git.log` is green: one bound 9.5 m bridge, one
+BridgeStructure, two BridgeRamps, collider-backed geometry, current
+composition, final structure footprint X 43.25–52.75 / Z 57.95–60.55 wholly
+inside the declared grant zone. The source trees/details and heights are
+unchanged and Clear restores the source binding. `BuildAuthorizedTrussPlayer`
+and the Windows Player run report `BUYER_A_PLAYER_SUCCESS structural=True
+span=9.5 colliderProbes=499`. CharacterController traversed the entire route.
+Five 1280×720 views are preserved locally under
+`.artifacts/BuyerA-20261013/AuthorizedTrussEvidence/`: overview, west, east,
+side and underside. They show timber side trusses, railings, dry approaches
+and open water below. The simple terrain/water/material styling is only
+technical evidence and is not final V0 visual acceptance.
+
+Re-running the **original** `RunStructural` after this separate positive
+recipe still gives Stage-03 `NoRoute` (`original-negative-after-positive.log`):
+the old west/east Z 48 targets and old grants are not silently replaced by
+the new recipe. The baseline surface-only vegetation test also stays green
+(`baseline-after-positive.log`). Its surface-only deck still lacks a physical
+kit and must not be presented as a finished bridge.

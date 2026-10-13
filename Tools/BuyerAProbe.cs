@@ -16,21 +16,23 @@ using Debug=UnityEngine.Debug;
 
 public static class BuyerAProbe
 {
-    public static void Run()=>Run(false,false);
-    public static void BuildPlayer()=>Run(true,false);
-    public static void RunStructural()=>Run(false,true);
-    public static void BuildStructuralPlayer()=>Run(true,true);
-    private static void Run(bool buildPlayer,bool structural)
+    public static void Run()=>Run(false,false,false);
+    public static void BuildPlayer()=>Run(true,false,false);
+    public static void RunStructural()=>Run(false,true,false);
+    public static void BuildStructuralPlayer()=>Run(true,true,false);
+    public static void RunAuthorizedTruss()=>Run(false,true,true);
+    public static void BuildAuthorizedTrussPlayer()=>Run(true,true,true);
+    private static void Run(bool buildPlayer,bool structural,bool positive)
     {
         var elapsed=Stopwatch.StartNew();
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
-        const string root="Assets/BuyerA";
+        string root=positive?"Assets/BuyerA-AuthorizedTruss":"Assets/BuyerA";
         if(AssetDatabase.IsValidFolder(root))AssetDatabase.DeleteAsset(root);
-        AssetDatabase.CreateFolder("Assets","BuyerA");
-        var ground=Material("Ground",new Color(.31f,.36f,.25f));
-        var bridge=Material("Bridge",new Color(.32f,.19f,.08f));
-        var water=Material("Water",new Color(.08f,.35f,.58f));
-        var layers=new[] {Layer("Meadow",new Color(.35f,.40f,.28f)),Layer("Silt",new Color(.48f,.39f,.30f))};
+        AssetDatabase.CreateFolder("Assets",positive?"BuyerA-AuthorizedTruss":"BuyerA");
+        var ground=Material(root,"Ground",new Color(.31f,.36f,.25f));
+        var bridge=Material(root,"Bridge",new Color(.32f,.19f,.08f));
+        var water=Material(root,"Water",new Color(.08f,.35f,.58f));
+        var layers=new[] {Layer(root,"Meadow",new Color(.35f,.40f,.28f)),Layer(root,"Silt",new Color(.48f,.39f,.30f))};
         var data=new TerrainData{heightmapResolution=129,size=new Vector3(96,16,96)};
         var heights=new float[129,129];
         for(int z=0;z<129;z++)for(int x=0;x<129;x++)heights[z,x]=(6-.03f*(96f*z/128))/16;
@@ -57,12 +59,12 @@ public static class BuyerAProbe
         var terrainObject=Terrain.CreateTerrainGameObject(data);terrainObject.name="BuyerA Supplied Terrain";
         var terrain=terrainObject.GetComponent<Terrain>();var collider=terrainObject.GetComponent<TerrainCollider>();
         var host=new GameObject("BuyerA TerraLoom Host");
-        var world=host.AddComponent<TerraLoomWorld>();world.WorldId="buyer-a";world.Seed=42;world.Terrain=terrain;
+        var world=host.AddComponent<TerraLoomWorld>();world.WorldId=positive?"buyer-a-authorized-truss":"buyer-a";world.Seed=42;world.Terrain=terrain;
         world.ManualAnchors=new[]{
             new ManualWorldAnchor{Id="source",Position=new Vector3(48,0,4)},
             new ManualWorldAnchor{Id="mouth",Position=new Vector3(48,0,92)},
-            new ManualWorldAnchor{Id="west",Position=new Vector3(12,0,48)},
-            new ManualWorldAnchor{Id="east",Position=new Vector3(84,0,48)}
+            new ManualWorldAnchor{Id="west",Position=positive?new Vector3(24,0,57):new Vector3(12,0,48)},
+            new ManualWorldAnchor{Id="east",Position=positive?new Vector3(72,0,57):new Vector3(84,0,48)}
         };
         var paths=host.AddComponent<TerraLoomPaths>();paths.World=world;paths.GroundMaterial=ground;paths.BridgeMaterial=bridge;
         paths.AutomaticNetwork=false;paths.MaximumSlope=.35f;paths.BridgeClearance=1.2f;
@@ -72,7 +74,8 @@ public static class BuyerAProbe
         rivers.AutomaticSourceAndMouth=false;rivers.TerrainBrush=true;rivers.WaterInset=.6f;rivers.SedimentTerrainLayer=1;
         rivers.Connections.Add(new RiverConnectionSettings{Id="buyer-river",SourceId="source",MouthId="mouth"});
         var composition=host.AddComponent<TerraLoomIntegration>();composition.World=world;composition.Paths=paths;composition.Rivers=rivers;
-        if(structural)composition.CrossingPermissions=AuthorizeBuyerCrossing;
+        if(structural)composition.CrossingPermissions=positive?AuthorizePositiveCrossing:AuthorizeBuyerCrossing;
+        if(positive){composition.RestrictPathRouting=true;composition.PathRoutingZone=new Rect(16,54,64,10);}
         AssetDatabase.SaveAssets();
         EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(),root+"/Authored.unity");
         Debug.Log("BUYER_A_SETUP_SECONDS "+elapsed.Elapsed.TotalSeconds.ToString("F2")+" script-authored; human clicks not measured");
@@ -86,8 +89,8 @@ public static class BuyerAProbe
             {
                 var shared=composition.LastSharedInput;
                 var attempt=paths.LastAttemptPlan;
-                Debug.LogError("BUYER_A_STRUCTURAL_REJECTED step="+composition.ActiveStep+" "+ex.Message+
-                    " candidates="+(shared?.Crossings.Count??0)+" grants="+(shared==null?0:AuthorizeBuyerCrossing(shared).Grants.Count)+
+                Debug.LogError((positive?"BUYER_A_POSITIVE_REJECTED":"BUYER_A_STRUCTURAL_REJECTED")+" step="+composition.ActiveStep+" "+ex.Message+
+                    " candidates="+(shared?.Crossings.Count??0)+" grants="+(shared==null?0:composition.CrossingPermissions(shared).Grants.Count)+
                     " bridgeSurfaces="+(attempt?.Routes.Sum(r=>r.Surfaces.Count(s=>s==PathSurface.Bridge))??0)+
                     " boundCrossings="+(attempt?.Routes.Sum(r=>r.BridgeCrossings.Count)??0)+
                     " bridgeSegments="+(attempt==null?"none":string.Join(";",attempt.Routes.SelectMany(r=>
@@ -104,10 +107,22 @@ public static class BuyerAProbe
             var geometry=paths.GeneratedRoot.GetComponentsInChildren<PathGeneratedGeometry>(true);
             int body=geometry.Count(g=>g.Role==PathGeometryRole.BridgeStructure);
             int ramps=geometry.Count(g=>g.Role==PathGeometryRole.BridgeRamp);
-            Debug.Log("BUYER_A_STRUCTURAL geometryBody="+body+" ramps="+ramps+" boundCrossings="+bound);
+            Debug.Log((positive?"BUYER_A_POSITIVE_STRUCTURE":"BUYER_A_STRUCTURAL")+" geometryBody="+body+" ramps="+ramps+" boundCrossings="+bound);
             if(bound==0||body==0||ramps<2||geometry.Where(g=>g.Role==PathGeometryRole.BridgeStructure||g.Role==PathGeometryRole.BridgeRamp)
                 .Any(g=>!g.GetComponent<MeshCollider>()||!g.GetComponent<MeshCollider>().sharedMesh))
                 throw new InvalidOperationException("BUYER_A_STRUCTURAL_BLOCKER complete collider-backed timber bridge not published.");
+            if(positive)
+            {
+                var binding=paths.LastPlan.Routes.Single().BridgeCrossings.Single();
+                var footprint=binding.Footprint(paths.Width+2*paths.CaptureProfile().BridgeLateralPadding);
+                var zone=new WorldBounds(24,54,64,64);
+                bool current=composition.ValidateCurrent(out var validity);
+                if(!zone.Contains(footprint)||!current)
+                    throw new InvalidOperationException("BUYER_A_POSITIVE_BLOCKER published truss exceeds granted zone or is stale: "+validity);
+                Debug.Log("BUYER_A_POSITIVE_AUTH grants="+AuthorizePositiveCrossing(composition.LastSharedInput).Grants.Count+
+                    " span="+Math.Abs(binding.End.X-binding.Start.X)+" footprint=["+footprint.MinX+","+footprint.MinZ+","+
+                    footprint.MaxX+","+footprint.MaxZ+"]");
+            }
         }
         if(!paths.LastPlan.Routes.Any(r=>r.Surfaces.Contains(PathSurface.Bridge)))
             throw new InvalidOperationException("BUYER_A_BLOCKER no actual bridge in generated route.");
@@ -145,9 +160,15 @@ public static class BuyerAProbe
             light.intensity=1.3f;lightObject.transform.rotation=Quaternion.Euler(45,25,0);
             var cameraObject=new GameObject("BuyerA Player Camera");var camera=cameraObject.AddComponent<Camera>();
             cameraObject.tag="MainCamera";camera.fieldOfView=65;camera.farClipPlane=300;
-            cameraObject.AddComponent<BuyerAPlayerCapture>();
+            var capture=cameraObject.AddComponent<BuyerAPlayerCapture>();
+            var route=paths.LastPlan.Routes.Single();
+            int bridgeSegment=route.Surfaces.ToList().IndexOf(PathSurface.Bridge);
+            Vector3 Point(int i){var p=route.Waypoints[i];return new Vector3((float)p.X,(float)p.Y+paths.SurfaceOffset,(float)p.Z);}
+            capture.Route=Enumerable.Range(0,route.Waypoints.Count).Select(Point).ToArray();
+            capture.BridgeStart=Point(bridgeSegment);capture.BridgeEnd=Point(bridgeSegment+1);
+            capture.ValidateWalkability=positive;
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(),root+"/Player.unity");AssetDatabase.SaveAssets();
-            var output=Path.GetFullPath(".artifacts/BuyerA-20261013/Player/BuyerA.exe");
+            var output=Path.GetFullPath(positive?".artifacts/BuyerA-20261013/AuthorizedTrussPlayer/BuyerA.exe":".artifacts/BuyerA-20261013/Player/BuyerA.exe");
             Directory.CreateDirectory(Path.GetDirectoryName(output));
             var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions{scenes=new[]{root+"/Player.unity"},
                 locationPathName=output,target=BuildTarget.StandaloneWindows64,options=BuildOptions.Development});
@@ -161,7 +182,7 @@ public static class BuyerAProbe
             if(terrain.terrainData!=data||collider.terrainData!=data)
                 throw new InvalidOperationException("BUYER_A_BLOCKER clearing did not restore the original terrain binding.");
         }
-        Debug.Log("BUYER_A_READY_FOR_PLAYER seconds="+elapsed.Elapsed.TotalSeconds.ToString("F2"));
+        Debug.Log((positive?"BUYER_A_POSITIVE_READY_FOR_PLAYER":"BUYER_A_READY_FOR_PLAYER")+" seconds="+elapsed.Elapsed.TotalSeconds.ToString("F2"));
     }
 
     private static TreeInstance Tree(float x,float z)=>new TreeInstance{
@@ -182,6 +203,24 @@ public static class BuyerAProbe
             });
         return new PathCrossingPermissions(grants);
     }
+    private static PathCrossingPermissions AuthorizePositiveCrossing(PlanSnapshot snapshot)
+    {
+        var zone=new WorldBounds(24,54,64,64);
+        double half=1+.3; // unchanged 2m walking width plus TimberTruss lateral space
+        var sections=snapshot.Crossings.Where(c=>(c.AllowedKinds&CrossingKind.Bridge)!=0&&c.Bounds.Overlaps(zone))
+            .Select(c=>new CrossingSectionPermission(c.WaterId,c.Id,new WorldBounds(
+                Math.Max(c.Bounds.MinX,zone.MinX),Math.Max(c.Bounds.MinZ,zone.MinZ),
+                Math.Min(c.Bounds.MaxX,zone.MaxX),Math.Min(c.Bounds.MaxZ,zone.MaxZ)))).ToArray();
+        var grants=snapshot.Crossings.Where(c=>sections.Any(s=>s.CandidateId==c.Id)).Select(c=>
+        {
+            double z=(c.Bounds.MinZ+c.Bounds.MaxZ)*.5;
+            if(z-half<zone.MinZ||z+half>zone.MaxZ)return null;
+            var strip=new WorldBounds(zone.MinX,z-half,zone.MaxX,z+half);
+            var selected=sections.Where(s=>s.Area.Overlaps(strip)).ToArray();
+            return new CollectiveCrossingAuthorization("bridge:"+c.Id+":0",snapshot.Identity,selected);
+        }).Where(g=>g!=null);
+        return new PathCrossingPermissions(grants);
+    }
 
     private static bool NearRiver(Vector2 point,TerraLoomRivers rivers,float radius)
     {
@@ -195,18 +234,18 @@ public static class BuyerAProbe
             }
         return false;
     }
-    private static Material Material(string name,Color color)
+    private static Material Material(string root,string name,Color color)
     {
         var shader=Shader.Find("Universal Render Pipeline/Lit");
         if(!shader)throw new InvalidOperationException("URP/Lit shader missing.");
         var value=new Material(shader){name=name};value.SetColor("_BaseColor",color);
-        AssetDatabase.CreateAsset(value,"Assets/BuyerA/"+name+".mat");return value;
+        AssetDatabase.CreateAsset(value,root+"/"+name+".mat");return value;
     }
-    private static TerrainLayer Layer(string name,Color color)
+    private static TerrainLayer Layer(string root,string name,Color color)
     {
         var texture=new Texture2D(2,2);texture.SetPixels(new[]{color,color,color,color});texture.Apply();
-        AssetDatabase.CreateAsset(texture,"Assets/BuyerA/"+name+"Texture.asset");
+        AssetDatabase.CreateAsset(texture,root+"/"+name+"Texture.asset");
         var layer=new TerrainLayer{diffuseTexture=texture,tileSize=new Vector2(8,8)};
-        AssetDatabase.CreateAsset(layer,"Assets/BuyerA/"+name+".terrainlayer");return layer;
+        AssetDatabase.CreateAsset(layer,root+"/"+name+".terrainlayer");return layer;
     }
 }
