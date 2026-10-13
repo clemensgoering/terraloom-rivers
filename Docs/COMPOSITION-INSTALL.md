@@ -147,6 +147,19 @@ the default deck is a flat strip, while the side view exposes the finite world
 boundary. Improve layout/presentation before using this as a buyer-facing
 example. Scripted execution is not a timed human clickthrough.
 
+Composition `0566440` adds a read-only presentation review to that same
+frozen Buyer B recipe. The Inspector labels the output as a surface-only deck
+without a physical timber kit and warns that the path travels 126.56 m versus
+80.00 m direct (1.58×), while the deck at X48/Z90.75 is 4.25 m from the
+terrain edge against an 8 m corridor-derived review margin. A bounded
+in-memory central route stays valid and gets no false detour or edge warning.
+The warning survived baked Save/Reopen and cleared with generated output.
+The physical-kit status branch was checked with a bound `PathBridgeCrossing`;
+the package at `0566440` passed the frozen warning check in Unity.
+None of these checks changes route costs or grants. The cost contract proposal
+is [ADR-SOFT-BANK-COST.md](ADR-SOFT-BANK-COST.md); the visual release gate is
+still open.
+
 Fresh Git consumer: `.bootstrap-tools/composition-buyer-ui-20261013`, Unity
 6000.3.9f1, Core014e4ce, Pathsd1f4ef0, Rivers7889dc7, Composition8838eb7.
 Focused EditMode `PackageInspectorCapturesNewAssetAndGeneratesFromSavedSettings`
