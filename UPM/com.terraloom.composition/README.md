@@ -7,10 +7,10 @@ Editor inspector; it does not include sample scenes or art assets.
 
 ## Install the tested package set
 
-Add these four entries to `Packages/manifest.json`. These are the exact Git
-revisions resolved by the Unity 6000.3 consumer for the focused Clear check.
-The earlier schema-2 Save/Reopen check used 1ba05d2. Keep the pins together; do not replace them with floating
-branches or unrelated package revisions.
+Add these four entries to `Packages/manifest.json`. These exact Git revisions
+resolved in a fresh Unity 6000.3 consumer for the package inspector's recipe
+capture/save/generate test. Keep the pins together; do not replace them with
+floating branches or unrelated package revisions.
 
 ```json
 {
@@ -18,7 +18,7 @@ branches or unrelated package revisions.
     "com.terraloom.core": "https://github.com/clemensgoering/terraloom-core.git?path=/Packages/com.terraloom.core#014e4ce4fbdfe7bab988ca8b927ef8a17b80fc69",
     "com.terraloom.paths": "https://github.com/clemensgoering/terraloom-paths.git?path=/Packages/com.terraloom.paths#d1f4ef04fba9415571a8efd1f54cf585aeb94216",
     "com.terraloom.rivers": "https://github.com/clemensgoering/terraloom-rivers.git?path=/Packages/com.terraloom.rivers#7889dc7c73f3ada87074bfc5546fec75a731f262",
-    "com.terraloom.composition": "https://github.com/clemensgoering/terraloom-rivers.git?path=/UPM/com.terraloom.composition#7889dc7c73f3ada87074bfc5546fec75a731f262"
+    "com.terraloom.composition": "https://github.com/clemensgoering/terraloom-rivers.git?path=/UPM/com.terraloom.composition#8838eb76588316baad2683799549d02a5d68406f"
   }
 }
 ```
@@ -26,6 +26,10 @@ branches or unrelated package revisions.
 Composition 0.5.0 targets Unity 6000.3 and depends on Core, Paths and Rivers
 0.3.0. The Git pins above are the tested installation set, not a claim that
 other Unity versions or render pipelines have been qualified.
+The isolated consumer test confirmed that Unity selects the package Inspector,
+missing Bridge Material prevents asset creation, and a saved recipe restores
+its materials and deterministic path/river plans after scene values change.
+The actual first-time buyer clickthrough and visual result remain to be checked.
 
 ## First recipe
 

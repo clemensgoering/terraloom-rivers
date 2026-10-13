@@ -102,6 +102,28 @@ The earlier Player-open note above is superseded by the focused Player lifecycle
 proof documented in Core `Docs/NEXT-CHAT.md` (Rivers probe6e404b6).
 Full resource-aware Undo/Redo and visual/buyer-workbench acceptance remain open.
 
+## Packaged recipe Inspector (13 October)
+
+Composition 0.5.0 now ships `TerraLoom.Composition.Editor`. Its single custom
+Inspector moved from the Integration sample into the UPM package, with the
+original script GUID retained. The sample duplicate was removed. The Inspector
+resolves one matching Region Decoration or requires an explicit reference when
+several share a world; it validates links and required materials before
+capturing a new schema-2 recipe asset. Existing assets are not overwritten.
+The saved recipe drives GenerateRecipe on Core-owned terrain; supplied terrain
+has a separate Paths + Rivers action and still needs its own decoration step.
+
+Fresh Git consumer: `.bootstrap-tools/composition-buyer-ui-20261013`, Unity
+6000.3.9f1, Core014e4ce, Pathsd1f4ef0, Rivers7889dc7, Composition8838eb7.
+Focused EditMode `PackageInspectorCapturesNewAssetAndGeneratesFromSavedSettings`
+passed 1/1; evidence `.artifacts/RecipeEditor-20261013/editmode.xml`. It checks
+package Inspector selection, preflight with no asset on missing Bridge Material,
+asset save/reference assignment, and same path/river output after the recipe
+restores conflicting scene materials. Earlier local-package test also passed
+1/1. The test exercises the methods behind the buttons, not a human visual
+clickthrough; the native 15-minute buyer A/B check is the next gate. This slice
+adds no default assets, full wizard or combined Bake action.
+
 ## Host lifetime check (13 October)
 
 The Composition host releases its published decoration, Paths, Rivers and
