@@ -251,30 +251,63 @@ namespace TerraLoom.Rivers.Unity
                 if(Vector3.Dot(Vector3.Cross(q-p,r-p),outward)>=0)tris.AddRange(new[]{i,i+1,i+2});
                 else tris.AddRange(new[]{i,i+2,i+1});
             }
+            double Upper(double lateral)=>top+SourceHeight(-Math.Max(setback,profile.SampleSpacing),lateral)-
+                SourceHeight(-Math.Max(setback,profile.SampleSpacing),0);
+            double Lower(double lateral)
+            {
+                double ground=CarvedHeight(Math.Max(setback,profile.SampleSpacing),lateral);
+                double centre=candidate.Recipe.SampleLowerReach(0).Surface.Y-candidate.Recipe.ChannelDepth;
+                double blend=1-Smooth((Math.Abs(lateral)-fall.Width*.5)/Math.Max(.01,profile.BankWidth));
+                return Math.Min(ground,ground+(centre-ground)*blend);
+            }
+            const int toeRows=8;
+            double ToeStation(int row)=>-setback+(s3+setback)*(double)row/toeRows;
+            Vector3 Toe(double station,double lateral)
+            {
+                double t=Math.Max(0,Math.Min(1,(station+setback)/(s3+setback)));
+                double height=Lower(lateral)+
+                    (CarvedHeight(s3,lateral)-Lower(lateral))*Math.Sqrt(t);
+                return Point(station,lateral,height);
+            }
             for(int j=0;j<across;j++)
             {
                 cancellation.ThrowIfCancellationRequested();
                 double a=a0+(a1-a0)*j/across,b=a0+(a1-a0)*(j+1)/across;
-                double Upper(double lateral)=>top+SourceHeight(-Math.Max(setback,profile.SampleSpacing),lateral)-
-                    SourceHeight(-Math.Max(setback,profile.SampleSpacing),0);
-                double Lower(double lateral)
-                {
-                    double ground=CarvedHeight(Math.Max(setback,profile.SampleSpacing),lateral);
-                    double centre=candidate.Recipe.SampleLowerReach(0).Surface.Y-candidate.Recipe.ChannelDepth;
-                    double blend=1-Smooth((Math.Abs(lateral)-fall.Width*.5)/Math.Max(.01,profile.BankWidth));
-                    return Math.Min(ground,ground+(centre-ground)*blend);
-                }
                 var u0=Point(s0,a,SourceHeight(s0,a));var u1=Point(s0,b,SourceHeight(s0,b));
                 var h0=Point(-setback,a,Upper(a));var h1=Point(-setback,b,Upper(b));
                 var l0=Point(-setback,a,Lower(a));var l1=Point(-setback,b,Lower(b));
                 var d0=Point(s3,a,CarvedHeight(s3,a));var d1=Point(s3,b,CarvedHeight(s3,b));
                 Quad(u0,u1,h1,h0,Vector3.up);
-                Quad(h0,h1,l1,l0,new Vector3((float)fall.Forward.X,0,(float)fall.Forward.Z));
-                Quad(l0,l1,d1,d0,Vector3.up);
+                Vector3 Wall(double lateral,double vertical)
+                {
+                    double flank=Math.Min(1,Math.Min(lateral-a0,a1-lateral)/Math.Max(.25,profile.BankWidth));
+                    double middle=Math.Sin(Math.PI*vertical);
+                    double grain=.2+.11*Math.Sin(lateral*1.75+vertical*13.1)+
+                        .07*Math.Sin(lateral*4.7-vertical*8.3);
+                    // Keep the wetted wall within the 20 cm contact contract;
+                    // exposed shoulders may retreat farther into closed rock.
+                    double waterLimit=Math.Abs(lateral)<=fall.Width*.5?.08:.3;
+                    double relief=Math.Min(waterLimit,Math.Max(0,grain))*middle*middle*flank;
+                    return Point(-setback-relief,lateral,
+                        Upper(lateral)+(Lower(lateral)-Upper(lateral))*vertical);
+                }
+                const int wallRows=12;
+                for(int row=0;row<wallRows;row++)
+                {
+                    double v0=(double)row/wallRows,v1=(double)(row+1)/wallRows;
+                    Quad(Wall(a,v0),Wall(b,v0),Wall(b,v1),Wall(a,v1),
+                        new Vector3((float)fall.Forward.X,0,(float)fall.Forward.Z));
+                }
+                for(int row=0;row<toeRows;row++)
+                {
+                    double near=ToeStation(row),far=ToeStation(row+1);
+                    Quad(Toe(near,a),Toe(near,b),Toe(far,b),Toe(far,a),Vector3.up);
+                    Quad(Point(near,a,floor),Point(far,a,floor),Point(far,b,floor),
+                        Point(near,b,floor),Vector3.down);
+                }
                 if(j==0)Side(u0,h0,l0,d0,a,-1);
                 if(j==across-1)Side(u1,h1,l1,d1,b,1);
                 Quad(Point(s0,a,floor),Point(-setback,a,floor),Point(-setback,b,floor),Point(s0,b,floor),Vector3.down);
-                Quad(Point(-setback,a,floor),Point(s3,a,floor),Point(s3,b,floor),Point(-setback,b,floor),Vector3.down);
                 Quad(u0,Point(s0,a,floor),Point(s0,b,floor),u1,new Vector3((float)-fall.Forward.X,0,(float)-fall.Forward.Z));
                 Quad(d1,Point(s3,b,floor),Point(s3,a,floor),d0,new Vector3((float)fall.Forward.X,0,(float)fall.Forward.Z));
             }
@@ -283,12 +316,22 @@ namespace TerraLoom.Rivers.Unity
                 var outwards=new Vector3((float)(fall.Across.X*sign),0,(float)(fall.Across.Z*sign));
                 var fu=Point(s0,lateral,floor);var fw=Point(-setback,lateral,floor);var fd=Point(s3,lateral,floor);
                 Quad(u,h,fw,fu,outwards);
-                Triangle(h,l,fw,outwards);
-                Quad(l,d,fd,fw,outwards);
+                for(int row=0;row<12;row++)
+                    Triangle(Vector3.Lerp(h,l,(float)row/12),Vector3.Lerp(h,l,(float)(row+1)/12),fw,outwards);
+                for(int row=0;row<toeRows;row++)
+                {
+                    double near=ToeStation(row),far=ToeStation(row+1);
+                    Quad(Toe(near,lateral),Toe(far,lateral),Point(far,lateral,floor),
+                        Point(near,lateral,floor),outwards);
+                }
             }
             var mesh=new Mesh{name="Prepared fall closed rock solid"};
             if(verts.Count>65535)mesh.indexFormat=UnityEngine.Rendering.IndexFormat.UInt32;
-            mesh.SetVertices(verts);mesh.SetTriangles(tris,0);mesh.RecalculateNormals();mesh.RecalculateBounds();
+            mesh.SetVertices(verts);mesh.SetTriangles(tris,0);
+            mesh.uv=verts.Select(p=>new Vector2(
+                (float)((p.x-fall.Lip.X)*fall.Across.X+(p.z-fall.Lip.Z)*fall.Across.Z)*.25f,
+                p.y*.25f)).ToArray();
+            mesh.RecalculateNormals();mesh.RecalculateBounds();
             return mesh;
         }
 

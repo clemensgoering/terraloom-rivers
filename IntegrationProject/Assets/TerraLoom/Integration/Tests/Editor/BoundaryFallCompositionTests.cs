@@ -9,6 +9,7 @@ using TerraLoom.Paths.Unity;
 using TerraLoom.Rivers.Unity;
 using TerraLoom.Rivers.Editor;
 using TerraLoom.Paths.Editor;
+using TerraLoom.Integration.Editor;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -22,7 +23,7 @@ namespace TerraLoom.Tests
         [Test] public void WorldGenerationUsesPreparedBoundaryFallBeforePathsAndRollsBackOnDeniedRoute()
         {
             var host=new GameObject("Boundary composition test");
-            Terrain terrain=null;TerrainData source=null;Material ground=null,water=null,rock=null;
+            Terrain terrain=null;TerrainData source=null;Material ground=null,bridge=null,water=null,rock=null;
             try
             {
                 var world=host.AddComponent<TerraLoomWorld>();world.WorldId="boundary-composition";
@@ -43,17 +44,19 @@ namespace TerraLoom.Tests
                     new ManualWorldAnchor{Id="bridge-b",Position=new Vector3(30,2.6f,28)}};
                 var shader=Shader.Find("Universal Render Pipeline/Lit");
                 ground=new Material(shader);water=new Material(shader);rock=new Material(shader);
+                bridge=ground;
                 bool bake=Environment.GetCommandLineArgs().Contains("-terraloomBakeBoundary");
                 if(bake)
                 {
                     const string parent="Assets/TerraLoom/Integration/Generated";
                     if(!AssetDatabase.IsValidFolder(parent+"/BoundaryFallBridge"))
                         AssetDatabase.CreateFolder(parent,"BoundaryFallBridge");
-                    if(!AssetDatabase.IsValidFolder(parent+"/BoundaryFallBridge/Materials"))
-                        AssetDatabase.CreateFolder(parent+"/BoundaryFallBridge","Materials");
-                    ground=Persist(ground,parent+"/BoundaryFallBridge/Materials/Ground.mat");
-                    water=Persist(water,parent+"/BoundaryFallBridge/Materials/Water.mat");
-                    rock=Persist(rock,parent+"/BoundaryFallBridge/Materials/Rock.mat");
+                    const string visual=parent+"/BoundaryFallBridge/VisualKit";
+                    if(!AssetDatabase.IsValidFolder(visual))
+                        AssetDatabase.CreateFolder(parent+"/BoundaryFallBridge","VisualKit");
+                    Object.DestroyImmediate(ground);Object.DestroyImmediate(water);Object.DestroyImmediate(rock);
+                    var kit=BoundaryFallVisualKit.Build(visual,source);
+                    ground=kit.Ground;bridge=kit.Bridge;water=kit.Water;rock=kit.Rock;
                 }
                 var rivers=host.AddComponent<TerraLoomRivers>();rivers.World=world;
                 rivers.WaterMaterial=water;rivers.FallRockMaterial=rock;rivers.BedMaterial=rock;rivers.BankMaterial=rock;
@@ -61,7 +64,7 @@ namespace TerraLoom.Tests
                 rivers.Connections.Add(new RiverConnectionSettings{Id="main",SourceId="source",MouthId="mouth",
                     FallId="main-fall",FallAnchorId="fall",RequirePlannedLowerReach=true,WorldBoundaryMouth=true});
                 var paths=host.AddComponent<TerraLoomPaths>();paths.World=world;
-                paths.GroundMaterial=ground;paths.BridgeMaterial=ground;paths.AutomaticNetwork=false;
+                paths.GroundMaterial=ground;paths.BridgeMaterial=bridge;paths.AutomaticNetwork=false;
                 paths.TimberTrussBridge=true;
                 paths.Connections.Add(new PathConnectionSettings{Id="upland",StartId="path-a",EndId="path-b"});
                 var composition=host.AddComponent<TerraLoomIntegration>();
@@ -104,6 +107,7 @@ namespace TerraLoom.Tests
                 if(bake)
                 {
                     const string root="Assets/TerraLoom/Integration/Generated/BoundaryFallBridge";
+                    BoundaryFallVisualKit.PlaceProps(host.transform,terrain,root+"/VisualKit");
                     host.AddComponent<BoundaryFallPlayerProbe>();
                     var beforeBake=rivers.CaptureInput(out _,out _);
                     RiversSampleBuilder.Bake(rivers,root+"/Rivers");
@@ -143,6 +147,7 @@ namespace TerraLoom.Tests
                 if(host)Object.DestroyImmediate(host);
                 if(source)Object.DestroyImmediate(source);
                 if(ground&&!AssetDatabase.Contains(ground))Object.DestroyImmediate(ground);
+                if(bridge&&bridge!=ground&&!AssetDatabase.Contains(bridge))Object.DestroyImmediate(bridge);
                 if(water&&!AssetDatabase.Contains(water))Object.DestroyImmediate(water);
                 if(rock&&!AssetDatabase.Contains(rock))Object.DestroyImmediate(rock);
             }
@@ -173,6 +178,11 @@ namespace TerraLoom.Tests
                 Assert.That(body.GetComponent<MeshCollider>().sharedMesh,
                     Is.SameAs(body.GetComponent<MeshFilter>().sharedMesh));
                 Assert.That(parts.Count(part=>part.Role==PathGeometryRole.BridgeRamp),Is.EqualTo(2));
+                var art=GameObject.Find("Seasonal trees and stones (fixture)");
+                Assert.That(art,Is.Not.Null);
+                Assert.That(art.GetComponentsInChildren<MeshFilter>(true).Length,Is.EqualTo(16));
+                Assert.That(art.GetComponentsInChildren<MeshFilter>(true)
+                    .All(f=>AssetDatabase.Contains(f.sharedMesh)),Is.True);
             }
             finally
             {
@@ -182,11 +192,5 @@ namespace TerraLoom.Tests
             }
         }
 
-        private static Material Persist(Material transient,string path)
-        {
-            var saved=AssetDatabase.LoadAssetAtPath<Material>(path);
-            if(saved){Object.DestroyImmediate(transient);return saved;}
-            AssetDatabase.CreateAsset(transient,path);return transient;
-        }
     }
 }
