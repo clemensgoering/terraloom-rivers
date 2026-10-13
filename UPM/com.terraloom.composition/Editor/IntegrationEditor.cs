@@ -87,6 +87,22 @@ namespace TerraLoom.Integration.Editor
             EditorUtility.SetDirty(instance);
             EditorSceneManager.MarkSceneDirty(instance.gameObject.scene);
         }
+        /// <summary>The supplied-terrain Inspector action; shares the runtime composition planner.</summary>
+        public static void GenerateOnSuppliedTerrain(TerraLoomIntegration instance)
+        {
+            if(!instance||!instance.World||!instance.Paths||!instance.Rivers
+                ||instance.Paths.World!=instance.World||instance.Rivers.World!=instance.World)
+                throw new InvalidOperationException("Assign Core World, Paths and Rivers to the same world.");
+            if(!instance.World.Terrain||instance.World.OwnsTerrain)
+                throw new InvalidOperationException("Assign a supplied Terrain to Core World, or use a saved Recipe for Core terrain.");
+            if(!instance.Paths.GroundMaterial||!instance.Paths.BridgeMaterial)
+                throw new InvalidOperationException("Assign Paths Ground and Bridge Materials before generating.");
+            if(!instance.Rivers.WaterMaterial||(!instance.Rivers.TerrainBrush
+                &&(!instance.Rivers.BedMaterial||!instance.Rivers.BankMaterial)))
+                throw new InvalidOperationException("Assign Rivers Water Material and, for mesh banks, Bed and Bank Materials.");
+            if(!instance.Generate())throw new InvalidOperationException(instance.Diagnostics);
+            EditorUtility.SetDirty(instance);EditorSceneManager.MarkSceneDirty(instance.gameObject.scene);
+        }
         /// <summary>Confirmation precedes all mutations. Clear is intentionally not registered with Undo.</summary>
         public static bool ClearConfirmed(TerraLoomIntegration instance,Func<bool> confirm)
         {
@@ -132,10 +148,7 @@ namespace TerraLoom.Integration.Editor
             {
                 try
                 {
-                    if(!instance.World||!instance.World.Terrain||instance.World.OwnsTerrain)
-                        throw new InvalidOperationException("Assign a supplied Terrain to Core World, or use Generate from saved Recipe for Core terrain.");
-                    if(!instance.Generate())throw new InvalidOperationException(instance.Diagnostics);
-                    EditorUtility.SetDirty(instance);EditorSceneManager.MarkSceneDirty(instance.gameObject.scene);actionError=null;
+                    GenerateOnSuppliedTerrain(instance);actionError=null;
                 }
                 catch(Exception ex){actionError=ex.Message;}
             }
