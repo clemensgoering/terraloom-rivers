@@ -1,9 +1,9 @@
-# TerraLoom Composition 0.4.0
+# TerraLoom Composition 0.5.0
 
 Composition is an optional UPM host for projects that use TerraLoom Core, Paths
 and Rivers together. The packages retain their independent dependencies;
-Composition depends on all three. The package contains runtime code only: it does
-not include sample scenes, art assets, or Editor assemblies.
+Composition depends on all three. The package includes a runtime host and an
+Editor inspector; it does not include sample scenes or art assets.
 
 ## Install the tested package set
 
@@ -23,7 +23,7 @@ branches or unrelated package revisions.
 }
 ```
 
-Composition 0.4.0 targets Unity 6000.3 and depends on Core, Paths and Rivers
+Composition 0.5.0 targets Unity 6000.3 and depends on Core, Paths and Rivers
 0.3.0. The Git pins above are the tested installation set, not a claim that
 other Unity versions or render pipelines have been qualified.
 
@@ -33,41 +33,28 @@ other Unity versions or render pipelines have been qualified.
    `RegionDecoration` to your scene. Assign the same Core world to all four
    components. Configure the required path, water, bed and bank materials and
    decoration profile assets.
-2. Add `TerraLoomIntegration` and assign Core, Paths and Rivers. Create an asset
-   with **Assets > Create > TerraLoom > Composition Recipe**.
-3. Capture the authored settings into that asset from an Editor setup script,
-   then save it:
-
-   ```csharp
-   using UnityEditor;
-   using TerraLoom.Integration;
-
-   var recipe = ScriptableObject.CreateInstance<CompositionRecipe>();
-   recipe.CaptureFrom(composition, decoration);
-   AssetDatabase.CreateAsset(recipe, "Assets/TerraLoom/WorldRecipe.asset");
-   AssetDatabase.SaveAssets();
-   ```
-
-   `CaptureFrom` is an Editor authoring operation because it creates a project
-   asset. Keep the asset and its referenced profiles/materials in source
-   control.
-4. Assign the recipe and decoration to the composition host, then generate:
-
-   ```csharp
-   composition.RecipeAsset = recipe;
-   composition.RecipeDecoration = decoration;
-   bool ready = composition.GenerateRecipe(recipe, decoration);
-   if (!ready) Debug.LogError(composition.Diagnostics);
-   ```
-
-   Alternatively, enable **Generate On Start** on the host after assigning both
-   references. Generation reconstructs owned procedural terrain. For supplied
-   terrain, use `Generate()`; recipe generation refuses to replace external
+2. Add `TerraLoomIntegration` and assign Core, Paths and Rivers. Assign its
+   **Recipe Decoration** reference, or keep exactly one Region Decoration bound
+   to that Core world so the inspector can find it without ambiguity.
+3. In the Composition inspector choose **Capture scene settings as new Recipe
+   asset**, select a new path under `Assets`, and save. This calls the same
+   `CompositionRecipe.CaptureFrom` method available to code users. It validates
+   component links, materials and decoration profiles before creating the asset.
+   An existing asset is never overwritten. Keep the new asset and its referenced
+   profiles/materials in source control.
+4. Choose **Generate from saved Recipe (Core terrain)**. The saved recipe
+   supplies its own seed, configuration and material references even if scene
+   fields have since changed. The optional **Generate On Start** host field
+   runs the same recipe at runtime when both recipe and decoration are assigned.
+   For existing/foreign Terrain, use **Generate Paths + Rivers on supplied
+   terrain** in this inspector; that operation leaves regional decoration to
+   its separate component. Recipe generation refuses to replace external
    `TerrainData`.
 
 The public namespace is `TerraLoom.Integration`; the assembly is
-`TerraLoom.Composition.Unity`. Add that assembly reference to your own asmdef
-when your scripts use the host, recipe or prepared-request types.
+`TerraLoom.Composition.Unity`; the Inspector assembly is
+`TerraLoom.Composition.Editor`. Add the runtime assembly reference to your own
+asmdef only when your scripts use the host, recipe or prepared-request types.
 
 Schema 2 persists the seed, terrain recipe/resolution/size/frequency, anchors,
 regions, river/path connections, decoration profiles/count/selection, and module

@@ -12,7 +12,8 @@
     "TerraLoom.Core.Editor",
     "TerraLoom.Paths.Editor",
     "TerraLoom.Rivers.Editor",
-    "TerraLoom.Composition.Unity"
+    "TerraLoom.Composition.Unity",
+    "TerraLoom.Composition.Editor"
   ],
   "includePlatforms": [
     "Editor"

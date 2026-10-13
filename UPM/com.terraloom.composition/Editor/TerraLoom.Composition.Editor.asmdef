@@ -1,0 +1,12 @@
+{
+  "name": "TerraLoom.Composition.Editor",
+  "references": [
+    "TerraLoom.Composition.Unity",
+    "TerraLoom.Core.Runtime",
+    "TerraLoom.Core.Unity",
+    "TerraLoom.Paths.Unity",
+    "TerraLoom.Rivers.Unity"
+  ],
+  "includePlatforms": ["Editor"],
+  "autoReferenced": true
+}
