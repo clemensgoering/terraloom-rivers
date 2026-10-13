@@ -137,6 +137,7 @@ namespace TerraLoom.Rivers.Editor
             }
             if (!string.IsNullOrEmpty(message)) EditorGUILayout.HelpBox(message, MessageType.Info);
             if (!string.IsNullOrEmpty(rivers.Diagnostics)) EditorGUILayout.HelpBox(rivers.Diagnostics, MessageType.None);
+            DrawRouteFailureHelp(rivers);
             WorldInspectorSections.DrawDetails(serializedObject, "rivers.results", "08  Result details / route measurements", false, () =>
             {
             if (rivers.LastPlan != null)
@@ -146,6 +147,21 @@ namespace TerraLoom.Rivers.Editor
                 EditorGUILayout.HelpBox("Measurements read the final water plan, not a separate smoothed preview. Full bed/bank validation remains the planner's responsibility.", MessageType.None);
             }
             });
+        }
+
+        private static void DrawRouteFailureHelp(TerraLoomRivers rivers)
+        {
+            if (string.IsNullOrEmpty(rivers.Diagnostics) || !rivers.Diagnostics.Contains("NoRoute")) return;
+            var terrain = rivers.World ? rivers.World.Terrain : null;
+            var data = terrain ? terrain.terrainData : null;
+            string source = data
+                ? $"Current source: {terrain.name}, TerrainData {data.name}, {data.size.x:F1} x {data.size.z:F1} m."
+                : "No current TerrainData is assigned to the Core world.";
+            EditorGUILayout.HelpBox("No valid downhill route was found for the current inputs. " + source +
+                " Check the source and mouth positions and heights against this terrain, then review the protected areas and channel width/bank width. " +
+                "A footprint outside terrain bounds, excessive excavation, a segment above Maximum Slope, or uphill water can each reject a candidate. " +
+                "The counts in Diagnostics describe rejected attempts; they do not identify one definitive cause. " +
+                "After correcting the inputs, use Reload river here or Generate world on the World tab.", MessageType.Warning);
         }
 
         private void Run(Action action)
