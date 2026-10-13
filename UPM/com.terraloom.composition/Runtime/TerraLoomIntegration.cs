@@ -12,6 +12,7 @@ using UnityEngine;
 namespace TerraLoom.Integration
 {
     /// <summary>Optional shared publication host. Core, Paths and Rivers remain independent packages.</summary>
+    [ExecuteAlways]
     [DefaultExecutionOrder(300)]
     public sealed class TerraLoomIntegration : MonoBehaviour
     {
@@ -69,13 +70,13 @@ namespace TerraLoom.Integration
             new GenerationStep("05-publish-walkable",new[]{"carved-terrain","path-plan"},new[]{"walkable-geometry"}) });
         private void Awake()
         {
-            if(!GenerateOnStart)return;
+            if(!Application.isPlaying||!GenerateOnStart)return;
             // Awake runs before every Start, independent of hierarchy and execution order.
             if(World)World.AutoGenerateOnStart=false;
             if(Paths)Paths.GenerateOnStart=false;
             if(Rivers)Rivers.GenerateOnStart=false;
         }
-        private void Start() { if (GenerateOnStart && !(RecipeAsset?GenerateRecipe(RecipeAsset,RecipeDecoration):Generate())) Debug.LogError(diagnostics,this); }
+        private void Start() { if(Application.isPlaying && GenerateOnStart && !(RecipeAsset?GenerateRecipe(RecipeAsset,RecipeDecoration):Generate())) Debug.LogError(diagnostics,this); }
         private void OnDestroy()
         {
             // The host owns the publication's lifetime. Disabling it is temporary and must

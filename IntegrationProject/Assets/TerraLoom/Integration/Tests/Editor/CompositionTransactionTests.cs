@@ -15,6 +15,45 @@ namespace TerraLoom.Tests
 {
     public sealed class CompositionTransactionTests
     {
+        [Test] public void DestroyingCompositionHostReleasesItsPublishedResources()
+        {
+            var setup=EditorSceneManager.GetSceneManagerSetup();CompositionRecipe recipe=null;
+            try
+            {
+                EditorSceneManager.OpenScene("Assets/TerraLoom/Integration/Generated/TerraLoomDynamic.unity");
+                var demo=Object.FindFirstObjectByType<SeededWorldDemo>();demo.Seed=2042;
+                Assert.That(demo.Rebuild(),Is.True,demo.Diagnostics);
+                var host=demo.Composition;var paths=host.Paths;var rivers=host.Rivers;
+                var decoration=demo.Decoration;var world=host.World;
+                recipe=ScriptableObject.CreateInstance<CompositionRecipe>();recipe.CaptureFrom(host,decoration);
+                host.Clear();
+                var source=world.Terrain.terrainData;
+                var collider=world.Terrain.GetComponent<TerrainCollider>();
+                var meshes=TransientIds<Mesh>();var terrains=TransientIds<TerrainData>();var objects=TransientIds<GameObject>();
+                Assert.That(host.GenerateRecipe(recipe,decoration),Is.True,host.Diagnostics);
+                var carved=world.Terrain.terrainData;var newSource=rivers.OriginalTerrainData;
+                Assert.That(paths.GeneratedRoot&&rivers.GeneratedRoot&&decoration.GeneratedRoot,Is.True);
+                host.enabled=false;
+                Assert.That(paths.GeneratedRoot&&rivers.GeneratedRoot&&decoration.GeneratedRoot,Is.True,
+                    "Temporarily disabled hosts must retain their published world.");
+                Object.DestroyImmediate(host);
+                Assert.That(paths.GeneratedRoot==null&&rivers.GeneratedRoot==null&&decoration.GeneratedRoot==null,Is.True);
+                Assert.That(world.Terrain.terrainData,Is.SameAs(source));
+                Assert.That(collider.terrainData,Is.SameAs(source));
+                Assert.That(carved==null&&newSource==null,Is.True);
+                CollectionAssert.AreEquivalent(meshes,TransientIds<Mesh>());
+                CollectionAssert.AreEquivalent(terrains,TransientIds<TerrainData>());
+                CollectionAssert.AreEquivalent(objects,TransientIds<GameObject>());
+            }
+            finally
+            {
+                if(setup.Any(s=>s.isLoaded&&s.isActive&&!string.IsNullOrEmpty(s.path)))EditorSceneManager.RestoreSceneManagerSetup(setup);
+                else EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
+                if(recipe)Object.DestroyImmediate(recipe);
+            }
+        }
+
+
         [Test] public void EditorClearCancellationPreservesWorldAndConfirmedClearRestoresSavedRecipe()
         {
             var setup=EditorSceneManager.GetSceneManagerSetup();CompositionRecipe recipe=null;
