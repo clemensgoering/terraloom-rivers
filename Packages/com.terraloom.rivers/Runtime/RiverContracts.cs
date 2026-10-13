@@ -155,6 +155,19 @@ namespace TerraLoom.Rivers
         public IReadOnlyList<RiverReport> Reports { get; }
         public bool Complete => Reports.All(r => r.Outcome == RiverOutcome.Connected) &&
             Reports.Where(r=>r.Request.FallSite!=null).All(r=>PublishedFalls.Any(f=>f.Candidate.RequestId==r.Request.Id));
+        /// <summary>True only when every source-to-mouth request has a planned river route.
+        /// A locally supported fall with a standalone water strip is not a continuous route.</summary>
+        public bool HasContinuousSourceToMouth => Complete && Reports.Count>0 && FallCandidates.Count==0 &&
+            PublishedFalls.Count==0 && Reports.Count==Routes.Count;
+        /// <summary>Fail closed before composition publishes Paths against an absent
+        /// downstream corridor or crossing offer.</summary>
+        public void RequireContinuousSourceToMouth()
+        {
+            if(FallCandidates.Count>0||PublishedFalls.Count>0)
+                throw new InvalidOperationException("Explicit fall has no planned source-to-mouth continuation: the receiving water strip ends at the mouth without a RiverRoute, downstream WaterCorridor, crossing offers or matching full-reach terrain carving. Shared Rivers/Paths generation is unavailable for this fall; the standalone owned-tile fall remains a local geometry preview.");
+            if(!HasContinuousSourceToMouth)
+                throw new InvalidOperationException(string.Join("\n",Reports.Select(r=>r.Request.Id+": "+r.Outcome+" "+r.Detail)));
+        }
         internal RiverPlan(PlanIdentity core, string domain, RiverProfile profile, IEnumerable<RiverRoute> routes, IEnumerable<RiverReport> reports,
             IEnumerable<RiverFallCandidate> fallCandidates = null,IEnumerable<RiverPublishedFall> publishedFalls = null)
         {

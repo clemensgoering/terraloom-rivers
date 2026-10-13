@@ -268,7 +268,7 @@ namespace TerraLoom.Integration
                 Step("01-capture-source",()=>{input=CaptureSource(out bounds,out graph,source,requestedPaths,requestedRivers);LastSourceInput=input;});
                 Step("02-plan-water",()=>{
                     requests=Requests(input,requestedRivers);plannedRiverProfile=RiverPlanner.ProfileVersion(Rivers.CaptureProfile(source?.Data),bounds,requests);riverPlan=RiverPlanner.Plan(input,Rivers.CaptureProfile(source?.Data),bounds,requests,cancellation);
-                    if(!riverPlan.Complete)throw new InvalidOperationException(string.Join("\n",riverPlan.Reports.Select(r=>r.Request.Id+": "+r.Outcome+" "+r.Detail)));
+                    riverPlan.RequireContinuousSourceToMouth();
                     var offer=riverPlan.ToContribution("rivers",input.Identity);
                     shared=new PlanSnapshot(input.Identity,input.Terrain,new AnchorSnapshot(input.AnchorSourceId,input.AnchorSourceRevision,input.Anchors),
                         input.Landscape,input.Reservations.Concat(offer.Reservations),offer.Waters,offer.Crossings);

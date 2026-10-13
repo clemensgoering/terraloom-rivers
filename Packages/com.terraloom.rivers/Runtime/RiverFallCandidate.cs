@@ -119,7 +119,7 @@ namespace TerraLoom.Rivers
             candidate=new RiverFallCandidate(source.Identity,request,
                 new WorldPoint(start.Position.X,high,start.Position.Z),
                 new WorldPoint(end.Position.X,low,end.Position.Z),recipe);
-            diagnostic="Valid route-bound fall transition candidate only; terrain/contact publication not implemented.";
+            diagnostic="Valid local fall candidate; a planned continuous lower RiverRoute, corridor and crossing offers are not yet available.";
             return true;
         }
 

@@ -37,6 +37,8 @@ namespace TerraLoom.Tests
                 rivers.Connections.Add(new RiverConnectionSettings{Id="main",SourceId="source",MouthId="mouth",FallId="main-fall",FallAnchorId="fall"});
                 Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics);
                 Assert.That(rivers.LastPlan.Complete,Is.True);
+                Assert.That(rivers.LastPlan.HasContinuousSourceToMouth,Is.False);
+                Assert.That(()=>rivers.LastPlan.RequireContinuousSourceToMouth(),Throws.InvalidOperationException);
                 Assert.That(rivers.LastPlan.Routes.Count,Is.Zero);
                 Assert.That(rivers.LastPlan.PublishedFalls.Count,Is.EqualTo(1));
                 Assert.That(rivers.PlanJson,Does.Contain("\"format\": 3"));

@@ -18,6 +18,8 @@ internal static class RiverPlannerTests
         {
             var p = new RiverProfile(); var input = Input(); var plan = Plan(input, p);
             Require(plan.Complete && plan.Routes.Count == 1, Detail(plan)); var route = plan.Routes[0];
+            Require(plan.HasContinuousSourceToMouth,"Ordinary complete route lost continuity evidence.");
+            plan.RequireContinuousSourceToMouth();
             Require(plan.Reports[0].Identity == plan.Identity && plan.Reports[0].CoreInputIdentity == input.Identity
                 && plan.Reports[0].ProfileFingerprint == p.Fingerprint, "Report lost provenance.");
             Require(route.WaterPolyline.First().X == -8 && route.WaterPolyline.Last().X == 8, "Endpoints were snapped.");
@@ -109,6 +111,10 @@ internal static class RiverPlannerTests
             var request=FallRequest();var plan=Plan(input,profile,new[]{request});
             Require(!plan.Complete&&plan.Routes.Count==0&&plan.FallCandidates.Count==1
                 &&plan.Reports.Single().Outcome==RiverOutcome.FallCandidateOnly,Detail(plan));
+            Require(!plan.HasContinuousSourceToMouth,"Standalone fall candidate claimed source-to-mouth continuity.");
+            try{plan.RequireContinuousSourceToMouth();throw new Exception("Missing fall continuity guard.");}
+            catch(InvalidOperationException error)
+            {Require(error.Message.Contains("downstream WaterCorridor")&&error.Message.Contains("terrain carving"),error.Message);}
             var c=plan.FallCandidates.Single();
             Require(c.RequestId=="main"&&c.Site.Id=="main-fall"&&c.CoreInputIdentity==input.Identity&&!c.Publishable,
                 "Candidate lost provenance or became publishable.");

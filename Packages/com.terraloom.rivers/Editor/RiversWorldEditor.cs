@@ -27,6 +27,9 @@ namespace TerraLoom.Rivers.Editor
             WorldInspectorSections.DrawGeneral(serializedObject,
                 "Link Core for terrain, targets and regions. Rivers can be generated here or at runtime from the same settings.",
                 "World", "GenerateOnStart");
+            if(rivers.LastPlan!=null&&rivers.LastPlan.PublishedFalls.Count>0||
+               rivers.PlanJson!=null&&rivers.PlanJson.Contains("\"format\": 3"))
+                EditorGUILayout.HelpBox("This owned fall is a local physical preview. It has no planned continuous lower RiverRoute, WaterCorridor or crossing offers. Shared World generation refuses the fall until those outputs are planned and published together.",MessageType.Warning);
             WorldInspectorSections.DrawDetails(serializedObject, "rivers.targets", "02  Source and mouth", true, () =>
             {
                 var automatic = serializedObject.FindProperty("AutomaticSourceAndMouth");
