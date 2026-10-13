@@ -157,12 +157,14 @@ namespace TerraLoom.Rivers
             Reports.Where(r=>r.Request.FallSite!=null).All(r=>PublishedFalls.Any(f=>f.Candidate.RequestId==r.Request.Id));
         /// <summary>True only when every source-to-mouth request has a planned river route.
         /// A locally supported fall with a standalone water strip is not a continuous route.</summary>
-        public bool HasContinuousSourceToMouth => Complete && Reports.Count>0 && FallCandidates.Count==0 &&
-            PublishedFalls.Count==0 && Reports.Count==Routes.Count;
+        public bool HasContinuousSourceToMouth => Complete && Reports.Count>0 && Reports.Count==Routes.Count &&
+            PublishedFalls.All(f=>f.Candidate.Site.WorldBoundaryMouth&&f.Candidate.LowerReach!=null&&
+                Routes.Any(r=>r.Request.Id==f.Candidate.RequestId));
         /// <summary>Fail closed before composition publishes Paths against an absent
         /// downstream corridor or crossing offer.</summary>
         public void RequireContinuousSourceToMouth()
         {
+            if(HasContinuousSourceToMouth)return;
             if(FallCandidates.Count>0||PublishedFalls.Count>0)
                 throw new InvalidOperationException("Explicit fall has no planned source-to-mouth continuation: the receiving water strip ends at the mouth without a RiverRoute, downstream WaterCorridor, crossing offers or matching full-reach terrain carving. Shared Rivers/Paths generation is unavailable for this fall; the standalone owned-tile fall remains a local geometry preview.");
             if(!HasContinuousSourceToMouth)
@@ -193,6 +195,31 @@ namespace TerraLoom.Rivers
                 "Physical owned fall earthworks, water, lip, wall, pool and outlet contacts validated.",
                 report.ExpandedNodes,report.TerrainSamples,report.Identity,report.CoreInputIdentity,report.ProfileFingerprint);
             return new RiverPlan(CoreInputIdentity,DomainFingerprint,profile,Routes,new[]{accepted},
+                FallCandidates,new[]{new RiverPublishedFall(candidate,protectedFootprint)});
+        }
+        /// <summary>Only the physical publication layer may promote a boundary fall and
+        /// its validated receiving route together after all earthworks contacts pass.</summary>
+        internal RiverPlan WithPreparedFallAndLower(RiverFallCandidate candidate,AreaReservation protectedFootprint,
+            RiverProfile profile)
+        {
+            if(candidate==null||candidate.LowerReach==null||!candidate.Site.WorldBoundaryMouth||
+               candidate.LowerReach.PlanIdentity!=Identity||candidate.LowerReach.CoreInputIdentity!=CoreInputIdentity||
+               protectedFootprint==null||protectedFootprint.Strength!=ReservationStrength.Hard||
+               protectedFootprint.Purpose!=ReservationPurpose.ProtectedArea||profile==null||
+               profile.Fingerprint!=ProfileFingerprint||FallCandidates.Count!=1||FallCandidates[0]!=candidate||
+               PublishedFalls.Count!=0||Routes.Count!=0||Reports.Count!=1||Reports[0].Outcome!=RiverOutcome.FallCandidateOnly)
+                throw new InvalidOperationException("Boundary fall and exact receiving route must share the validated candidate identity.");
+            var lower=candidate.LowerReach;
+            var offers=lower.Corridors.Select(c=>new RiverOffer(Identity,c,
+                lower.CrossingOffers.Where(x=>x.WaterId==c.Id),
+                lower.Reservations.Where(x=>x.OwnerId==c.Id))).ToArray();
+            var route=new RiverRoute(Reports[0].Request,lower.Bed.ToArray(),lower.Water.ToArray(),
+                lower.LeftBank.ToArray(),lower.RightBank.ToArray(),offers,0);
+            var old=Reports[0];
+            var accepted=new RiverReport(old.Request,RiverOutcome.Connected,
+                "Owned boundary fall and receiving route physically prepared through the world edge.",
+                old.ExpandedNodes,old.TerrainSamples,old.Identity,old.CoreInputIdentity,old.ProfileFingerprint);
+            return new RiverPlan(CoreInputIdentity,DomainFingerprint,profile,new[]{route},new[]{accepted},
                 FallCandidates,new[]{new RiverPublishedFall(candidate,protectedFootprint)});
         }
         public PlanContribution ToContribution(PlanIdentity coreInputIdentity) => ToContribution("rivers", coreInputIdentity);

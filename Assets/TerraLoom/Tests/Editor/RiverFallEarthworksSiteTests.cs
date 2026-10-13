@@ -32,7 +32,8 @@ namespace TerraLoom.Tests
                     new ManualWorldAnchor{Id="fall",Position=new Vector3(16,8,16)},
                     new ManualWorldAnchor{Id="mouth",Position=new Vector3(32,2,16)}};
                 var rivers=host.AddComponent<TerraLoomRivers>();rivers.World=world;rivers.AutomaticSourceAndMouth=false;
-                rivers.Connections.Add(new RiverConnectionSettings{Id="main",SourceId="source",MouthId="mouth",FallId="main-fall",FallAnchorId="fall"});
+                rivers.Connections.Add(new RiverConnectionSettings{Id="main",SourceId="source",MouthId="mouth",FallId="main-fall",
+                    FallAnchorId="fall",RequirePlannedLowerReach=true,WorldBoundaryMouth=true});
                 var request=new RiverRequest("main","source","mouth",new RiverFallSite("main-fall","fall",true,true));
                 var snapshot=rivers.CaptureInput(out var bounds,out var ignored);
                 var profile=rivers.CaptureProfile();var plan=RiverPlanner.Plan(snapshot,profile,bounds,new[]{request});
@@ -41,8 +42,11 @@ namespace TerraLoom.Tests
                 Assert.That(candidate.LowerReach,Is.Not.Null);
                 water=new Material(Shader.Find("Universal Render Pipeline/Lit"));rock=new Material(water);
                 rivers.WaterMaterial=water;rivers.FallRockMaterial=rock;
-                Assert.That(()=>rivers.PrepareFromSnapshot(snapshot,bounds,new[]{request}),
-                    Throws.InvalidOperationException.With.Message.Contains("staging-only"));
+                using(var staged=rivers.PrepareFromSnapshot(snapshot,bounds,new[]{request}))
+                {
+                    Assert.That(staged.Plan.HasContinuousSourceToMouth,Is.True);
+                    Assert.That(staged.Plan.Routes.Count,Is.EqualTo(1));
+                }
                 Assert.That(terrain.terrainData,Is.SameAs(source));
                 Assert.That(rivers.GeneratedRoot,Is.Null);
                 using(var prepared=PreparedFallEarthworks.Prepare(candidate,snapshot,world,source,profile))

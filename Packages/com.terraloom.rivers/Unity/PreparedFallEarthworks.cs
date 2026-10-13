@@ -19,13 +19,15 @@ namespace TerraLoom.Rivers.Unity
         public RiverFallCandidate Candidate { get; }
         public RiverFallEarthworksSite Site { get; }
         /// <summary>Conservative no-crossing reservation for the first physical fall release.</summary>
-        public AreaReservation ProtectedFootprint(RiverProfile profile)
+        public AreaReservation ProtectedFootprint(RiverProfile profile,bool localFallOnly=false)
         {
             if(profile==null)throw new ArgumentNullException(nameof(profile));
             var across=Candidate.Recipe.Fall.Across;
             double half=Candidate.Recipe.PoolWidth*.5+profile.BankWidth;
             double minX=double.PositiveInfinity,minZ=double.PositiveInfinity,maxX=double.NegativeInfinity,maxZ=double.NegativeInfinity;
-            foreach(var point in new[]{Candidate.UpperStart,Candidate.Lip,Candidate.Impact,Candidate.LowerEnd})
+            var last=localFallOnly?Candidate.Recipe.SampleLowerReach(Candidate.LowerReach.JoinStation).Surface:
+                Candidate.LowerEnd;
+            foreach(var point in new[]{Candidate.UpperStart,Candidate.Lip,Candidate.Impact,last})
             foreach(double sign in new[]{-1.0,1.0})
             {
                 double x=point.X+across.X*half*sign,z=point.Z+across.Z*half*sign;

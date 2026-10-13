@@ -22,22 +22,32 @@ public sealed class RiverFallPlayerProbe : MonoBehaviour
             Directory.CreateDirectory(output);
             var rivers=FindFirstObjectByType<TerraLoomRivers>();
             if(!rivers||!rivers.GeneratedRoot)throw new InvalidOperationException("Baked fall root missing in Player.");
+            bool boundary=rivers.PlanJson!=null&&rivers.PlanJson.Contains("\"format\": 4");
             var geometry=rivers.GeneratedRoot.GetComponentsInChildren<RiverGeneratedGeometry>(true);
-            if(geometry.Length!=4||!geometry.Any(g=>g.Role==RiverGeometryRole.FallRock))
+            if(geometry.Length!=(boundary?5:4)||!geometry.Any(g=>g.Role==RiverGeometryRole.FallRock))
                 throw new InvalidOperationException("Baked rock/water parts missing in Player.");
             if(rivers.GeneratedRoot.GetComponentsInChildren<MeshCollider>(true).Length!=1)
                 throw new InvalidOperationException("Baked rock collider missing in Player.");
-            Probe("upper lip",new Vector3(15.7f,12,16),12);
-            Probe("lower pool",new Vector3(19.5f,7,16),7);
-            Probe("outlet",new Vector3(25,7,16),7);
+            float fallX=boundary?6:16;
+            Probe("upper lip",new Vector3(fallX-.3f,12,16),12);
+            Probe("lower pool",new Vector3(fallX+3.5f,7,16),7);
+            Probe("outlet",new Vector3(boundary?29:25,7,16),7);
             var views=new[]{
-                new View("lip",new Vector3(11,9.2f,11),new Vector3(16,7,16)),
-                new View("side",new Vector3(16,6.3f,8),new Vector3(16,5,16)),
-                new View("foot",new Vector3(21,3.4f,10),new Vector3(16,4,16)),
-                new View("pool",new Vector3(23,4.2f,11),new Vector3(20,2.1f,16)),
-                new View("outlet",new Vector3(30,4.0f,14),new Vector3(24,2.1f,16))};
+                new View("lip",new Vector3(fallX-5,9.2f,11),new Vector3(fallX,7,16)),
+                new View("side",new Vector3(fallX,6.3f,8),new Vector3(fallX,5,16)),
+                new View("foot",new Vector3(fallX+5,3.4f,10),new Vector3(fallX,4,16)),
+                new View("pool",new Vector3(fallX+7,4.2f,11),new Vector3(fallX+4,2.1f,16)),
+                new View("outlet",boundary?new Vector3(31,4.0f,11):new Vector3(30,4.0f,14),
+                    boundary?new Vector3(27,2.1f,16):new Vector3(24,2.1f,16))};
             foreach(var view in views)Capture(output,view);
-            Debug.Log("TERRALOOM_FALL_PLAYER_PASS parts=4 collider=1 probes=3 images="+views.Length);
+            if(boundary)
+            {
+                Walk("pool",new Vector3(fallX+4,8,16));
+                Walk("receiving bank",new Vector3(22,8,19));
+                Walk("outlet",new Vector3(30,8,16));
+            }
+            Debug.Log("TERRALOOM_FALL_PLAYER_PASS parts="+geometry.Length+" collider=1 probes=3 images="+views.Length+
+                " controller="+(boundary?3:0));
         }
         catch(Exception ex){exit=1;Debug.LogError("TERRALOOM_FALL_PLAYER_FAIL "+ex);}
         Application.Quit(exit);
@@ -50,6 +60,24 @@ public sealed class RiverFallPlayerProbe : MonoBehaviour
         if(!Physics.Raycast(origin,Vector3.down,out var hit,distance))
             throw new InvalidOperationException(label+" has no supporting collider.");
         Debug.Log("TERRALOOM_FALL_CONTACT "+label+" "+hit.collider.name+" y="+hit.point.y.ToString("F3"));
+    }
+    private static void Walk(string label,Vector3 start)
+    {
+        var go=new GameObject("Fall CharacterController "+label);
+        go.transform.position=start;
+        var controller=go.AddComponent<CharacterController>();controller.radius=.3f;controller.height=1.8f;
+        try
+        {
+            bool grounded=false;
+            for(int i=0;i<48;i++)
+            {
+                var flags=controller.Move(Vector3.down*.3f);
+                if((flags&CollisionFlags.Below)!=0){grounded=true;break;}
+            }
+            if(!grounded)throw new InvalidOperationException("CharacterController did not land at "+label);
+            Debug.Log("TERRALOOM_FALL_CONTROLLER "+label+" y="+go.transform.position.y.ToString("F3"));
+        }
+        finally{Destroy(go);}
     }
     private static void Capture(string folder,View view)
     {

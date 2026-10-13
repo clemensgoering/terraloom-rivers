@@ -13,12 +13,17 @@ namespace TerraLoom.Rivers.Unity
         public string Id = "river", SourceId = "source", MouthId = "mouth";
         [Tooltip("Optional explicit fall ID and anchor. Owned, axis-aligned fall sites require physical contact validation before publication.")]
         public string FallId, FallAnchorId;
+        [Tooltip("Opt in to a sampled straight receiving route; unsupported slopes and banks reject the fall.")]
+        public bool RequirePlannedLowerReach;
+        [Tooltip("The receiving route must exit exactly at the downstream edge of one Core-owned terrain tile.")]
+        public bool WorldBoundaryMouth;
         public RiverRequest Capture()
         {
             if (string.IsNullOrWhiteSpace(FallId) != string.IsNullOrWhiteSpace(FallAnchorId))
                 throw new ArgumentException("Fall ID and fall anchor must be set together.");
             return new RiverRequest(Id, SourceId, MouthId,
-                string.IsNullOrWhiteSpace(FallId) ? null : new RiverFallSite(FallId, FallAnchorId));
+                string.IsNullOrWhiteSpace(FallId) ? null : new RiverFallSite(FallId, FallAnchorId,
+                    RequirePlannedLowerReach,WorldBoundaryMouth));
         }
     }
     [Serializable] public sealed class RiverRegionSettings
@@ -218,8 +223,6 @@ namespace TerraLoom.Rivers.Unity
         private PreparedPublication PrepareFallPublication(PlanSnapshot input,RiverPlan candidatePlan,
             RiverProfile profile,WorldSourcePublication.PreparedSource source,CancellationToken cancellation)
         {
-            if(candidatePlan.FallCandidates[0].Site.WorldBoundaryMouth)
-                throw new InvalidOperationException("Planned boundary receiving reach is staging-only until its full terrain, route contribution and saved-plan publication are validated together.");
             if(source!=null)throw new InvalidOperationException("The first physical fall release requires one already bound Core-owned tile; prepared external sources are unsupported.");
             if(!World.OwnsTerrain||!CarveTerrainCopy||TerrainBrush||!FallRockMaterial||!WaterMaterial)
                 throw new InvalidOperationException("Explicit fall needs a Core-owned terrain copy, rock and water materials; Terrain Brush mode is unsupported for this first fall release.");
@@ -231,7 +234,10 @@ namespace TerraLoom.Rivers.Unity
             try
             {
                 earthworks=PreparedFallEarthworks.Prepare(candidatePlan.FallCandidates[0],input,World,basis,profile,cancellation);
-                var published=candidatePlan.WithPreparedFall(candidatePlan.FallCandidates[0],earthworks.ProtectedFootprint(profile),profile);
+                bool boundary=candidatePlan.FallCandidates[0].Site.WorldBoundaryMouth;
+                var published=boundary
+                    ?candidatePlan.WithPreparedFallAndLower(candidatePlan.FallCandidates[0],earthworks.ProtectedFootprint(profile,true),profile)
+                    :candidatePlan.WithPreparedFall(candidatePlan.FallCandidates[0],earthworks.ProtectedFootprint(profile),profile);
                 var serialized=RiverPlanStore.Save(published);
                 staged=new GameObject("Rivers (generated fall)");staged.SetActive(false);staged.transform.SetParent(transform,false);
                 int vertices=earthworks.Solid.vertexCount+earthworks.Water.Sum(mesh=>mesh.vertexCount);
@@ -240,7 +246,7 @@ namespace TerraLoom.Rivers.Unity
                 for(int i=0;i<earthworks.Water.Length;i++)
                     AddFallGeometry(staged,earthworks.Water[i],RiverGeometryRole.Water,
                         i==1&&FallWaterMaterial?FallWaterMaterial:WaterMaterial,
-                        i==0?"Fall upper water":i==1?"Fall vertical water":"Fall pool and outlet water");
+                        i==0?"Fall upper water":i==1?"Fall vertical water":i==2?"Fall pool and outlet water":"Fall receiving route water");
                 cancellation.ThrowIfCancellationRequested();
                 stagedData=earthworks.TakeTerrainAndMeshes();
                 var prepared=new PreparedPublication(this,staged,stagedData,basis,target,published,serialized);

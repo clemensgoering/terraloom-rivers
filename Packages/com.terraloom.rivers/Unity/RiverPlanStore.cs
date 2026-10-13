@@ -11,7 +11,10 @@ namespace TerraLoom.Rivers.Unity
         { public int format = 2, seed; public long revision; public string algorithm, domain, input; public Route[] routes; }
         [Serializable] private sealed class StoredFall
         { public int format = 3, seed; public long revision; public string algorithm, domain, input; public Route[] routes; public Fall[] falls; }
+        [Serializable] private sealed class StoredBoundaryFall
+        { public int format = 4, seed; public long revision; public string algorithm, domain, input; public BoundaryRoute[] routes; public Fall[] falls; }
         [Serializable] private sealed class Route { public string id; public Point[] water, leftBank, rightBank; }
+        [Serializable] private sealed class BoundaryRoute { public string id; public Point[] bed, water, leftBank, rightBank; }
         [Serializable] private sealed class Fall
         { public string request,site,anchor; public Point lip,impact,pool,outlet; public double minX,minZ,maxX,maxZ; }
         [Serializable] private sealed class Point { public double x,y,z; }
@@ -25,6 +28,13 @@ namespace TerraLoom.Rivers.Unity
                     lip=P(f.Candidate.Lip),impact=P(f.Candidate.Impact),pool=P(f.Candidate.Pool),outlet=P(f.Candidate.Outlet),
                     minX=f.ProtectedFootprint.Bounds.MinX,minZ=f.ProtectedFootprint.Bounds.MinZ,
                     maxX=f.ProtectedFootprint.Bounds.MaxX,maxZ=f.ProtectedFootprint.Bounds.MaxZ}).ToArray();
+                if(plan.HasContinuousSourceToMouth)
+                    return JsonUtility.ToJson(new StoredBoundaryFall{seed=plan.Identity.Seed,revision=plan.Identity.Revision,
+                        algorithm=plan.Identity.AlgorithmVersion,domain=plan.DomainFingerprint,input=plan.Identity.InputFingerprint,
+                        routes=plan.Routes.Select(r=>new BoundaryRoute{id=r.Request.Id,
+                            bed=r.BedPolyline.Select(P).ToArray(),water=r.WaterPolyline.Select(P).ToArray(),
+                            leftBank=r.LeftBankPolyline.Select(P).ToArray(),rightBank=r.RightBankPolyline.Select(P).ToArray()}).ToArray(),
+                        falls=published},true);
                 return JsonUtility.ToJson(new StoredFall{seed=plan.Identity.Seed,revision=plan.Identity.Revision,
                     algorithm=plan.Identity.AlgorithmVersion,domain=plan.DomainFingerprint,input=plan.Identity.InputFingerprint,
                     routes=Array.Empty<Route>(),falls=published},true);
@@ -41,7 +51,8 @@ namespace TerraLoom.Rivers.Unity
             if (string.IsNullOrWhiteSpace(json) || json.Length > 32000000) throw new ArgumentException("Invalid plan JSON size.");
             var stored = JsonUtility.FromJson<Stored>(json);
             // Compare the original canonical doubles. JsonUtility's read/write roundtrip can change their printed precision.
-            if (stored == null || stored.format != (fresh.PublishedFalls.Count>0?3:2) || json != Save(fresh))
+            int expected=fresh.PublishedFalls.Count==0?2:fresh.HasContinuousSourceToMouth?4:3;
+            if (stored == null || stored.format != expected || json != Save(fresh))
                 throw new ArgumentException("Saved river plan is stale, incomplete or edited. Rebuild against the current inputs.");
         }
     }
