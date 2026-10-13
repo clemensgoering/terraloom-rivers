@@ -26,12 +26,24 @@ namespace TerraLoom.Tests
             Terrain terrain=null;TerrainData source=null;Material ground=null,bridge=null,water=null,rock=null;
             try
             {
+                bool bake=Environment.GetCommandLineArgs().Contains("-terraloomBakeBoundary");
                 var world=host.AddComponent<TerraLoomWorld>();world.WorldId="boundary-composition";
                 world.Resolution=129;world.TerrainSize=new Vector3(32,16,32);world.GenerateTerrain();
                 terrain=world.Terrain;source=terrain.terrainData;
                 var heights=new float[129,129];
                 for(int z=0;z<129;z++)for(int x=0;x<129;x++)
-                    heights[z,x]=(x<24?8f:z<56||z>72?2.6f:2f)/16f;
+                {
+                    float lower=z<56||z>72?2.6f:2f;
+                    if(!bake)heights[z,x]=(x<24?8f:lower)/16f;
+                    else
+                    {
+                        float away=Mathf.Abs(z*.25f-16)/16;
+                        float shoulder=away*away;
+                        float start=6+2*shoulder,run=.25f+8*shoulder;
+                        float t=Mathf.SmoothStep(0,1,Mathf.Clamp01((x*.25f-start)/run));
+                        heights[z,x]=Mathf.Lerp(8,lower,t)/16f;
+                    }
+                }
                 source.SetHeights(0,0,heights);
                 world.UseSeedAnchors=false;
                 world.ManualAnchors=new[]{
@@ -45,7 +57,6 @@ namespace TerraLoom.Tests
                 var shader=Shader.Find("Universal Render Pipeline/Lit");
                 ground=new Material(shader);water=new Material(shader);rock=new Material(shader);
                 bridge=ground;
-                bool bake=Environment.GetCommandLineArgs().Contains("-terraloomBakeBoundary");
                 if(bake)
                 {
                     const string parent="Assets/TerraLoom/Integration/Generated";
