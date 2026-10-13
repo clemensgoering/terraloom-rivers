@@ -101,3 +101,22 @@ before the second run. No third run, production runtime change or Epos edit.
 The earlier Player-open note above is superseded by the focused Player lifecycle
 proof documented in Core `Docs/NEXT-CHAT.md` (Rivers probe6e404b6).
 Full resource-aware Undo/Redo and visual/buyer-workbench acceptance remain open.
+
+## Host lifetime check (13 October)
+
+The Composition host releases its published decoration, Paths, Rivers and
+owned source when an active host is destroyed in PlayMode. Disabling the host
+does not clear the world. Focused native PlayMode test
+`CompositionHostLifecyclePlayTests.DestroyingActiveHostReleasesPublishedWorldAfterFrameEnd`
+passes 1/1 in Unity 6000.3.9f1 with the package at `7c258c4`. After two
+frames, generated roots and the carved TerrainData are gone; a still-bound
+Core-owned original source is retained. Evidence is under the isolated Git
+consumer `.artifacts/T9HostDestroy-20261013/playmode-after.xml`.
+
+An EditMode test that directly removed a Composition component (including
+after re-enabling it) remained red: EditMode without ExecuteAlways did not
+invoke this MonoBehaviour lifetime hook. Do not claim automatic cleanup for
+Inspector removal, including a disabled component. Use confirmed Clear before
+removing the host in the Editor. A separate Editor ownership/removal strategy
+is required. Bootstrap rollback, domain-reload original-source recovery and
+commit-window callback isolation are also open T9 work.
