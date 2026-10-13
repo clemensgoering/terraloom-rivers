@@ -251,8 +251,13 @@ namespace TerraLoom.Rivers.Unity
                 if(Vector3.Dot(Vector3.Cross(q-p,r-p),outward)>=0)tris.AddRange(new[]{i,i+1,i+2});
                 else tris.AddRange(new[]{i,i+2,i+1});
             }
-            double Upper(double lateral)=>top+SourceHeight(-Math.Max(setback,profile.SampleSpacing),lateral)-
-                SourceHeight(-Math.Max(setback,profile.SampleSpacing),0);
+            // Retain full-width lip support when a near-vertical source heightfield
+            // interpolates downward at the lip, but never leave the rock below the
+            // sampled source along a sloping outer shoulder.
+            double Upper(double lateral)=>Math.Max(
+                top+SourceHeight(-Math.Max(setback,profile.SampleSpacing),lateral)-
+                    SourceHeight(-Math.Max(setback,profile.SampleSpacing),0),
+                SourceHeight(-setback,lateral));
             double Lower(double lateral)
             {
                 double ground=CarvedHeight(Math.Max(setback,profile.SampleSpacing),lateral);
@@ -261,12 +266,27 @@ namespace TerraLoom.Rivers.Unity
                 return Math.Min(ground,ground+(centre-ground)*blend);
             }
             const int toeRows=8;
+            int shoulderRows=Math.Max(1,Math.Min(32,(int)Math.Ceiling((-setback-s0)/Math.Min(cellX,cellZ))));
+            double ShoulderStation(int row)=>s0+(-setback-s0)*(double)row/shoulderRows;
+            double ShoulderHeight(double station,double lateral)
+            {
+                double blend=(station-s0)/(-setback-s0);
+                double support=SourceHeight(s0,lateral)+
+                    (Upper(lateral)-SourceHeight(s0,lateral))*blend;
+                return Math.Max(SourceHeight(station,lateral),support);
+            }
             double ToeStation(int row)=>-setback+(s3+setback)*(double)row/toeRows;
             Vector3 Toe(double station,double lateral)
             {
                 double t=Math.Max(0,Math.Min(1,(station+setback)/(s3+setback)));
                 double height=Lower(lateral)+
                     (CarvedHeight(s3,lateral)-Lower(lateral))*Math.Sqrt(t);
+                // At the outer bank, follow the carved height at this very station.
+                // Using the lower-reach sample from farther downstream undercuts
+                // steep lateral terrain and exposes a see-through slit at the hole.
+                double edge=Smooth((Math.Abs(lateral)-fall.Width*.5)/Math.Max(.01,profile.BankWidth))*
+                    Smooth((station+setback)/Math.Max(.01,setback));
+                height+=Math.Max(0,CarvedHeight(station,lateral)-height)*edge;
                 return Point(station,lateral,height);
             }
             for(int j=0;j<across;j++)
@@ -277,7 +297,14 @@ namespace TerraLoom.Rivers.Unity
                 var h0=Point(-setback,a,Upper(a));var h1=Point(-setback,b,Upper(b));
                 var l0=Point(-setback,a,Lower(a));var l1=Point(-setback,b,Lower(b));
                 var d0=Point(s3,a,CarvedHeight(s3,a));var d1=Point(s3,b,CarvedHeight(s3,b));
-                Quad(u0,u1,h1,h0,Vector3.up);
+                for(int row=0;row<shoulderRows;row++)
+                {
+                    double near=ShoulderStation(row),far=ShoulderStation(row+1);
+                    Quad(Point(near,a,ShoulderHeight(near,a)),Point(near,b,ShoulderHeight(near,b)),
+                        Point(far,b,ShoulderHeight(far,b)),Point(far,a,ShoulderHeight(far,a)),Vector3.up);
+                    Quad(Point(near,a,floor),Point(near,b,floor),Point(far,b,floor),
+                        Point(far,a,floor),Vector3.down);
+                }
                 Vector3 Wall(double lateral,double vertical)
                 {
                     double flank=Math.Min(1,Math.Min(lateral-a0,a1-lateral)/Math.Max(.25,profile.BankWidth));
@@ -305,17 +332,22 @@ namespace TerraLoom.Rivers.Unity
                     Quad(Point(near,a,floor),Point(far,a,floor),Point(far,b,floor),
                         Point(near,b,floor),Vector3.down);
                 }
-                if(j==0)Side(u0,h0,l0,d0,a,-1);
-                if(j==across-1)Side(u1,h1,l1,d1,b,1);
-                Quad(Point(s0,a,floor),Point(-setback,a,floor),Point(-setback,b,floor),Point(s0,b,floor),Vector3.down);
+                if(j==0)Side(h0,l0,a,-1);
+                if(j==across-1)Side(h1,l1,b,1);
                 Quad(u0,Point(s0,a,floor),Point(s0,b,floor),u1,new Vector3((float)-fall.Forward.X,0,(float)-fall.Forward.Z));
                 Quad(d1,Point(s3,b,floor),Point(s3,a,floor),d0,new Vector3((float)fall.Forward.X,0,(float)fall.Forward.Z));
             }
-            void Side(Vector3 u,Vector3 h,Vector3 l,Vector3 d,double lateral,int sign)
+            void Side(Vector3 h,Vector3 l,double lateral,int sign)
             {
                 var outwards=new Vector3((float)(fall.Across.X*sign),0,(float)(fall.Across.Z*sign));
-                var fu=Point(s0,lateral,floor);var fw=Point(-setback,lateral,floor);var fd=Point(s3,lateral,floor);
-                Quad(u,h,fw,fu,outwards);
+                var fw=Point(-setback,lateral,floor);
+                for(int row=0;row<shoulderRows;row++)
+                {
+                    double near=ShoulderStation(row),far=ShoulderStation(row+1);
+                    Quad(Point(near,lateral,ShoulderHeight(near,lateral)),
+                        Point(far,lateral,ShoulderHeight(far,lateral)),
+                        Point(far,lateral,floor),Point(near,lateral,floor),outwards);
+                }
                 for(int row=0;row<12;row++)
                     Triangle(Vector3.Lerp(h,l,(float)row/12),Vector3.Lerp(h,l,(float)(row+1)/12),fw,outwards);
                 for(int row=0;row<toeRows;row++)
@@ -387,6 +419,33 @@ namespace TerraLoom.Rivers.Unity
                         throw new InvalidOperationException("Fall water is not backed by the prepared wall across its width.");
                     if(Vector3.Distance(wall.point,atWater)>.2f)
                         throw new InvalidOperationException("Fall wall is too far from the water surface.");
+                }
+                // Probe both side borders of the carved hole along the downstream toe.
+                // A closed solid can still sit below the adjacent heightfield and leave
+                // a see-through slit when viewed from beneath the terrain silhouette.
+                var terrainData=prepared.TerrainData;var terrainSize=terrainData.size;var site=prepared.Site;
+                double cellX=terrainSize.x/terrainData.holesResolution,cellZ=terrainSize.z/terrainData.holesResolution;
+                var corners=new[]{
+                    new Vector2((float)(origin.x+site.HoleX*cellX),(float)(origin.z+site.HoleZ*cellZ)),
+                    new Vector2((float)(origin.x+(site.HoleX+site.HoleWidth)*cellX),(float)(origin.z+site.HoleZ*cellZ)),
+                    new Vector2((float)(origin.x+site.HoleX*cellX),(float)(origin.z+(site.HoleZ+site.HoleHeight)*cellZ)),
+                    new Vector2((float)(origin.x+(site.HoleX+site.HoleWidth)*cellX),(float)(origin.z+(site.HoleZ+site.HoleHeight)*cellZ))};
+                double s3=corners.Max(p=>(p.x-fall.Lip.X)*fall.Forward.X+(p.y-fall.Lip.Z)*fall.Forward.Z);
+                double a0=corners.Min(p=>(p.x-fall.Lip.X)*fall.Across.X+(p.y-fall.Lip.Z)*fall.Across.Z);
+                double a1=corners.Max(p=>(p.x-fall.Lip.X)*fall.Across.X+(p.y-fall.Lip.Z)*fall.Across.Z);
+                for(int sideIndex=0;sideIndex<2;sideIndex++)
+                for(int stationIndex=0;stationIndex<=16;stationIndex++)
+                {
+                    cancellation.ThrowIfCancellationRequested();
+                    double station=s3*stationIndex/16;
+                    double lateral=sideIndex==0?a0+(a1-a0)*.0001:a1-(a1-a0)*.0001;
+                    float x=(float)(fall.Lip.X+fall.Forward.X*station+fall.Across.X*lateral);
+                    float z=(float)(fall.Lip.Z+fall.Forward.Z*station+fall.Across.Z*lateral);
+                    float ground=origin.y+terrainData.GetInterpolatedHeight((x-origin.x)/terrainSize.x,(z-origin.z)/terrainSize.z);
+                    if(!solid.Raycast(new Ray(new Vector3(x,origin.y+terrainSize.y+2,z),Vector3.down),out var contact,terrainSize.y+4)||
+                        ground-contact.point.y>.12f)
+                        throw new InvalidOperationException("Fall outer toe loses terrain contact at station "+station+
+                            ", lateral "+lateral+"; ground="+ground+", solid="+contact.point.y);
                 }
                 double length=prepared.Candidate.Site.WorldBoundaryMouth
                     ?prepared.Candidate.LowerReach.JoinStation:prepared.Site.LowerLength;

@@ -203,5 +203,62 @@ namespace TerraLoom.Tests
             }
         }
 
+        [Test] public void DiagnoseUpperShoulderPixelContact()
+        {
+            if(!Environment.GetCommandLineArgs().Contains("-terraloomDiagnoseShoulder"))Assert.Ignore("Explicit saved-scene shoulder diagnosis only.");
+            var setup=EditorSceneManager.GetSceneManagerSetup();GameObject cameraObject=null;RenderTexture target=null;
+            try
+            {
+                EditorSceneManager.OpenScene(SavedScene);
+                cameraObject=new GameObject("Temporary fall-wide contact camera");
+                var camera=cameraObject.AddComponent<Camera>();
+                camera.transform.position=new Vector3(17,7,3);
+                camera.transform.LookAt(new Vector3(8,5,16));
+                camera.fieldOfView=60;camera.aspect=960f/540f;
+                target=new RenderTexture(960,540,24);camera.targetTexture=target;
+                Physics.SyncTransforms();
+                TestContext.WriteLine("colliders="+Object.FindObjectsByType<Collider>(FindObjectsSortMode.None).Length);
+                var solid=Object.FindObjectsByType<MeshCollider>(FindObjectsSortMode.None).First(c=>c.name=="Supported fall rock");
+                var terrain=Object.FindFirstObjectByType<Terrain>();
+                TestContext.WriteLine("solidBounds="+solid.bounds+" terrain="+terrain.terrainData.size);
+                var holes=terrain.terrainData.GetHoles(0,0,terrain.terrainData.holesResolution,terrain.terrainData.holesResolution);
+                int minX=int.MaxValue,minZ=int.MaxValue,maxX=-1,maxZ=-1;
+                for(int z=0;z<holes.GetLength(0);z++)for(int x=0;x<holes.GetLength(1);x++)if(!holes[z,x])
+                {minX=Math.Min(minX,x);maxX=Math.Max(maxX,x);minZ=Math.Min(minZ,z);maxZ=Math.Max(maxZ,z);}
+                TestContext.WriteLine($"holeCells x={minX}..{maxX} z={minZ}..{maxZ}");
+                foreach(int y in new[]{188,198,208,218,228})
+                foreach(int x in new[]{500,510,520,530,540})
+                {
+                    var ray=camera.ScreenPointToRay(new Vector3(x,540-y,0));
+                    var hits=Physics.RaycastAll(ray,100).OrderBy(h=>h.distance).ToArray();
+                    if(x==510&&y==198)
+                    {
+                        var atSide=ray.GetPoint((21.25f-ray.origin.z)/ray.direction.z);
+                        TestContext.WriteLine("pixel 510,198 at z21.25="+atSide+" sourceY="+
+                            Object.FindFirstObjectByType<TerraLoomRivers>().OriginalTerrainData.GetInterpolatedHeight(
+                                atSide.x/32,21.25f/32));
+                        var down=new Ray(new Vector3(atSide.x,16,atSide.z),Vector3.down);
+                        var contact=Physics.RaycastAll(down,32).OrderBy(h=>h.distance).ToArray();
+                        var ground=contact.First(h=>h.collider is TerrainCollider).point.y;
+                        var rock=contact.First(h=>h.collider.name=="Supported fall rock").point.y;
+                        TestContext.WriteLine($"shoulder contact ground={ground:F3} rock={rock:F3}");
+                        Assert.That(ground-rock,Is.LessThan(.12f));
+                        Assert.That(hits.Any(h=>h.collider.name=="Supported fall rock"),Is.True,
+                            "The fixed fall-wide shoulder pixel must hit closed rock, not the sky.");
+                    }
+                    TestContext.WriteLine($"pixel {x},{y}: "+(hits.Length==0?"SKY":
+                        string.Join(" | ",hits.Take(3).Select(h=>$"{h.collider.name} {h.point} d={h.distance:F3}"))));
+                }
+            }
+            finally
+            {
+                if(cameraObject)Object.DestroyImmediate(cameraObject);
+                if(target)Object.DestroyImmediate(target);
+                if(setup.Any(s=>s.isLoaded&&s.isActive&&!string.IsNullOrEmpty(s.path)))
+                    EditorSceneManager.RestoreSceneManagerSetup(setup);
+                else EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
+            }
+        }
+
     }
 }
