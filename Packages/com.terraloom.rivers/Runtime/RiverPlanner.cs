@@ -12,7 +12,7 @@ namespace TerraLoom.Rivers
     /// a read-only point sampler cannot prove the absence of arbitrarily narrow unsampled terrain features.</summary>
     public static class RiverPlanner
     {
-        public const string AlgorithmVersion = "rivers-inset-shoreline-v5";
+        public const string AlgorithmVersion = "rivers-inset-shoreline-v6-soft-cost-provenance";
         private const int MaximumCurvePoints = 16384;
 
         /// <summary>Selects one main river from manual or seeded Core anchors. Highest bed to lowest bed;

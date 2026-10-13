@@ -17,7 +17,12 @@ namespace TerraLoom.Rivers
         /// <summary>Exports this river instance through Core without depending on other modules.</summary>
         public PlanContribution ToContribution(string moduleInstanceId)
         {
-            return new PlanContribution(moduleInstanceId, Identity, Reservations, new[] { Corridor }, Crossings);
+            RiverHash.Id(moduleInstanceId);
+            var reservations = Reservations.Select(area => area.Strength == ReservationStrength.Soft && area.Purpose == ReservationPurpose.RiverBank
+                ? new AreaReservation(area.Id, area.OwnerId, area.Bounds, area.Strength, area.Purpose,
+                    area.TransitionCost, "river-bank:" + moduleInstanceId.Length + ":" + moduleInstanceId + ":" + Corridor.Id)
+                : area);
+            return new PlanContribution(moduleInstanceId, Identity, reservations, new[] { Corridor }, Crossings);
         }
 
         public RiverOffer(PlanIdentity identity, WaterCorridor corridor,

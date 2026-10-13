@@ -164,7 +164,12 @@ namespace TerraLoom.Rivers
             if (coreInputIdentity != CoreInputIdentity) throw new ArgumentException("Export requires the original Core input identity.");
             if (!Complete) throw new InvalidOperationException("Incomplete river plans cannot be published as complete contributions.");
             var offers = Routes.SelectMany(r => r.Offers).ToArray();
-            return new PlanContribution(moduleInstanceId, coreInputIdentity, offers.SelectMany(o => o.Reservations),
+            var reservations = Routes.SelectMany(route => route.Offers.SelectMany(offer => offer.Reservations.Select(area =>
+                area.Strength == ReservationStrength.Soft && area.Purpose == ReservationPurpose.RiverBank
+                    ? new AreaReservation(area.Id, area.OwnerId, area.Bounds, area.Strength, area.Purpose,
+                        area.TransitionCost, "river-bank:" + moduleInstanceId.Length + ":" + moduleInstanceId + ":" + route.Request.Id)
+                    : area))).ToArray();
+            return new PlanContribution(moduleInstanceId, coreInputIdentity, reservations,
                 offers.Select(o => o.Corridor), offers.SelectMany(o => o.Crossings));
         }
     }
