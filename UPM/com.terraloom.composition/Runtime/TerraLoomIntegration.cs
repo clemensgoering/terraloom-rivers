@@ -76,6 +76,14 @@ namespace TerraLoom.Integration
             if(Rivers)Rivers.GenerateOnStart=false;
         }
         private void Start() { if (GenerateOnStart && !(RecipeAsset?GenerateRecipe(RecipeAsset,RecipeDecoration):Generate())) Debug.LogError(diagnostics,this); }
+        private void OnDestroy()
+        {
+            // The host owns the publication's lifetime. Disabling it is temporary and must
+            // keep the world; destroying it releases geometry and the borrowed source binding.
+            if(generating)return;
+            try{Clear();}
+            catch(Exception ex){Debug.LogException(ex,this);}
+        }
         public bool Generate(CancellationToken cancellation = default) => GenerateCore(null,cancellation);
 
         /// <summary>Reconstructs source inputs from a versioned asset using the shared prepared publication.
