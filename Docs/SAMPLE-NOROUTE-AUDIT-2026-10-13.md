@@ -1,0 +1,7 @@
+# Rivers sample NoRoute audit (2026-10-13)
+
+The screenshot labelled `Rivers Sample World` reported `sample-river: NoRoute` while the saved sample scene's stored plan was generated with the historical `rivers-grid-v1` algorithm. A stored plan is not evidence that the current planner can recreate it, so `RiversSampleRegressionTests.SavedSampleCanReplanFromItsOriginalTerrain` opens the saved scene and captures the live inputs from its uncarved TerrainData.
+
+Frozen scene inputs: world `rivers-sample`, seed 42, revision 0; source TerrainData `Original Rivers slope`, 96 × 16 × 96 m; manual source `(48, 5.76, 8)` and mouth `(48, 3.36, 88)`; one request `sample-river`; channel width 4 m, bank width 2 m, depth 0.6 m, routing cell 2 m, maximum slope 0.3, footprint sample spacing 0.5 m, no protected areas. The terrain is `6 - 0.03*z` metres and flat across X.
+
+Unity 6000.3.9f1 EditMode test `RiversSampleRegression-20261013-c.xml`: **1/1 passed**. The current planner returns `Connected` with one route, and `TerraLoomRivers.Generate()` succeeds from the saved original TerrainData. This does not reproduce the screenshot's `NoRoute`. The screenshot's report mentions downhill/footprint rejections; those are valid reasons to reject a changed scene input, not a reason to relax the hydraulic or bank-footprint guards. If it recurs, compare the live `TerrainData`, source/mouth anchors, river settings, and protected areas with the frozen values above before treating it as a planner defect. Generated geometry and the prior publication remain retained on a failed attempt.
