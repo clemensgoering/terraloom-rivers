@@ -268,6 +268,16 @@ namespace TerraLoom.Integration
                 Step("01-capture-source",()=>{input=CaptureSource(out bounds,out graph,source,requestedPaths,requestedRivers);LastSourceInput=input;});
                 Step("02-plan-water",()=>{
                     requests=Requests(input,requestedRivers);plannedRiverProfile=RiverPlanner.ProfileVersion(Rivers.CaptureProfile(source?.Data),bounds,requests);riverPlan=RiverPlanner.Plan(input,Rivers.CaptureProfile(source?.Data),bounds,requests,cancellation);
+                    // A boundary fall is only a candidate until its owned terrain and
+                    // receiving route pass physical preflight. Paths must see the
+                    // promoted, complete contribution rather than the candidate.
+                    if(riverPlan.FallCandidates.Count==1&&riverPlan.Routes.Count==0&&riverPlan.Reports.Count==1&&
+                        riverPlan.Reports[0].Outcome==RiverOutcome.FallCandidateOnly)
+                    {
+                        preparedRiver=Rivers.PrepareFromSnapshot(input,bounds,requests,cancellation,source);
+                        riverPlan=preparedRiver.Plan;
+                        PublicationBoundary?.Invoke("river-prepared");
+                    }
                     riverPlan.RequireContinuousSourceToMouth();
                     var offer=riverPlan.ToContribution("rivers",input.Identity);
                     shared=new PlanSnapshot(input.Identity,input.Terrain,new AnchorSnapshot(input.AnchorSourceId,input.AnchorSourceRevision,input.Anchors),
@@ -280,8 +290,11 @@ namespace TerraLoom.Integration
                     if(!pathPlan.Complete)throw new InvalidOperationException(string.Join("\n",pathPlan.Reports.Select(r=>r.Connection.Id+": "+r.Outcome+" "+r.Detail)));
                 });
                 Step("04-publish-earthworks",()=>{
-                    preparedRiver=Rivers.PrepareFromSnapshot(input,bounds,requests,cancellation,source);
-                    PublicationBoundary?.Invoke("river-prepared");
+                    if(preparedRiver==null)
+                    {
+                        preparedRiver=Rivers.PrepareFromSnapshot(input,bounds,requests,cancellation,source);
+                        PublicationBoundary?.Invoke("river-prepared");
+                    }
                 });
                 Step("05-publish-walkable",()=>{
                     preparedPaths=Paths.PrepareFromSnapshot(shared,CapturePathBounds(bounds),preparedRiver.CaptureFinalHeights(),graph,cancellation,
