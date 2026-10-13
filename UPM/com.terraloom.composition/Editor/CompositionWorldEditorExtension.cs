@@ -19,8 +19,12 @@ namespace TerraLoom.Integration.Editor
         public override int Order => 10;
         public override Color Color => new Color(.7f, .6f, 1f);
         public override bool CoordinatesGeometry => true;
-        public override bool IncludesDecoration(Component component) => component is TerraLoomIntegration c && c.RecipeAsset;
-        public override bool PreparesTerrain(Component component) => component is TerraLoomIntegration c && c.RecipeAsset;
+        private static ICompositionWorldRecipe SceneRecipe(TerraLoomIntegration composition) =>
+            composition.GetComponents<MonoBehaviour>().OfType<ICompositionWorldRecipe>().FirstOrDefault();
+        public override bool IncludesDecoration(Component component) => component is TerraLoomIntegration c &&
+            (SceneRecipe(c)?.IncludesDecoration == true || c.RecipeAsset && c.RecipeDecoration);
+        public override bool PreparesTerrain(Component component) => component is TerraLoomIntegration c &&
+            (SceneRecipe(c)?.PreparesTerrain == true || c.RecipeAsset && c.RecipeDecoration);
 
         public override Component[] Find(TerraLoomWorld world) =>
             Object.FindObjectsByType<TerraLoomIntegration>(FindObjectsSortMode.None)
@@ -51,7 +55,15 @@ namespace TerraLoom.Integration.Editor
         public override void Generate(Component component)
         {
             var composition = (TerraLoomIntegration)component;
-            if (composition.RecipeAsset)
+            if(!composition.World||!composition.Paths||!composition.Rivers||
+               composition.Paths.World!=composition.World||composition.Rivers.World!=composition.World)
+                throw new InvalidOperationException("Shared generation needs Core, Rivers and Paths bound to this world.");
+            var sceneRecipe=SceneRecipe(composition);
+            if(sceneRecipe!=null)
+            {
+                if(!sceneRecipe.RebuildWorld())throw new InvalidOperationException(sceneRecipe.WorldDiagnostics);
+            }
+            else if (composition.RecipeAsset)
                 IntegrationEditor.GenerateSavedRecipe(composition);
             else if (composition.World && composition.World.OwnsTerrain)
             {

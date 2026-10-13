@@ -51,6 +51,12 @@ registers exactly one coordinator in a package-only project, so **Generate
 world** can discover the shared order. A saved Composition Recipe is still a
 separate asset: capture and generate it through the Composition Inspector as
 described below. Building the world does not silently create that asset.
+If a scene has its own complete seed recipe, its component may implement
+`ICompositionWorldRecipe` on the same GameObject as `TerraLoomIntegration`.
+The Workbench calls that recipe for **Generate world**, including its terrain
+and decoration steps, instead of running the attached modules independently.
+Without a scene recipe, Composition uses its saved recipe, owned Core source,
+or supplied terrain as appropriate.
 
 1. Add `TerraLoomWorld`, `TerraLoomPaths`, `TerraLoomRivers`, and
    `RegionDecoration` to your scene. Assign the same Core world to all four
