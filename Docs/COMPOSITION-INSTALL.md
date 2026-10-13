@@ -137,7 +137,15 @@ action that delegates to those two existing bakes, requires current outputs and
 a fresh empty Assets folder, and instructs a scene save. The centralized
 local-package bake and separate-process reopen passed; evidence is in the same
 consumer `.artifacts/{recipe-audit,reopen-audit,central-bake-audit,reopen-central-audit}.txt`.
-Player-height visual acceptance is still separate from these structural checks.
+The complete final Git consumer at Composition `27155dd` repeated the entry,
+recipe, centralized bake and separate-process reopen gates successfully. A
+Windows Player built and exited 0, generating four 1280×720 views at
+`.bootstrap-tools/composition-buyer-b-final-20261013/.artifacts/PlayerViews/`.
+Structural Player output reported a 9.5 m bridge deck at X48, Z90.75. The
+visual gate remains red: this 96 m world routes the crossing near its edge and
+the default deck is a flat strip, while the side view exposes the finite world
+boundary. Improve layout/presentation before using this as a buyer-facing
+example. Scripted execution is not a timed human clickthrough.
 
 Fresh Git consumer: `.bootstrap-tools/composition-buyer-ui-20261013`, Unity
 6000.3.9f1, Core014e4ce, Pathsd1f4ef0, Rivers7889dc7, Composition8838eb7.

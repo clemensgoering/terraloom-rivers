@@ -19,7 +19,7 @@ floating branches or unrelated package revisions.
     "com.terraloom.core": "https://github.com/clemensgoering/terraloom-core.git?path=/Packages/com.terraloom.core#014e4ce4fbdfe7bab988ca8b927ef8a17b80fc69",
     "com.terraloom.paths": "https://github.com/clemensgoering/terraloom-paths.git?path=/Packages/com.terraloom.paths#d1f4ef04fba9415571a8efd1f54cf585aeb94216",
     "com.terraloom.rivers": "https://github.com/clemensgoering/terraloom-rivers.git?path=/Packages/com.terraloom.rivers#7889dc7c73f3ada87074bfc5546fec75a731f262",
-    "com.terraloom.composition": "https://github.com/clemensgoering/terraloom-rivers.git?path=/UPM/com.terraloom.composition#0c20acddc4dc8a174673a8473d96c8560fca9d2d"
+    "com.terraloom.composition": "https://github.com/clemensgoering/terraloom-rivers.git?path=/UPM/com.terraloom.composition#27155dd527da764a4536a80b838a4b256b779b1e"
   }
 }
 ```
@@ -35,8 +35,13 @@ above confirmed the World Workbench menu, exactly one packaged Composition
 coordinator, module attachment to one Core world, rediscovery of the
 Composition tab, and selection of the package Inspector. Its evidence is
 `TerraLoom/.bootstrap-tools/composition-buyer-b-git-20261013/.artifacts/entry-audit.txt`.
-This entry audit does not prove a complete new-world recipe, saved baked scene,
-Player view, or first-time human clickthrough.
+The separate Buyer B run at this pin built an original two-region recipe, a
+river, one path and a bridge deck. The guarded Composition bake passed an
+occupied-folder rejection and a separate-process Save/Reopen check. A Windows
+Player built and rendered four views. Visual acceptance is still open: this
+small 96 m example routes its crossing close to the world edge and the default
+deck reads as a flat strip. None of these scripted checks measures a first-time
+human clickthrough.
 
 ## First recipe
 
