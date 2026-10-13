@@ -113,10 +113,17 @@ frames, generated roots and the carved TerrainData are gone; a still-bound
 Core-owned original source is retained. Evidence is under the isolated Git
 consumer `.artifacts/T9HostDestroy-20261013/playmode-after.xml`.
 
-An EditMode test that directly removed a Composition component (including
-after re-enabling it) remained red: EditMode without ExecuteAlways did not
-invoke this MonoBehaviour lifetime hook. Do not claim automatic cleanup for
-Inspector removal, including a disabled component. Use confirmed Clear before
-removing the host in the Editor. A separate Editor ownership/removal strategy
-is required. Bootstrap rollback, domain-reload original-source recovery and
-commit-window callback isolation are also open T9 work.
+At pin `55517fe`, an EditMode red/green test confirms direct removal of a
+previously disabled Composition component releases its own generated Meshes,
+TerrainData and roots, then restores the original Core terrain/collider
+binding. `ExecuteAlways` makes Unity invoke `OnDestroy` in the Editor;
+`Awake`/`Start` generate only in PlayMode. Evidence:
+`.bootstrap-tools/composition-consumer-20261012/.artifacts/`
+`T9EditorRemoval-20261013/{before,after}.xml`, failed 1/1 then passed 1/1.
+Focused Cancel and baked Save/Reopen tests also passed 1/1 each (`cancel.xml`,
+`reopen.xml`) against the same pin. Temporary disable retains published output;
+actual component removal owns cleanup. Unity Undo of component removal can
+restore the component but not disposed meshes/source; regenerate from the
+saved recipe. This is not a full Undo contract. Bootstrap rollback,
+domain-reload original-source recovery and commit-window callback isolation
+remain open T9 work.

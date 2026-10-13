@@ -50,7 +50,7 @@ namespace TerraLoom.Integration.Editor
                     try{RestoreSavedRecipe(instance);actionError=null;}
                     catch(Exception ex){actionError=ex.Message;}
                 }
-            EditorGUILayout.HelpBox("Clear cannot be undone. Assign and save a Composition Recipe to rebuild its recorded settings. Rebuilding is deterministic regeneration, not an Undo snapshot of unsaved changes or external assets.",MessageType.None);
+            EditorGUILayout.HelpBox("Clear or remove this component to release generated outputs. Unity Undo may restore the component, but not its released terrain and meshes. Assign and save a Composition Recipe to rebuild its recorded settings; unsaved changes and external asset contents are not snapshots.",MessageType.None);
             if(!string.IsNullOrEmpty(actionError))EditorGUILayout.HelpBox(actionError,MessageType.Error);
             EditorGUILayout.LabelField("Geometry generation",instance.GenerationState.ToString());
             EditorGUILayout.HelpBox("Source snapshot → water offers → route negotiation → river earthworks → walkable geometry. Final terrain/material rules precede vegetation; navigation/details follow final collision. Rebuild the composition when upstream data changes.",MessageType.Info);
