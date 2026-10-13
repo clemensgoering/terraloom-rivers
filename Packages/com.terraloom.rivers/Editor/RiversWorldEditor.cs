@@ -82,15 +82,18 @@ namespace TerraLoom.Rivers.Editor
             EditorGUILayout.HelpBox("Visible bank seams follow local captured terrain; crossing offers keep a separate conservative clearance envelope. Excavation follows the final channel triangles, never fills terrain, and is capped at twice Depth plus Water Inset plus 2 cm clearance. Brown live scene lines show the actual planned bank seams.", MessageType.Info);
             });
             EditorGUILayout.LabelField("07  Build and inspect", EditorStyles.boldLabel);
+            var coordinator=WorldEditorExtensions.All.FirstOrDefault(e=>e.CoordinatesGeometry&&rivers.World&&e.Find(rivers.World).Length>0);
+            bool coordinated=coordinator!=null;
+            if(coordinated)
+                EditorGUILayout.HelpBox("Rivers and Paths share one published plan. This action rebuilds the shared world, including the source terrain when configured. Clear, Bake and standalone plan JSON actions are available only without shared generation.",MessageType.Info);
             using (new EditorGUI.DisabledScope(EditorApplication.isPlayingOrWillChangePlaymode))
             {
-                if (GUILayout.Button("Reload river")) Run(() =>
+                if (GUILayout.Button(coordinated ? "Rebuild shared world" : "Reload river")) Run(() =>
                 {
-                    var coordinator=WorldEditorExtensions.All.FirstOrDefault(e=>e.CoordinatesGeometry&&rivers.World&&e.Find(rivers.World).Length>0);
                     if(coordinator!=null)
                     {
                         foreach(var component in coordinator.Find(rivers.World))coordinator.Generate(component);
-                        message="Shared Rivers/Paths geometry rebuilt in dependency order.";
+                        message="Shared world rebuilt in dependency order.";
                     }
                     else
                     {
@@ -99,8 +102,9 @@ namespace TerraLoom.Rivers.Editor
                     }
                     RiversSampleBuilder.MarkDirty(rivers);
                 });
-                if (GUILayout.Button("Clear")) Run(() => { rivers.Clear(); RiversSampleBuilder.MarkDirty(rivers); message = "Cleared; original terrain restored."; });
-                using (new EditorGUI.DisabledScope(!rivers.GeneratedRoot))
+                using (new EditorGUI.DisabledScope(coordinated))
+                    if (GUILayout.Button("Clear river")) Run(() => { rivers.Clear(); RiversSampleBuilder.MarkDirty(rivers); message = "Cleared; original terrain restored."; });
+                using (new EditorGUI.DisabledScope(coordinated||!rivers.GeneratedRoot))
                     if (GUILayout.Button("Bake Assets")) Run(() =>
                     {
                         string folder = EditorUtility.SaveFolderPanel("Bake Rivers into Assets", Application.dataPath, "RiversBake");
@@ -111,12 +115,13 @@ namespace TerraLoom.Rivers.Editor
                         RiversSampleBuilder.Bake(rivers, relative);
                         message = "Baked assets and bindings. Save the scene to retain them.";
                     });
-                using (new EditorGUI.DisabledScope(string.IsNullOrEmpty(rivers.PlanJson)))
+                using (new EditorGUI.DisabledScope(coordinated||string.IsNullOrEmpty(rivers.PlanJson)))
                     if (GUILayout.Button("Save Plan JSON")) Run(() =>
                     {
                         string path = EditorUtility.SaveFilePanel("Save Rivers plan", "", "RiversPlan", "json");
                         if (!string.IsNullOrEmpty(path)) File.WriteAllText(path, rivers.PlanJson, new UTF8Encoding(false));
                     });
+                using (new EditorGUI.DisabledScope(coordinated))
                 if (GUILayout.Button("Validate JSON against Current Input")) Run(() =>
                 {
                     string path = EditorUtility.OpenFilePanel("Validate Rivers plan", "", "json");
@@ -126,6 +131,7 @@ namespace TerraLoom.Rivers.Editor
                     RiverPlanStore.Validate(File.ReadAllText(path, Encoding.UTF8), expected);
                     message = "JSON matches current terrain, anchors, profile and plan.";
                 });
+                using (new EditorGUI.DisabledScope(coordinated))
                 if (GUILayout.Button("Load and Validate JSON")) Run(() =>
                 {
                     string path = EditorUtility.OpenFilePanel("Load Rivers plan", "", "json");
