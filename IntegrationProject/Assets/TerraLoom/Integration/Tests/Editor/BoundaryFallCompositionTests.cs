@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using TerraLoom.Core;
 using NUnit.Framework;
 using TerraLoom.Core.Unity;
@@ -23,7 +24,8 @@ namespace TerraLoom.Tests
                 world.Resolution=129;world.TerrainSize=new Vector3(32,16,32);world.GenerateTerrain();
                 terrain=world.Terrain;source=terrain.terrainData;
                 var heights=new float[129,129];
-                for(int z=0;z<129;z++)for(int x=0;x<129;x++)heights[z,x]=(x<24?8f:2f)/16f;
+                for(int z=0;z<129;z++)for(int x=0;x<129;x++)
+                    heights[z,x]=(x<24?8f:z<56||z>72?2.6f:2f)/16f;
                 source.SetHeights(0,0,heights);
                 world.UseSeedAnchors=false;
                 world.ManualAnchors=new[]{
@@ -31,7 +33,9 @@ namespace TerraLoom.Tests
                     new ManualWorldAnchor{Id="fall",Position=new Vector3(6,8,16)},
                     new ManualWorldAnchor{Id="mouth",Position=new Vector3(32,2,16)},
                     new ManualWorldAnchor{Id="path-a",Position=new Vector3(2,8,4)},
-                    new ManualWorldAnchor{Id="path-b",Position=new Vector3(4,8,8)}};
+                    new ManualWorldAnchor{Id="path-b",Position=new Vector3(4,8,8)},
+                    new ManualWorldAnchor{Id="bridge-a",Position=new Vector3(30,2.6f,4)},
+                    new ManualWorldAnchor{Id="bridge-b",Position=new Vector3(30,2.6f,28)}};
                 var shader=Shader.Find("Universal Render Pipeline/Lit");
                 ground=new Material(shader);water=new Material(shader);rock=new Material(shader);
                 var rivers=host.AddComponent<TerraLoomRivers>();rivers.World=world;
@@ -41,6 +45,7 @@ namespace TerraLoom.Tests
                     FallId="main-fall",FallAnchorId="fall",RequirePlannedLowerReach=true,WorldBoundaryMouth=true});
                 var paths=host.AddComponent<TerraLoomPaths>();paths.World=world;
                 paths.GroundMaterial=ground;paths.BridgeMaterial=ground;paths.AutomaticNetwork=false;
+                paths.TimberTrussBridge=true;
                 paths.Connections.Add(new PathConnectionSettings{Id="upland",StartId="path-a",EndId="path-b"});
                 var composition=host.AddComponent<TerraLoomIntegration>();
                 composition.World=world;composition.Paths=paths;composition.Rivers=rivers;
@@ -63,6 +68,22 @@ namespace TerraLoom.Tests
                 Assert.That(paths.LastPlan.Complete,Is.True);
                 Assert.That(composition.PublishedSharedInput.Waters.Count,Is.GreaterThan(0));
                 Assert.That(terrain.terrainData,Is.SameAs(rivers.CarvedTerrainData));
+                paths.Connections[0].StartId="bridge-a";paths.Connections[0].EndId="bridge-b";
+                composition.CrossingPermissions=input=>
+                {
+                    var candidates=input.Crossings.Where(c=>c.Bounds.MinX<32&&c.Bounds.MaxX>20).ToArray();
+                    var sections=candidates.Select(c=>new CrossingSectionPermission(c.WaterId,c.Id,c.Bounds)).ToArray();
+                    return new PathCrossingPermissions(candidates.SelectMany(c=>new[]{0,1}.Select(axis=>
+                        new CollectiveCrossingAuthorization("bridge:"+c.Id+":"+axis,input.Identity,sections))));
+                };
+                Assert.That(composition.Generate(),Is.True,composition.Diagnostics);
+                var parts=paths.GeneratedRoot.GetComponentsInChildren<PathGeneratedGeometry>(true);
+                Assert.That(parts.Any(part=>part.Role==PathGeometryRole.BridgeDeck),Is.True);
+                var body=parts.Single(part=>part.Role==PathGeometryRole.BridgeStructure);
+                Assert.That(body.GetComponent<MeshCollider>().sharedMesh,
+                    Is.SameAs(body.GetComponent<MeshFilter>().sharedMesh));
+                Assert.That(parts.Count(part=>part.Role==PathGeometryRole.BridgeRamp),Is.EqualTo(2));
+                Assert.That(composition.ValidateCurrent(out var freshness),Is.True,freshness);
                 var previousData=terrain.terrainData;var previousRiver=rivers.GeneratedRoot;
                 var previousPath=paths.GeneratedRoot;var riverJson=rivers.PlanJson;var pathJson=paths.PlanJson;
                 // A named grant for a candidate that does not exist cannot rescue

@@ -197,7 +197,7 @@ internal static class RiverPlannerTests
             var lower=plan.FallCandidates.Single().LowerReach;
             Near(lower.Water.Last().X,12);
             Require(lower.Corridors.All(c=>c.Banks.MaxX<=12&&c.Bed.MaxX<=12)&&
-                lower.CrossingOffers.All(c=>c.Bounds.MaxX<12),
+                lower.CrossingOffers.All(c=>c.Bounds.MaxX<=12&&c.Bounds.MinX>=-12),
                 "Boundary corridor or crossing offer escaped the owned grid.");
             var interior=Plan(FallInput(grid,mouthX:10),profile,new[]{request});
             Require(interior.FallCandidates.Count==0&&Detail(interior).Contains("downstream edge"),Detail(interior));

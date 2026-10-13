@@ -65,6 +65,23 @@ namespace TerraLoom.Rivers
             WorldBounds Clip(WorldBounds area)=>tile==null||!request.FallSite.WorldBoundaryMouth?area:
                 new WorldBounds(Math.Max(area.MinX,tile.MinX),Math.Max(area.MinZ,tile.MinZ),
                     Math.Min(area.MaxX,tile.MaxX),Math.Min(area.MaxZ,tile.MaxZ));
+            WorldBounds? BridgeWindow(WorldBounds area)
+            {
+                // Every wet corridor under a later full deck needs a named
+                // candidate. Clip its permission window behind the pool rather
+                // than omitting the corridor entirely.
+                var forward=recipe.Fall.Forward;
+                double station=join+profile.Width;
+                double x=recipe.Fall.Impact.X+forward.X*station;
+                double z=recipe.Fall.Impact.Z+forward.Z*station;
+                double minX=area.MinX,maxX=area.MaxX,minZ=area.MinZ,maxZ=area.MaxZ;
+                if(forward.X>.999)minX=Math.Max(minX,x);
+                else if(forward.X<-.999)maxX=Math.Min(maxX,x);
+                else if(forward.Z>.999)minZ=Math.Max(minZ,z);
+                else if(forward.Z<-.999)maxZ=Math.Min(maxZ,z);
+                else return null; // No axis-aligned bridge offer for a diagonal fall.
+                return minX<maxX&&minZ<maxZ?new WorldBounds(minX,minZ,maxX,maxZ):(WorldBounds?)null;
+            }
             for(int i=0;i<=count;i++)
             {
                 cancellation.ThrowIfCancellationRequested();
@@ -113,12 +130,10 @@ namespace TerraLoom.Rivers
                 reservations.Add(new AreaReservation(id+":bed",id,wet,ReservationStrength.Hard,ReservationPurpose.RiverBed));
                 reservations.Add(new AreaReservation(id+":bank",id,banks,ReservationStrength.Soft,
                     ReservationPurpose.RiverBank,profile.BankTransitionCost,"fall-bank:"+request.Id));
-                // Keep the pool and the first channel width downstream free of crossings.
-                if(join+distance*i/count>=join+profile.Width+radius&&
-                    (!request.FallSite.WorldBoundaryMouth||
-                     i<count-1&&banks.MinX>tile.MinX&&banks.MaxX<tile.MaxX&&
-                     banks.MinZ>tile.MinZ&&banks.MaxZ<tile.MaxZ))
-                    crossings.Add(new CrossingCandidate(id+":bridge",id,banks,CrossingKind.Bridge,profile.BridgeClearance));
+                var bridgeWindow=BridgeWindow(banks);
+                if(bridgeWindow.HasValue&&bridgeWindow.Value.Overlaps(wet))
+                    crossings.Add(new CrossingCandidate(id+":bridge",id,bridgeWindow.Value,
+                        CrossingKind.Bridge,profile.BridgeClearance));
             }
             var domain=RiverPlanner.ProfileVersion(profile,bounds,new[]{request});
             var planIdentity=RiverPlanner.IdentityFor(source.Identity,domain);
