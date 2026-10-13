@@ -18,10 +18,34 @@ namespace TerraLoom.Rivers.Unity
         public Mesh[] Water { get; private set; }
         public RiverFallCandidate Candidate { get; }
         public RiverFallEarthworksSite Site { get; }
+        /// <summary>Conservative no-crossing reservation for the first physical fall release.</summary>
+        public AreaReservation ProtectedFootprint(RiverProfile profile)
+        {
+            if(profile==null)throw new ArgumentNullException(nameof(profile));
+            var across=Candidate.Recipe.Fall.Across;
+            double half=Candidate.Recipe.PoolWidth*.5+profile.BankWidth;
+            double minX=double.PositiveInfinity,minZ=double.PositiveInfinity,maxX=double.NegativeInfinity,maxZ=double.NegativeInfinity;
+            foreach(var point in new[]{Candidate.UpperStart,Candidate.Lip,Candidate.Impact,Candidate.LowerEnd})
+            foreach(double sign in new[]{-1.0,1.0})
+            {
+                double x=point.X+across.X*half*sign,z=point.Z+across.Z*half*sign;
+                minX=Math.Min(minX,x);minZ=Math.Min(minZ,z);maxX=Math.Max(maxX,x);maxZ=Math.Max(maxZ,z);
+            }
+            return new AreaReservation("fall:"+Candidate.Site.Id+":protected",Candidate.RequestId,
+                new WorldBounds(minX,minZ,maxX,maxZ),ReservationStrength.Hard,ReservationPurpose.ProtectedArea);
+        }
         private bool disposed;
 
         private PreparedFallEarthworks(RiverFallCandidate candidate,RiverFallEarthworksSite site)
         {Candidate=candidate;Site=site;}
+
+        /// <summary>Transfers validated assets to a Rivers PreparedPublication only after
+        /// all meshes have been installed on its staged root.</summary>
+        internal TerrainData TakeTerrainAndMeshes()
+        {
+            if(disposed||!TerrainData||!Solid||Water==null)throw new InvalidOperationException("Fall earthworks already transferred or disposed.");
+            var data=TerrainData;TerrainData=null;Solid=null;Water=null;disposed=true;return data;
+        }
 
         public static PreparedFallEarthworks Prepare(RiverFallCandidate candidate,PlanSnapshot snapshot,
             TerraLoomWorld world,TerrainData source,RiverProfile profile,CancellationToken cancellation=default)

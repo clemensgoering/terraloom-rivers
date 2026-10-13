@@ -14,7 +14,7 @@ namespace TerraLoom.Rivers.Unity
         public void Restore()
         {
             var renderer = GetComponent<MeshRenderer>();
-            if (renderer) { renderer.shadowCastingMode = ShadowCastingMode.Off; renderer.receiveShadows = role != RiverGeometryRole.Water; }
+            if (renderer) { renderer.shadowCastingMode = role == RiverGeometryRole.FallRock ? ShadowCastingMode.On : ShadowCastingMode.Off; renderer.receiveShadows = role != RiverGeometryRole.Water; }
         }
         public void DisposeOwnedMesh()
         {

@@ -151,16 +151,37 @@ namespace TerraLoom.Rivers
         public string DomainFingerprint { get; }
         public IReadOnlyList<RiverRoute> Routes { get; }
         public IReadOnlyList<RiverFallCandidate> FallCandidates { get; }
+        public IReadOnlyList<RiverPublishedFall> PublishedFalls { get; }
         public IReadOnlyList<RiverReport> Reports { get; }
-        public bool Complete => Reports.All(r => r.Outcome == RiverOutcome.Connected);
+        public bool Complete => Reports.All(r => r.Outcome == RiverOutcome.Connected) &&
+            Reports.Where(r=>r.Request.FallSite!=null).All(r=>PublishedFalls.Any(f=>f.Candidate.RequestId==r.Request.Id));
         internal RiverPlan(PlanIdentity core, string domain, RiverProfile profile, IEnumerable<RiverRoute> routes, IEnumerable<RiverReport> reports,
-            IEnumerable<RiverFallCandidate> fallCandidates = null)
+            IEnumerable<RiverFallCandidate> fallCandidates = null,IEnumerable<RiverPublishedFall> publishedFalls = null)
         {
             CoreInputIdentity = core; ProfileFingerprint = profile.Fingerprint; DomainFingerprint = domain;
             Identity = new PlanIdentity(core.Seed, core.Revision, RiverPlanner.AlgorithmVersion, domain,
                 RiverHash.Digest(w => { RiverHash.Identity(w, core); w.Write(domain); }));
             Routes = Array.AsReadOnly(routes.ToArray()); Reports = Array.AsReadOnly(reports.ToArray());
             FallCandidates = Array.AsReadOnly((fallCandidates ?? Array.Empty<RiverFallCandidate>()).ToArray());
+            PublishedFalls = Array.AsReadOnly((publishedFalls ?? Array.Empty<RiverPublishedFall>()).ToArray());
+        }
+        /// <summary>Promotes exactly one explicit fall only after owned earthworks and water
+        /// contacts were validated by the Unity publication layer.</summary>
+        internal RiverPlan WithPreparedFall(RiverFallCandidate candidate,AreaReservation protectedFootprint,RiverProfile profile)
+        {
+            if(candidate==null||protectedFootprint==null||profile==null||PublishedFalls.Count!=0||
+               FallCandidates.Count!=1||FallCandidates[0]!=candidate||Routes.Count!=0||Reports.Count!=1||
+               Reports[0].Outcome!=RiverOutcome.FallCandidateOnly||
+               candidate.CoreInputIdentity!=CoreInputIdentity||profile.Fingerprint!=ProfileFingerprint||
+               protectedFootprint.Strength!=ReservationStrength.Hard||
+               protectedFootprint.Purpose!=ReservationPurpose.ProtectedArea)
+                throw new InvalidOperationException("Only the exact validated fall candidate can be promoted.");
+            var report=Reports[0];
+            var accepted=new RiverReport(report.Request,RiverOutcome.Connected,
+                "Physical owned fall earthworks, water, lip, wall, pool and outlet contacts validated.",
+                report.ExpandedNodes,report.TerrainSamples,report.Identity,report.CoreInputIdentity,report.ProfileFingerprint);
+            return new RiverPlan(CoreInputIdentity,DomainFingerprint,profile,Routes,new[]{accepted},
+                FallCandidates,new[]{new RiverPublishedFall(candidate,protectedFootprint)});
         }
         public PlanContribution ToContribution(PlanIdentity coreInputIdentity) => ToContribution("rivers", coreInputIdentity);
         public PlanContribution ToContribution(string moduleInstanceId, PlanIdentity coreInputIdentity)
@@ -173,10 +194,20 @@ namespace TerraLoom.Rivers
                 area.Strength == ReservationStrength.Soft && area.Purpose == ReservationPurpose.RiverBank
                     ? new AreaReservation(area.Id, area.OwnerId, area.Bounds, area.Strength, area.Purpose,
                         area.TransitionCost, "river-bank:" + moduleInstanceId.Length + ":" + moduleInstanceId + ":" + route.Request.Id)
-                    : area))).ToArray();
+                    : area))).Concat(PublishedFalls.Select(f=>f.ProtectedFootprint)).ToArray();
             return new PlanContribution(moduleInstanceId, coreInputIdentity, reservations,
                 offers.Select(o => o.Corridor), offers.SelectMany(o => o.Crossings));
         }
+    }
+
+    /// <summary>Published fall intent plus a conservative hard reservation. The first
+    /// owned-tile release offers no bridge or ford permission over the fall.</summary>
+    public sealed class RiverPublishedFall
+    {
+        public RiverFallCandidate Candidate { get; }
+        public AreaReservation ProtectedFootprint { get; }
+        internal RiverPublishedFall(RiverFallCandidate candidate,AreaReservation footprint)
+        {Candidate=candidate;ProtectedFootprint=footprint;}
     }
 
     internal static class RiverHash

@@ -11,7 +11,7 @@ namespace TerraLoom.Rivers.Unity
     [Serializable] public sealed class RiverConnectionSettings
     {
         public string Id = "river", SourceId = "source", MouthId = "mouth";
-        [Tooltip("Optional explicit fall ID and anchor. Candidate-only until terrain/contact publication is available.")]
+        [Tooltip("Optional explicit fall ID and anchor. Owned, axis-aligned fall sites require physical contact validation before publication.")]
         public string FallId, FallAnchorId;
         public RiverRequest Capture()
         {
@@ -48,6 +48,8 @@ namespace TerraLoom.Rivers.Unity
         public List<RiverRegionSettings> RegionCosts = new List<RiverRegionSettings>();
         public List<RiverProtectionSettings> ProtectedAreas = new List<RiverProtectionSettings>();
         public Material WaterMaterial, BedMaterial, BankMaterial;
+        [Tooltip("Required for an explicit owned-terrain fall. The fall wall must remain visible and collider-backed.")]
+        public Material FallRockMaterial, FallWaterMaterial;
         public bool CarveTerrainCopy = true;
         [Tooltip("Experimental smooth terrain channel with only a water mesh. Requires carving, positive Water Inset and Bank Width. Bed/Bank materials are unused. Clear restores source terrain.")]
         public bool TerrainBrush;
@@ -153,17 +155,21 @@ namespace TerraLoom.Rivers.Unity
             try
             {
                 cancellation.ThrowIfCancellationRequested();
-                if (!WaterMaterial || !TerrainBrush && (!BedMaterial || !BankMaterial)) throw new InvalidOperationException("Assign water material; mesh channels also need bed and bank materials.");
+                if (!WaterMaterial) throw new InvalidOperationException("Assign a river water material.");
                 if (!World || !World.Terrain) throw new InvalidOperationException("Assign a Core world.");
                 if (Mathf.Abs(transform.localToWorldMatrix.determinant) < .000001f) throw new InvalidOperationException("River transform must have nonzero scale.");
                 if(TerrainBrush && SedimentTerrainLayer < -1)throw new InvalidOperationException("Sediment layer must be -1 or an existing terrain layer index.");
                 var profile = CaptureProfile(source?.Data); var plan = RiverPlanner.Plan(input, profile, bounds, requests, cancellation);
                 diagnostics = string.Join("\n", plan.Reports.Select(r => r.Request.Id + ": " + r.Outcome + " — " + r.Detail));
+                bool fallOnly=plan.FallCandidates.Count==1&&plan.Routes.Count==0&&plan.Reports.Count==1&&
+                    plan.Reports[0].Outcome==RiverOutcome.FallCandidateOnly;
+                if(fallOnly)return PrepareFallPublication(input,plan,profile,source,cancellation);
                 if (!plan.Complete || plan.Routes.Count == 0) throw new InvalidOperationException(diagnostics);
+                if(!TerrainBrush&&(!BedMaterial||!BankMaterial))throw new InvalidOperationException("Mesh channels need bed and bank materials.");
                 staged = new GameObject("Rivers (generated)"); staged.SetActive(false); staged.transform.SetParent(transform, false);
                 int vertices = 0;
                 foreach (var route in plan.Routes)
-                foreach (RiverGeometryRole role in Enum.GetValues(typeof(RiverGeometryRole)))
+                foreach (RiverGeometryRole role in new[]{RiverGeometryRole.Water,RiverGeometryRole.Bed,RiverGeometryRole.Banks})
                 {
                     if(profile.TerrainBrush && role!=RiverGeometryRole.Water)continue;
                     var mesh = RiverGeometry.Build(route, Width, BankWidth, role,
@@ -209,12 +215,60 @@ namespace TerraLoom.Rivers.Unity
             }
             finally { try{DestroyRoot(staged);}finally{ReleaseData(stagedData);} }
         }
+        private PreparedPublication PrepareFallPublication(PlanSnapshot input,RiverPlan candidatePlan,
+            RiverProfile profile,WorldSourcePublication.PreparedSource source,CancellationToken cancellation)
+        {
+            if(source!=null)throw new InvalidOperationException("The first physical fall release requires one already bound Core-owned tile; prepared external sources are unsupported.");
+            if(!World.OwnsTerrain||!CarveTerrainCopy||TerrainBrush||!FallRockMaterial||!WaterMaterial)
+                throw new InvalidOperationException("Explicit fall needs a Core-owned terrain copy, rock and water materials; Terrain Brush mode is unsupported for this first fall release.");
+            var target=World.Terrain;
+            var basis=carvedData?originalData:target.terrainData;
+            if(carvedData&&(target!=carvedTerrain||target.terrainData!=carvedData)||!basis)
+                throw new InvalidOperationException("Fall source/carved terrain binding changed; previous world retained.");
+            GameObject staged=null;TerrainData stagedData=null;PreparedFallEarthworks earthworks=null;
+            try
+            {
+                earthworks=PreparedFallEarthworks.Prepare(candidatePlan.FallCandidates[0],input,World,basis,profile,cancellation);
+                var published=candidatePlan.WithPreparedFall(candidatePlan.FallCandidates[0],earthworks.ProtectedFootprint(profile),profile);
+                var serialized=RiverPlanStore.Save(published);
+                staged=new GameObject("Rivers (generated fall)");staged.SetActive(false);staged.transform.SetParent(transform,false);
+                int vertices=earthworks.Solid.vertexCount+earthworks.Water.Sum(mesh=>mesh.vertexCount);
+                if(vertices>MaximumGeometryVertices)throw new InvalidOperationException("Fall rock and water exceed the configured geometry vertex budget.");
+                AddFallGeometry(staged,earthworks.Solid,RiverGeometryRole.FallRock,FallRockMaterial,"Supported fall rock");
+                for(int i=0;i<earthworks.Water.Length;i++)
+                    AddFallGeometry(staged,earthworks.Water[i],RiverGeometryRole.Water,
+                        i==1&&FallWaterMaterial?FallWaterMaterial:WaterMaterial,
+                        i==0?"Fall upper water":i==1?"Fall vertical water":"Fall pool and outlet water");
+                cancellation.ThrowIfCancellationRequested();
+                stagedData=earthworks.TakeTerrainAndMeshes();
+                var prepared=new PreparedPublication(this,staged,stagedData,basis,target,published,serialized);
+                diagnostics=published.Reports[0].Detail;
+                staged=null;stagedData=null;return prepared;
+            }
+            finally
+            {
+                try{DestroyRoot(staged);}finally{try{ReleaseData(stagedData);}finally{earthworks?.Dispose();}}
+            }
+        }
+        private void AddFallGeometry(GameObject root,Mesh mesh,RiverGeometryRole role,Material material,string name)
+        {
+            var child=new GameObject(name);child.transform.SetParent(root.transform,false);
+            var marker=child.AddComponent<RiverGeneratedGeometry>();
+            child.AddComponent<MeshFilter>().sharedMesh=mesh;marker.Initialize(role);
+            var positions=mesh.vertices;
+            for(int i=0;i<positions.Length;i++)positions[i]=child.transform.InverseTransformPoint(positions[i]);
+            mesh.vertices=positions;mesh.RecalculateNormals();mesh.RecalculateBounds();
+            child.AddComponent<MeshRenderer>().sharedMaterial=material;
+            if(role==RiverGeometryRole.FallRock)child.AddComponent<MeshCollider>().sharedMesh=mesh;
+            marker.Restore();
+        }
         /// <summary>Synchronous reversible binding swap. No external callbacks run during commit.
         /// Until SealBindings, Dispose restores the exact previous Terrain and Collider bindings.</summary>
         public sealed class PreparedPublication : IDisposable
         {
             /// <summary>Exact rendered candidate required by the Core source publication's composed binding.</summary>
             public TerrainData FinalTerrainData => data?data:basis;
+            public RiverPlan Plan => plan;
             private readonly TerraLoomRivers owner;
             private readonly GameObject root,oldRoot;
             private readonly TerrainData data,basis,oldData,oldOriginal,oldBinding,oldColliderBinding;
@@ -290,10 +344,14 @@ namespace TerraLoom.Rivers.Unity
         {
             try
             {
-                var input = CaptureInput(out var bounds, out var requests); var profile = CaptureProfile();
-                var expected = RiverPlanner.Plan(input, profile, bounds, requests, cancellation);
-                RiverPlanStore.Validate(json, expected);
-                return GenerateFromSnapshot(input, bounds, requests, cancellation);
+                var input = CaptureInput(out var bounds, out var requests);
+                using(var prepared=PrepareFromSnapshot(input,bounds,requests,cancellation))
+                {
+                    RiverPlanStore.Validate(json,prepared.Plan);
+                    cancellation.ThrowIfCancellationRequested();prepared.CommitBindings();
+                    var cleanup=prepared.Complete();if(cleanup.Length!=0)diagnostics+="\n"+cleanup;
+                    return true;
+                }
             }
             catch (Exception ex) { diagnostics = ex.Message; return false; }
         }

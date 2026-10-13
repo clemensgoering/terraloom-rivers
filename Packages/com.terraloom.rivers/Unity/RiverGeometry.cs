@@ -7,7 +7,7 @@ using UnityEngine.Rendering;
 
 namespace TerraLoom.Rivers.Unity
 {
-    public enum RiverGeometryRole { Water, Bed, Banks }
+    public enum RiverGeometryRole { Water, Bed, Banks, FallRock }
 
     /// <summary>Continuous cross-sections, shared by runtime and editor. UVs are metres.</summary>
     public static class RiverGeometry

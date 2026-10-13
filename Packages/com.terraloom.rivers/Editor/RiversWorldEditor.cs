@@ -44,6 +44,9 @@ namespace TerraLoom.Rivers.Editor
             WorldInspectorSections.DrawDetails(serializedObject, "rivers.materials", "05  Water and bank appearance", false, () =>
             {
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("WaterMaterial"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("FallRockMaterial"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("FallWaterMaterial"));
+                EditorGUILayout.HelpBox("For an explicit fall site, assign a rock material. The optional fall-water material styles the vertical sheet; ordinary water is used otherwise. Fall earthworks require an owned Core terrain tile.", MessageType.None);
                 if (!serializedObject.FindProperty("TerrainBrush").boolValue)
                 {
                     EditorGUILayout.PropertyField(serializedObject.FindProperty("BedMaterial"));

@@ -27,8 +27,8 @@ namespace TerraLoom.Rivers.Unity
                 throw new ArgumentNullException(candidate==null?nameof(candidate):world==null?nameof(world):source==null?nameof(source):nameof(profile));
             cancellation.ThrowIfCancellationRequested();
             if(candidate.CoreInputIdentity!=expected)throw new InvalidOperationException("Fall site uses a stale Core source identity.");
-            if(!world.OwnsTerrain||!world.Terrain||world.Terrain.terrainData!=source)
-                throw new InvalidOperationException("Fall earthworks require the currently bound Core-owned source TerrainData.");
+            if(!world.OwnsTerrain||!world.Terrain)
+                throw new InvalidOperationException("Fall earthworks require a Core-owned terrain tile.");
             var fall=candidate.Recipe.Fall;
             // The first earthworks tile has an axis-aligned wall. Rotated sites are rejected
             // here rather than cutting an AABB that would miss the actual water footprint.
