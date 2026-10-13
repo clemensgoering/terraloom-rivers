@@ -161,6 +161,37 @@ namespace TerraLoom.Integration.Editor
         public override void OnInspectorGUI()
         {
             DrawDefaultInspector(); var instance=(TerraLoomIntegration)target;
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Bridge construction and crossing rights",EditorStyles.boldLabel);
+            if(instance.Paths)
+            {
+                int selected=instance.Paths.TimberTrussBridge?2:instance.Paths.TimberBeamBridge?1:0;
+                int chosen=EditorGUILayout.Popup("Bridge construction",selected,
+                    new[]{"Surface deck only","Timber beam (up to 6 m)","Timber side truss (6–12 m)"});
+                if(chosen!=selected)
+                {
+                    Undo.RecordObject(instance.Paths,"Choose bridge construction");
+                    instance.Paths.TimberBeamBridge=chosen==1;
+                    instance.Paths.TimberTrussBridge=chosen==2;
+                    EditorUtility.SetDirty(instance.Paths);
+                }
+                if(instance.RecipeAsset && (instance.RecipeAsset.Settings.Modules.Paths.TimberBeamBridge!=instance.Paths.TimberBeamBridge
+                    || instance.RecipeAsset.Settings.Modules.Paths.TimberTrussBridge!=instance.Paths.TimberTrussBridge))
+                    EditorGUILayout.HelpBox("Live bridge construction differs from the saved Recipe. Capture a new Recipe before using Generate from saved Recipe.",MessageType.Warning);
+            }
+            var provider=(MonoBehaviour)EditorGUILayout.ObjectField("Crossing permission source",instance.CrossingPermissionSource,typeof(MonoBehaviour),true);
+            if(provider!=instance.CrossingPermissionSource)
+            {
+                Undo.RecordObject(instance,"Assign crossing permission source");
+                instance.CrossingPermissionSource=provider;
+                EditorUtility.SetDirty(instance);
+            }
+            if(provider && !(provider is ICurrentCrossingPermissionSource))
+                EditorGUILayout.HelpBox("This component must implement ICurrentCrossingPermissionSource. It must issue explicit current grants for named candidates and occupied footprints.",MessageType.Error);
+            else if(instance.Paths && instance.Paths.HasTimberStructure && !instance.HasCrossingPermissionAuthority)
+                EditorGUILayout.HelpBox("Physical bridges require an external, current crossing permission source. No crossing is granted by selecting a kit or saving a Recipe.",MessageType.Warning);
+            else
+                EditorGUILayout.HelpBox("The selected source is queried during planning and before publication. Existing Core crossing, protection, terrain and landing checks still apply.",MessageType.None);
             EditorGUILayout.LabelField("Recipe",EditorStyles.boldLabel);
             if(GUILayout.Button("Capture scene settings as new Recipe asset"))
             {

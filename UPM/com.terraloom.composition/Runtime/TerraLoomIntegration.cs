@@ -53,6 +53,31 @@ namespace TerraLoom.Integration
         /// <summary>External example policy; recalculated at planning and each publication boundary.
         /// A saved path plan never supplies this authority. Null preserves the legacy example.</summary>
         public Func<PlanSnapshot,PathCrossingPermissions> CrossingPermissions;
+        [SerializeField, HideInInspector] private MonoBehaviour crossingPermissionSource;
+        /// <summary>Explicit scene authority, queried at planning and publication boundaries.
+        /// A source must implement ICurrentCrossingPermissionSource. Null means no grants.</summary>
+        public MonoBehaviour CrossingPermissionSource
+        {
+            get => crossingPermissionSource;
+            set => crossingPermissionSource = value;
+        }
+        public bool HasCrossingPermissionAuthority => crossingPermissionSource || CrossingPermissions != null;
+        public PathCrossingPermissions CurrentCrossingPermissions(PlanSnapshot snapshot)
+        {
+            if (CrossingPermissions != null && crossingPermissionSource)
+                throw new InvalidOperationException("Choose either a code crossing delegate or a scene permission source, not both.");
+            if (crossingPermissionSource)
+            {
+                if (!(crossingPermissionSource is ICurrentCrossingPermissionSource source) || !crossingPermissionSource.isActiveAndEnabled)
+                    throw new InvalidOperationException("Crossing Permission Source must be an enabled component implementing ICurrentCrossingPermissionSource.");
+                var permissions = source.GetCurrentPermissions(snapshot);
+                permissions?.ValidateIdentity(snapshot.Identity);
+                return permissions;
+            }
+            var delegated = CrossingPermissions?.Invoke(snapshot);
+            delegated?.ValidateIdentity(snapshot.Identity);
+            return delegated;
+        }
         public PlanSnapshot LastSharedInput { get; private set; }
         public PlanSnapshot LastSourceInput { get; private set; }
         public PathPlan LastPathAttempt { get; private set; }
@@ -250,7 +275,7 @@ namespace TerraLoom.Integration
                 });
                 Step("03-plan-routes",()=>{
                     LastSharedInput=shared;
-                    pathPlan=PathPlanner.Plan(shared,Paths.CaptureProfile(),CapturePathBounds(bounds),graph,cancellation,CrossingPermissions?.Invoke(shared));
+                    pathPlan=PathPlanner.Plan(shared,Paths.CaptureProfile(),CapturePathBounds(bounds),graph,cancellation,CurrentCrossingPermissions(shared));
                     LastPathAttempt=pathPlan;
                     if(!pathPlan.Complete)throw new InvalidOperationException(string.Join("\n",pathPlan.Reports.Select(r=>r.Connection.Id+": "+r.Outcome+" "+r.Detail)));
                 });
@@ -260,7 +285,7 @@ namespace TerraLoom.Integration
                 });
                 Step("05-publish-walkable",()=>{
                     preparedPaths=Paths.PrepareFromSnapshot(shared,CapturePathBounds(bounds),preparedRiver.CaptureFinalHeights(),graph,cancellation,
-                        currentPermissions:CrossingPermissions==null?(Func<PathCrossingPermissions>)null:()=>CrossingPermissions?.Invoke(shared));
+                        currentPermissions:CrossingPermissions==null&&!crossingPermissionSource?(Func<PathCrossingPermissions>)null:()=>CurrentCrossingPermissions(shared));
                     // The final path is replanned against the carved grid. Clear only the
                     // unpublished terrain copy, using that exact path and river geometry.
                     if(Rivers.CarveTerrainCopy)
@@ -400,7 +425,7 @@ namespace TerraLoom.Integration
                     ||builtMaterials==null||!builtMaterials.SequenceEqual(Materials())||builtPathsTransform!=Paths.transform.localToWorldMatrix||builtRiversTransform!=Rivers.transform.localToWorldMatrix)
                     throw new InvalidOperationException("Module bindings, geometry settings or transforms changed; rebuild composition.");
                 var input=CaptureSource(out var bounds,out var graph);
-                if(Paths.LastPlan!=null)PathCrossingPermissions.RequireCurrent(Paths.LastPlan,PublishedSharedInput==null?null:CrossingPermissions?.Invoke(PublishedSharedInput));
+                if(Paths.LastPlan!=null)PathCrossingPermissions.RequireCurrent(Paths.LastPlan,PublishedSharedInput==null?null:CurrentCrossingPermissions(PublishedSharedInput));
                 if(input.Identity.InputFingerprint!=builtInput||RiverPlanner.ProfileVersion(Rivers.CaptureProfile(),bounds,Requests(input))!=builtRiverProfile
                     ||World.TerrainContentFingerprint!=builtTerrain||Digest(Paths.PlanJson)!=builtPathsJson||Digest(Rivers.PlanJson)!=builtRiversJson)
                     throw new InvalidOperationException("Upstream inputs or module outputs changed; rebuild the composition before downstream decoration/navigation.");

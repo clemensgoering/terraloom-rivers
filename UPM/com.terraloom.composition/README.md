@@ -1,4 +1,4 @@
-# TerraLoom Composition 0.5.0
+# TerraLoom Composition 0.6.0
 
 Composition is an optional UPM host for projects that use TerraLoom Core, Paths
 and Rivers together. The packages retain their independent dependencies;
@@ -24,7 +24,7 @@ floating branches or unrelated package revisions.
 }
 ```
 
-Composition 0.5.0 targets Unity 6000.3 and depends on Core, Paths and Rivers
+Composition 0.6.0 targets Unity 6000.3 and depends on Core, Paths and Rivers
 0.3.0. The Git pins above are the tested installation set, not a claim that
 other Unity versions or render pipelines have been qualified.
 The isolated consumer recipe test confirmed that Unity selects the package
@@ -97,6 +97,24 @@ The public namespace is `TerraLoom.Integration`; the assembly is
 `TerraLoom.Composition.Unity`; the Inspector assembly is
 `TerraLoom.Composition.Editor`. Add the runtime assembly reference to your own
 asmdef only when your scripts use the host, recipe or prepared-request types.
+
+For a physical crossing, use **Bridge construction and crossing rights** in
+the Composition Inspector. The selector edits the Paths component's single
+construction setting: surface deck, short timber beam (up to 6 m), or timber
+side truss (6–12 m). If a saved Recipe exists, capture a **new** Recipe after
+changing construction; Generate from saved Recipe always applies its saved
+setting. Assign an enabled scene component implementing
+`ICurrentCrossingPermissionSource` to **Crossing permission source**. The
+included `ExplicitCrossingPermissionSource` lets you enter reviewed crossing
+IDs, water/candidate IDs and bounded XZ rectangles in the Inspector. Empty
+entries authorize nothing. For fully seeded worlds, implement the interface
+with your own policy that checks the current captured snapshot and returns
+only explicitly allowed crossings. The source is queried again before
+publication and when checking freshness; a saved Recipe or path plan never
+creates or preserves a crossing right. Changed IDs or disabled/withdrawn
+sources invalidate the result. Core's full-footprint, protection, clearance
+and dry-landing checks still apply. See
+[the physical Buyer B proof](../../Docs/BUYER-B-PHYSICAL-KIT.md).
 
 Schema 2 persists the seed, terrain recipe/resolution/size/frequency, anchors,
 regions, river/path connections, decoration profiles/count/selection, and module
