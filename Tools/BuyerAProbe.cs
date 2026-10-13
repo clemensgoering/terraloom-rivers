@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.IO;
 using TerraLoom.Core.Unity;
 using TerraLoom.Integration;
 using TerraLoom.Integration.Editor;
@@ -14,7 +15,9 @@ using Debug=UnityEngine.Debug;
 
 public static class BuyerAProbe
 {
-    public static void Run()
+    public static void Run()=>Run(false);
+    public static void BuildPlayer()=>Run(true);
+    private static void Run(bool buildPlayer)
     {
         var elapsed=Stopwatch.StartNew();
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
@@ -92,9 +95,38 @@ public static class BuyerAProbe
             !data.treeInstances.Select(t=>t.position).SequenceEqual(originalTrees)||
             !data.GetDetailLayer(0,0,128,128,0).Cast<int>().SequenceEqual(originalDetails.Cast<int>()))
             throw new InvalidOperationException("BUYER_A_BLOCKER existing Terrain TreeInstances/details remain in the generated river/road corridor.");
-        composition.Clear();
-        if(terrain.terrainData!=data||collider.terrainData!=data)
-            throw new InvalidOperationException("BUYER_A_BLOCKER clearing did not restore the original terrain binding.");
+        if(buildPlayer)
+        {
+            var baked=UnityEngine.Object.Instantiate(published);baked.hideFlags=HideFlags.None;baked.name="BuyerA Carved Terrain";
+            AssetDatabase.CreateAsset(baked,root+"/CarvedTerrain.asset");terrain.terrainData=baked;collider.terrainData=baked;
+            AssetDatabase.CreateFolder(root,"Meshes");int meshIndex=0;
+            foreach(var filter in host.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if(!filter.sharedMesh)continue;
+                var mesh=UnityEngine.Object.Instantiate(filter.sharedMesh);mesh.hideFlags=HideFlags.None;
+                AssetDatabase.CreateAsset(mesh,root+"/Meshes/Generated"+(meshIndex++)+".asset");filter.sharedMesh=mesh;
+                var meshCollider=filter.GetComponent<MeshCollider>();if(meshCollider)meshCollider.sharedMesh=mesh;
+            }
+            var lightObject=new GameObject("BuyerA Sun");var light=lightObject.AddComponent<Light>();light.type=LightType.Directional;
+            light.intensity=1.3f;lightObject.transform.rotation=Quaternion.Euler(45,25,0);
+            var cameraObject=new GameObject("BuyerA Player Camera");var camera=cameraObject.AddComponent<Camera>();
+            cameraObject.tag="MainCamera";camera.fieldOfView=65;camera.farClipPlane=300;
+            cameraObject.AddComponent<BuyerAPlayerCapture>();
+            EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(),root+"/Player.unity");AssetDatabase.SaveAssets();
+            var output=Path.GetFullPath(".artifacts/BuyerA-20261013/Player/BuyerA.exe");
+            Directory.CreateDirectory(Path.GetDirectoryName(output));
+            var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions{scenes=new[]{root+"/Player.unity"},
+                locationPathName=output,target=BuildTarget.StandaloneWindows64,options=BuildOptions.Development});
+            if(report.summary.result!=UnityEditor.Build.Reporting.BuildResult.Succeeded)
+                throw new InvalidOperationException("BUYER_A_BLOCKER Player build: "+report.summary.result);
+            Debug.Log("BUYER_A_PLAYER_BUILT "+output);
+        }
+        else
+        {
+            composition.Clear();
+            if(terrain.terrainData!=data||collider.terrainData!=data)
+                throw new InvalidOperationException("BUYER_A_BLOCKER clearing did not restore the original terrain binding.");
+        }
         Debug.Log("BUYER_A_READY_FOR_PLAYER seconds="+elapsed.Elapsed.TotalSeconds.ToString("F2"));
     }
 

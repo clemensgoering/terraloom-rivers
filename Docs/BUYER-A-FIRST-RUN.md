@@ -62,9 +62,34 @@ and original bindings after Clear. Local file-package run
 channel 4×4 detail sum 0, road center detail 0, outside 4×4 sum 32,
 `BUYER_A_READY_FOR_PLAYER`, exit 0. These are in-script durations after Unity
 startup, not human click times. The red result above remains evidence of the
-unfixed Git pin. A fresh Git-pinned consumer and Player visual review are
+unfixed Git pin. The same probe then passed in the fresh Git consumer pinned
+to Composition `b901c1b0ac204e8b37c2266ab733b953c0222783`:
+`green-git.log` reports one river, one path, one negotiated bridge, original
+tree/detail arrays untouched, channel and road clear, outside vegetation
+retained, and `BUYER_A_READY_FOR_PLAYER` (exit 0). A Player visual review is
 still required before broader acceptance.
 
 Scope: the shared Composition Editor and runtime path only. Standalone Rivers
 and Paths do not yet perform this vegetation clearance and must not be claimed
 as fixed by this change.
+
+**Player view, same Git consumer:** `Tools/BuyerAProbe.cs` can be placed in
+`Assets/Editor`, `Tools/BuyerAPlayerCapture.cs` in `Assets`, then run with
+`-executeMethod BuyerAProbe.BuildPlayer`. The minimal consumer must also copy
+the TerraLoom URP assets/renderer from `Rivers/Assets/Settings` into its own
+`Assets/Settings`: the copied ProjectSettings reference their GUIDs. Without
+them, the Player rendered path and bridge magenta. The first framebuffer
+capture was black because it read outside a draw frame; the checked-in capture
+now renders into its own RenderTexture. Those two faulty image runs are not
+visual evidence.
+
+The final Windows Development Player build (`player-build3.log`, exit 0) and
+run (`player-run3.log`) produced genuine 1280×720 west/east player-height
+views, retained locally under `.artifacts/BuyerA-20261013/PlayerEvidence/`.
+They show a colored river and a road strip crossing it without magenta. They
+do **not** show a credible load-bearing bridge body or fall protection, and
+from these low views the precise landing/terrain contact cannot be approved.
+This probe leaves `TimberBeamBridge` and `TimberTrussBridge` disabled; its
+Bridge-surface count must not be confused with a validated structural kit.
+The visual/structural bridge gate remains open. The new vegetation clearance
+passes independently of that gate.
