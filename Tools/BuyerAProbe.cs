@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.IO;
 using TerraLoom.Core.Unity;
+using TerraLoom.Core;
 using TerraLoom.Integration;
 using TerraLoom.Integration.Editor;
 using TerraLoom.Paths;
@@ -15,9 +16,11 @@ using Debug=UnityEngine.Debug;
 
 public static class BuyerAProbe
 {
-    public static void Run()=>Run(false);
-    public static void BuildPlayer()=>Run(true);
-    private static void Run(bool buildPlayer)
+    public static void Run()=>Run(false,false);
+    public static void BuildPlayer()=>Run(true,false);
+    public static void RunStructural()=>Run(false,true);
+    public static void BuildStructuralPlayer()=>Run(true,true);
+    private static void Run(bool buildPlayer,bool structural)
     {
         var elapsed=Stopwatch.StartNew();
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
@@ -63,19 +66,49 @@ public static class BuyerAProbe
         };
         var paths=host.AddComponent<TerraLoomPaths>();paths.World=world;paths.GroundMaterial=ground;paths.BridgeMaterial=bridge;
         paths.AutomaticNetwork=false;paths.MaximumSlope=.35f;paths.BridgeClearance=1.2f;
+        if(structural)paths.TimberTrussBridge=true;
         paths.Connections.Add(new PathConnectionSettings{Id="buyer-road",StartId="west",EndId="east"});
         var rivers=host.AddComponent<TerraLoomRivers>();rivers.World=world;rivers.WaterMaterial=water;
         rivers.AutomaticSourceAndMouth=false;rivers.TerrainBrush=true;rivers.WaterInset=.6f;rivers.SedimentTerrainLayer=1;
         rivers.Connections.Add(new RiverConnectionSettings{Id="buyer-river",SourceId="source",MouthId="mouth"});
         var composition=host.AddComponent<TerraLoomIntegration>();composition.World=world;composition.Paths=paths;composition.Rivers=rivers;
+        if(structural)composition.CrossingPermissions=AuthorizeBuyerCrossing;
         AssetDatabase.SaveAssets();
         EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(),root+"/Authored.unity");
         Debug.Log("BUYER_A_SETUP_SECONDS "+elapsed.Elapsed.TotalSeconds.ToString("F2")+" script-authored; human clicks not measured");
         var originalHeights=data.GetHeights(0,0,129,129);
         var originalTrees=data.treeInstances.Select(t=>t.position).ToArray();
         var originalDetails=data.GetDetailLayer(0,0,128,128,0);
-        IntegrationEditor.GenerateOnSuppliedTerrain(composition);
+        try{IntegrationEditor.GenerateOnSuppliedTerrain(composition);}
+        catch(Exception ex)
+        {
+            if(structural)
+            {
+                var shared=composition.LastSharedInput;
+                var attempt=paths.LastAttemptPlan;
+                Debug.LogError("BUYER_A_STRUCTURAL_REJECTED step="+composition.ActiveStep+" "+ex.Message+
+                    " candidates="+(shared?.Crossings.Count??0)+" grants="+(shared==null?0:AuthorizeBuyerCrossing(shared).Grants.Count)+
+                    " bridgeSurfaces="+(attempt?.Routes.Sum(r=>r.Surfaces.Count(s=>s==PathSurface.Bridge))??0)+
+                    " boundCrossings="+(attempt?.Routes.Sum(r=>r.BridgeCrossings.Count)??0)+
+                    " bridgeSegments="+(attempt==null?"none":string.Join(";",attempt.Routes.SelectMany(r=>
+                        Enumerable.Range(0,r.Surfaces.Count).Where(i=>r.Surfaces[i]==PathSurface.Bridge)
+                            .Select(i=>r.Waypoints[i].X.ToString("F1")+","+r.Waypoints[i].Z.ToString("F1")+
+                                "->"+r.Waypoints[i+1].X.ToString("F1")+","+r.Waypoints[i+1].Z.ToString("F1"))))));
+            }
+            throw;
+        }
         Debug.Log("BUYER_A_GENERATE_SECONDS "+elapsed.Elapsed.TotalSeconds.ToString("F2")+" "+composition.Diagnostics);
+        if(structural)
+        {
+            int bound=paths.LastPlan.Routes.Sum(r=>r.BridgeCrossings.Count);
+            var geometry=paths.GeneratedRoot.GetComponentsInChildren<PathGeneratedGeometry>(true);
+            int body=geometry.Count(g=>g.Role==PathGeometryRole.BridgeStructure);
+            int ramps=geometry.Count(g=>g.Role==PathGeometryRole.BridgeRamp);
+            Debug.Log("BUYER_A_STRUCTURAL geometryBody="+body+" ramps="+ramps+" boundCrossings="+bound);
+            if(bound==0||body==0||ramps<2||geometry.Where(g=>g.Role==PathGeometryRole.BridgeStructure||g.Role==PathGeometryRole.BridgeRamp)
+                .Any(g=>!g.GetComponent<MeshCollider>()||!g.GetComponent<MeshCollider>().sharedMesh))
+                throw new InvalidOperationException("BUYER_A_STRUCTURAL_BLOCKER complete collider-backed timber bridge not published.");
+        }
         if(!paths.LastPlan.Routes.Any(r=>r.Surfaces.Contains(PathSurface.Bridge)))
             throw new InvalidOperationException("BUYER_A_BLOCKER no actual bridge in generated route.");
         if(terrain.terrainData==data||collider.terrainData!=terrain.terrainData||!data.GetHeights(0,0,129,129).Cast<float>().SequenceEqual(originalHeights.Cast<float>()))
@@ -91,7 +124,8 @@ public static class BuyerAProbe
             " treeInRiverCorridor="+treeAtRiver+" roadTree="+roadTree+" adjacentTree="+adjacentTree+
             " detailsCenter4x4="+centerDetails+" roadCenterCell="+roadDetails+" adjacentDetails4x4="+adjacentDetails+
             " bridgeCount="+paths.LastPlan.Routes.Sum(r=>r.Surfaces.Count(s=>s==PathSurface.Bridge)));
-        if(treeAtRiver||roadTree||centerDetails>0||roadDetails>0||!adjacentTree||adjacentDetails!=32||
+        if(treeAtRiver||centerDetails>0||!adjacentTree||adjacentDetails!=32||
+            (!structural&&(roadTree||roadDetails>0))||
             !data.treeInstances.Select(t=>t.position).SequenceEqual(originalTrees)||
             !data.GetDetailLayer(0,0,128,128,0).Cast<int>().SequenceEqual(originalDetails.Cast<int>()))
             throw new InvalidOperationException("BUYER_A_BLOCKER existing Terrain TreeInstances/details remain in the generated river/road corridor.");
@@ -133,6 +167,21 @@ public static class BuyerAProbe
     private static TreeInstance Tree(float x,float z)=>new TreeInstance{
         position=new Vector3(x,0,z),prototypeIndex=0,widthScale=1,heightScale=1,
         color=Color.white,lightmapColor=Color.white};
+
+    private static PathCrossingPermissions AuthorizeBuyerCrossing(PlanSnapshot snapshot)
+    {
+        var zone=new WorldBounds(24,54,64,64);
+        var grants=snapshot.Crossings.Where(c=>(c.AllowedKinds&CrossingKind.Bridge)!=0&&c.Bounds.Overlaps(zone))
+            .Select(c=>
+            {
+                var b=c.Bounds;
+                var area=new WorldBounds(Math.Max(b.MinX,zone.MinX),Math.Max(b.MinZ,zone.MinZ),
+                    Math.Min(b.MaxX,zone.MaxX),Math.Min(b.MaxZ,zone.MaxZ));
+                return new CollectiveCrossingAuthorization("bridge:"+c.Id+":0",snapshot.Identity,
+                    new[]{new CrossingSectionPermission(c.WaterId,c.Id,area)});
+            });
+        return new PathCrossingPermissions(grants);
+    }
 
     private static bool NearRiver(Vector2 point,TerraLoomRivers rivers,float radius)
     {

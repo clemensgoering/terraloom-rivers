@@ -93,3 +93,23 @@ This probe leaves `TimberBeamBridge` and `TimberTrussBridge` disabled; its
 Bridge-surface count must not be confused with a validated structural kit.
 The visual/structural bridge gate remains open. The new vegetation clearance
 passes independently of that gate.
+
+**Bounded structured-bridge attempt:** `BuyerAProbe.RunStructural` enables the
+existing 6–12 m TimberTruss kit and supplies fresh, explicit bridge candidate
+grants only inside X 24–64 / Z 54–64 of this unchanged 96 m world. It does not
+increase span or clearance limits or grant any rights elsewhere. Native
+`structural3.log` stops in Stage 05 with `Long side truss requires explicit
+current crossing authorization`; the previously published source remains.
+The shared input had 77 crossing candidates and 14 current grants in the
+declared zone, but the final path selected one Bridge surface near X 43.3–52.8
+/ Z 8.5 with zero bound crossings. That segment lies far outside the
+authorized area. The planner's visible Bridge surface therefore cannot be
+treated as a constructible bridge. This is a Buyer-A planning/UX blocker, not
+a reason to broaden authority or claim the earlier flat deck as success.
+There is no structural Player view of this rejected publication.
+
+The existing `IntegrationProject` FrozenCurvedCrossing is the separate
+legitimate 9.511811 m, explicitly authorized local TimberTruss construction
+probe. It validates a local body and approaches but records rejection of its
+unchanged full target route. It cannot be substituted for successful Buyer-A
+composition or whole-route Player acceptance.
