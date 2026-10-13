@@ -7,6 +7,8 @@
 /[Uu]ser[Ss]ettings/
 /.bootstrap-original/
 /.artifacts/
+/Assets/TerraLoom/Tests/Generated/
+/Assets/TerraLoom/Tests/Generated.meta
 /.vs/
 /.idea/
 /.vscode/
