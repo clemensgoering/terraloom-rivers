@@ -7,6 +7,10 @@ using TerraLoom.Integration;
 using TerraLoom.Paths;
 using TerraLoom.Paths.Unity;
 using TerraLoom.Rivers.Unity;
+using TerraLoom.Rivers.Editor;
+using TerraLoom.Paths.Editor;
+using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using Object=UnityEngine.Object;
 
@@ -14,6 +18,7 @@ namespace TerraLoom.Tests
 {
     public sealed class BoundaryFallCompositionTests
     {
+        private const string SavedScene="Assets/TerraLoom/Integration/Generated/TerraLoomBoundaryFallBridge.unity";
         [Test] public void WorldGenerationUsesPreparedBoundaryFallBeforePathsAndRollsBackOnDeniedRoute()
         {
             var host=new GameObject("Boundary composition test");
@@ -38,6 +43,18 @@ namespace TerraLoom.Tests
                     new ManualWorldAnchor{Id="bridge-b",Position=new Vector3(30,2.6f,28)}};
                 var shader=Shader.Find("Universal Render Pipeline/Lit");
                 ground=new Material(shader);water=new Material(shader);rock=new Material(shader);
+                bool bake=Environment.GetCommandLineArgs().Contains("-terraloomBakeBoundary");
+                if(bake)
+                {
+                    const string parent="Assets/TerraLoom/Integration/Generated";
+                    if(!AssetDatabase.IsValidFolder(parent+"/BoundaryFallBridge"))
+                        AssetDatabase.CreateFolder(parent,"BoundaryFallBridge");
+                    if(!AssetDatabase.IsValidFolder(parent+"/BoundaryFallBridge/Materials"))
+                        AssetDatabase.CreateFolder(parent+"/BoundaryFallBridge","Materials");
+                    ground=Persist(ground,parent+"/BoundaryFallBridge/Materials/Ground.mat");
+                    water=Persist(water,parent+"/BoundaryFallBridge/Materials/Water.mat");
+                    rock=Persist(rock,parent+"/BoundaryFallBridge/Materials/Rock.mat");
+                }
                 var rivers=host.AddComponent<TerraLoomRivers>();rivers.World=world;
                 rivers.WaterMaterial=water;rivers.FallRockMaterial=rock;rivers.BedMaterial=rock;rivers.BankMaterial=rock;
                 rivers.AutomaticSourceAndMouth=false;
@@ -84,6 +101,22 @@ namespace TerraLoom.Tests
                     Is.SameAs(body.GetComponent<MeshFilter>().sharedMesh));
                 Assert.That(parts.Count(part=>part.Role==PathGeometryRole.BridgeRamp),Is.EqualTo(2));
                 Assert.That(composition.ValidateCurrent(out var freshness),Is.True,freshness);
+                if(bake)
+                {
+                    const string root="Assets/TerraLoom/Integration/Generated/BoundaryFallBridge";
+                    host.AddComponent<BoundaryFallPlayerProbe>();
+                    var beforeBake=rivers.CaptureInput(out _,out _);
+                    RiversSampleBuilder.Bake(rivers,root+"/Rivers");
+                    PathsSampleBuilder.Bake(paths,root+"/Paths");
+                    var afterBake=rivers.CaptureInput(out _,out _);
+                    TestContext.WriteLine("BAKE_INPUT before="+beforeBake.Identity.InputFingerprint+
+                        " after="+afterBake.Identity.InputFingerprint+
+                        " terrain="+world.CaptureTerrainFingerprint(rivers.OriginalTerrainData)+
+                        " seed="+world.Seed+" revision="+world.Revision+" anchors="+world.ManualAnchors.Length);
+                    AssetDatabase.SaveAssets();
+                    Assert.That(EditorSceneManager.SaveScene(host.scene,SavedScene),Is.True);
+                    return;
+                }
                 var previousData=terrain.terrainData;var previousRiver=rivers.GeneratedRoot;
                 var previousPath=paths.GeneratedRoot;var riverJson=rivers.PlanJson;var pathJson=paths.PlanJson;
                 // A named grant for a candidate that does not exist cannot rescue
@@ -109,10 +142,51 @@ namespace TerraLoom.Tests
                 if(terrain)Object.DestroyImmediate(terrain.gameObject);
                 if(host)Object.DestroyImmediate(host);
                 if(source)Object.DestroyImmediate(source);
-                if(ground)Object.DestroyImmediate(ground);
-                if(water)Object.DestroyImmediate(water);
-                if(rock)Object.DestroyImmediate(rock);
+                if(ground&&!AssetDatabase.Contains(ground))Object.DestroyImmediate(ground);
+                if(water&&!AssetDatabase.Contains(water))Object.DestroyImmediate(water);
+                if(rock&&!AssetDatabase.Contains(rock))Object.DestroyImmediate(rock);
             }
+        }
+
+        [Test] public void ReopenedBoundaryFallBridgeRetainsOwnedAssetsAndConstruction()
+        {
+            if(!Environment.GetCommandLineArgs().Contains("-terraloomReopenBoundary"))Assert.Ignore("Separate-process bake/reopen probe only.");
+            var setup=EditorSceneManager.GetSceneManagerSetup();
+            try
+            {
+                EditorSceneManager.OpenScene(SavedScene);
+                var composition=Object.FindFirstObjectByType<TerraLoomIntegration>();
+                Assert.That(composition,Is.Not.Null);
+                var rivers=composition.Rivers;var paths=composition.Paths;
+                Assert.That(AssetDatabase.Contains(rivers.OriginalTerrainData),Is.True);
+                Assert.That(AssetDatabase.Contains(rivers.CarvedTerrainData),Is.True);
+                Assert.That(composition.World.Terrain.terrainData,Is.SameAs(rivers.CarvedTerrainData));
+                Assert.That(composition.World.Terrain.GetComponent<TerrainCollider>().terrainData,
+                    Is.SameAs(rivers.CarvedTerrainData));
+                Assert.That(rivers.PlanJson,Does.Contain("\"format\": 4"));
+                Assert.That(paths.PlanJson,Is.Not.Empty);
+                Assert.That(composition.ValidateCurrent(out var freshness),Is.True,freshness);
+                Assert.That(rivers.GeneratedRoot.GetComponentsInChildren<RiverGeneratedGeometry>(true).Length,Is.EqualTo(5));
+                var parts=paths.GeneratedRoot.GetComponentsInChildren<PathGeneratedGeometry>(true);
+                var body=parts.Single(part=>part.Role==PathGeometryRole.BridgeStructure);
+                Assert.That(AssetDatabase.Contains(body.GetComponent<MeshFilter>().sharedMesh),Is.True);
+                Assert.That(body.GetComponent<MeshCollider>().sharedMesh,
+                    Is.SameAs(body.GetComponent<MeshFilter>().sharedMesh));
+                Assert.That(parts.Count(part=>part.Role==PathGeometryRole.BridgeRamp),Is.EqualTo(2));
+            }
+            finally
+            {
+                if(setup.Any(s=>s.isLoaded&&s.isActive&&!string.IsNullOrEmpty(s.path)))
+                    EditorSceneManager.RestoreSceneManagerSetup(setup);
+                else EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
+            }
+        }
+
+        private static Material Persist(Material transient,string path)
+        {
+            var saved=AssetDatabase.LoadAssetAtPath<Material>(path);
+            if(saved){Object.DestroyImmediate(transient);return saved;}
+            AssetDatabase.CreateAsset(transient,path);return transient;
         }
     }
 }
