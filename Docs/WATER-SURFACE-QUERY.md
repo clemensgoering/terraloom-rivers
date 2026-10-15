@@ -112,7 +112,19 @@ continues describing its old world, even when a new one is published.
 Core revision `9f41af8` adds the required interface. It must be included in the Core dependency revision before
 shipping this Rivers change. Existing local development manifests were preserved;
 package dependency pins/publication were not changed by this runtime slice.
-The native roundtrip covers the standalone owned boundary-fall fixture. Shared
-Composition reopen, ordinary/foreign-terrain roundtrips, Player gameplay integration,
-large-world startup cost and Epos migration remain separate acceptance gates.
+The native roundtrip also covers one ordinary river on buyer-provided terrain:
+`RiverForeignWaterQueryPersistenceTests` bakes a 32 m sloped Terrain asset in one
+Unity process (**1/1**) and reopens it in a separate process (**1/1**). Core never
+owns or generates that terrain. The source heights remain unchanged relative to
+Unity's imported/quantized baseline. The reopened query returns the recorded
+physical route height and dry-land result without regenerating `LastPlan` or
+changing roots/TerrainData. Clear removes the active query and restores the
+original supplied TerrainData/collider; a retained snapshot still answers its old
+immutable data. No production code change was needed for this additional case.
+Evidence: `.artifacts/ForeignWaterQueryReopen-20261015/{Bake,Reopen}.xml` and logs.
+
+This proves a standalone ordinary supplied-terrain mesh river with carving,
+alongside the owned boundary-fall fixture. Shared Composition reopen, curved/brush
+and multi-tile supplied terrains, Player gameplay integration, large-world startup
+cost and Epos migration remain separate acceptance gates.
 There is no visual acceptance claim here. No Epos files were changed.
