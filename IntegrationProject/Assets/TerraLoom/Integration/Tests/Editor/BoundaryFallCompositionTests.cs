@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.IO;
 using TerraLoom.Core;
 using NUnit.Framework;
 using TerraLoom.Core.Unity;
@@ -20,6 +21,9 @@ namespace TerraLoom.Tests
     public sealed class BoundaryFallCompositionTests
     {
         private const string SavedScene="Assets/TerraLoom/Integration/Generated/TerraLoomBoundaryFallBridge.unity";
+        private const string SavedWaterQuery="Assets/TerraLoom/Integration/Generated/BoundaryFallBridge/ExpectedWaterQuery.json";
+        [Serializable] private sealed class ExpectedWaterQuery
+        { public double x,y,z; public string fingerprint; }
         [Test] public void WorldGenerationUsesPreparedBoundaryFallBeforePathsAndRollsBackOnDeniedRoute()
         {
             var host=new GameObject("Boundary composition test");
@@ -121,6 +125,12 @@ namespace TerraLoom.Tests
                     BoundaryFallVisualKit.PlaceProps(host.transform,terrain,root+"/VisualKit");
                     host.AddComponent<BoundaryFallPlayerProbe>();
                     var beforeBake=rivers.CaptureInput(out _,out _);
+                    var expectedPoint=rivers.LastPlan.Routes[0].WaterPolyline[rivers.LastPlan.Routes[0].WaterPolyline.Count/2];
+                    var query=rivers.WaterSurfaceQuery;Assert.That(query,Is.Not.Null);
+                    Assert.That(query.TryGetSurfaceHeight(expectedPoint.X,expectedPoint.Z,out var expectedY),Is.True);
+                    Assert.That(expectedY,Is.EqualTo(expectedPoint.Y).Within(.0001));
+                    File.WriteAllText(SavedWaterQuery,JsonUtility.ToJson(new ExpectedWaterQuery {
+                        x=expectedPoint.X,y=expectedPoint.Y,z=expectedPoint.Z,fingerprint=query.Identity.InputFingerprint }));
                     RiversSampleBuilder.Bake(rivers,root+"/Rivers");
                     PathsSampleBuilder.Bake(paths,root+"/Paths");
                     var afterBake=rivers.CaptureInput(out _,out _);
@@ -174,6 +184,7 @@ namespace TerraLoom.Tests
                 var composition=Object.FindFirstObjectByType<TerraLoomIntegration>();
                 Assert.That(composition,Is.Not.Null);
                 var rivers=composition.Rivers;var paths=composition.Paths;
+                var terrain=composition.World.Terrain;
                 Assert.That(AssetDatabase.Contains(rivers.OriginalTerrainData),Is.True);
                 Assert.That(AssetDatabase.Contains(rivers.CarvedTerrainData),Is.True);
                 Assert.That(composition.World.Terrain.terrainData,Is.SameAs(rivers.CarvedTerrainData));
@@ -183,6 +194,19 @@ namespace TerraLoom.Tests
                 Assert.That(paths.PlanJson,Is.Not.Empty);
                 Assert.That(composition.ValidateCurrent(out var freshness),Is.True,freshness);
                 Assert.That(rivers.GeneratedRoot.GetComponentsInChildren<RiverGeneratedGeometry>(true).Length,Is.EqualTo(5));
+                Assert.That(rivers.LastPlan,Is.Null,"Restoring shared water must not regenerate a standalone river plan.");
+                var expectedQuery=JsonUtility.FromJson<ExpectedWaterQuery>(File.ReadAllText(SavedWaterQuery));
+                var savedRiverRoot=rivers.GeneratedRoot;var savedPathRoot=paths.GeneratedRoot;
+                var savedTerrain=terrain.terrainData;var riverJson=rivers.PlanJson;var pathJson=paths.PlanJson;
+                var restoredQuery=rivers.WaterSurfaceQuery;Assert.That(restoredQuery,Is.Not.Null,rivers.Diagnostics);
+                Assert.That(restoredQuery.Identity.InputFingerprint,Is.EqualTo(expectedQuery.fingerprint));
+                Assert.That(restoredQuery.TryGetSurfaceHeight(expectedQuery.x,expectedQuery.z,out var restoredY),Is.True);
+                Assert.That(restoredY,Is.EqualTo(expectedQuery.y).Within(.0001));
+                Assert.That(restoredQuery.TryGetSurfaceHeight(0,0,out _),Is.False);
+                Assert.That(rivers.LastPlan,Is.Null);Assert.That(rivers.GeneratedRoot,Is.SameAs(savedRiverRoot));
+                Assert.That(paths.GeneratedRoot,Is.SameAs(savedPathRoot));Assert.That(terrain.terrainData,Is.SameAs(savedTerrain));
+                Assert.That(rivers.PlanJson,Is.EqualTo(riverJson));Assert.That(paths.PlanJson,Is.EqualTo(pathJson));
+                Assert.That(composition.ValidateCurrent(out var afterQuery),Is.True,afterQuery);
                 var parts=paths.GeneratedRoot.GetComponentsInChildren<PathGeneratedGeometry>(true);
                 var body=parts.Single(part=>part.Role==PathGeometryRole.BridgeStructure);
                 Assert.That(AssetDatabase.Contains(body.GetComponent<MeshFilter>().sharedMesh),Is.True);

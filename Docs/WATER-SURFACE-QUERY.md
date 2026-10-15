@@ -123,8 +123,23 @@ original supplied TerrainData/collider; a retained snapshot still answers its ol
 immutable data. No production code change was needed for this additional case.
 Evidence: `.artifacts/ForeignWaterQueryReopen-20261015/{Bake,Reopen}.xml` and logs.
 
-This proves a standalone ordinary supplied-terrain mesh river with carving,
-alongside the owned boundary-fall fixture. Shared Composition reopen, curved/brush
-and multi-tile supplied terrains, Player gameplay integration, large-world startup
-cost and Epos migration remain separate acceptance gates.
+The shared Core/Rivers/Paths Composition boundary-fall scene is also verified:
+`BoundaryFallCompositionTests` records the physical receiving-route height and
+shared query fingerprint before baking the fall, downstream river and explicitly
+granted timber bridge. A fresh Unity process reopens the scene and restores the
+query automatically with `LastPlan` still null. Height and identity match, dry land
+is dry, both generated roots/TerrainData/JSON remain unchanged, and Composition's
+`ValidateCurrent` passes before and after reading the query. Standalone plan reload
+is deliberately not used for the joint snapshot. Bake **1/1** and Reopen **1/1**
+pass with Unity exit 0, zero failures/skips. No production changes were required.
+Evidence: canonical `Integration/.artifacts/CompositionWaterQueryReopen-20261015/`
+contains `Bake.xml`, `Reopen.xml` and logs. The tracked fixture source is under
+`Rivers/IntegrationProject` and was mirrored into the canonical Integration project.
+
+These probes cover a standalone ordinary supplied-terrain mesh river with carving,
+the owned boundary-fall fixture, and an owned boundary fall plus bridge in shared
+Composition. Shared Composition on supplied terrain, curved/brush and multi-tile
+supplied terrains, Player gameplay integration, large-world startup cost and Epos
+migration remain separate acceptance gates. No visual acceptance follows from
+these persistence probes.
 There is no visual acceptance claim here. No Epos files were changed.
