@@ -136,10 +136,42 @@ Evidence: canonical `Integration/.artifacts/CompositionWaterQueryReopen-20261015
 contains `Bake.xml`, `Reopen.xml` and logs. The tracked fixture source is under
 `Rivers/IntegrationProject` and was mirrored into the canonical Integration project.
 
-These probes cover a standalone ordinary supplied-terrain mesh river with carving,
-the owned boundary-fall fixture, and an owned boundary fall plus bridge in shared
-Composition. Shared Composition on supplied terrain, curved/brush and multi-tile
-supplied terrains, Player gameplay integration, large-world startup cost and Epos
-migration remain separate acceptance gates. No visual acceptance follows from
-these persistence probes.
+## Shared Composition on supplied terrain
+
+`ForeignCompositionWaterQueryTests` covers a 96 m supplied slope, one terrain-brush
+river, dry road approaches and a physical timber-truss bridge. Core never owns the
+source terrain. The test first refuses the crossing without a grant, leaving no
+published module roots, then explicitly approves only named bridge candidates
+inside a fixed reviewed window using the scene-owned permission source. The
+provided source heights remain unchanged relative to Unity's imported baseline.
+
+With persistent material assets, separate Unity 6000.3.9f1 processes pass Bake
+**1/1** and Reopen **1/1**, zero failed/skipped. The restored query matches the
+recorded physical height and shared identity and reports dry land correctly.
+Rivers/Paths `LastPlan` remain null, proving no standalone replanning supplies the
+result. Both JSON plans, roots and TerrainData remain unchanged and
+`Composition.ValidateCurrent` passes before and after querying. Ground surfaces,
+one deck, one truss and two ramps survive as persistent meshes with matching
+MeshColliders; the enabled reviewed permission source and approval count survive.
+Clear restores the original supplied terrain/collider and removes both module
+outputs and the active query; a retained immutable query still answers its old data.
+
+Evidence: canonical `Integration/.artifacts/ForeignCompositionWaterQuery-20261015/`
+contains `Bake.xml`, `Reopen.xml`, logs and the initial negative material probe.
+Tracked fixture source is under `Rivers/IntegrationProject`; its canonical
+Integration mirror has the same SHA-256. No product code or Epos files changed.
+
+Two buyer-facing bake gaps remain explicit. The central
+`IntegrationEditor.BakeGeneratedForScene` currently requires a Core-owned recipe
+and decoration and rejects generic supplied-terrain worlds. This probe therefore
+calls the existing Rivers/Paths bakers and saves the shared scene. Transient
+materials copied by those bakers change captured material references and make
+`ValidateCurrent` correctly reject the result; the successful fixture uses
+already-persistent buyer material assets. Harness work `work-20261015-2058-5qkp`
+tracks these gaps. No guard or freshness rule was relaxed.
+
+These probes cover owned boundary falls and ordinary/brush supplied-terrain rivers,
+including an explicit bridge in shared Composition. Curved/multi-tile cases,
+Player walking after this supplied-terrain reopen, large-world startup cost and
+Epos migration remain separate gates. No visual acceptance follows from persistence.
 There is no visual acceptance claim here. No Epos files were changed.
