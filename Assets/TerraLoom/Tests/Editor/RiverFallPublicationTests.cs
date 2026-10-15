@@ -45,11 +45,25 @@ namespace TerraLoom.Tests
                 Assert.That(contribution.Crossings.All(c=>c.AllowedKinds==CrossingKind.Bridge),Is.True);
                 Assert.That(contribution.Crossings.Count,Is.GreaterThan(0));
                 var root=rivers.GeneratedRoot;var data=rivers.CarvedTerrainData;var json=rivers.PlanJson;
+                var oldQuery=rivers.WaterSurfaceQuery;
+                Assert.That(oldQuery,Is.Not.Null);
+                Assert.That(oldQuery.Identity,Is.EqualTo(plan.Identity));
+                var receiving=plan.Routes[0].WaterPolyline[plan.Routes[0].WaterPolyline.Count/2];
+                Assert.That(oldQuery.TryGetSurfaceHeight(receiving.X,receiving.Z,out var physicalY),Is.True);
+                Assert.That(physicalY,Is.EqualTo(receiving.Y).Within(.0001),"Render offset leaked into physical water.");
+                Assert.That(oldQuery.TryGetSurfaceHeight(20,0,out _),Is.False);
                 Assert.That(root.GetComponentsInChildren<RiverGeneratedGeometry>(true).Length,Is.EqualTo(5));
                 Assert.That(root.GetComponentsInChildren<MeshCollider>(true).Length,Is.EqualTo(1));
                 Assert.That(terrain.terrainData,Is.SameAs(data));
                 Assert.That(terrain.GetComponent<TerrainCollider>().terrainData,Is.SameAs(data));
                 var input=rivers.CaptureInput(out var bounds,out var requests);
+                using(var rollback=rivers.PrepareFromSnapshot(input,bounds,requests))
+                {
+                    Assert.That(rivers.WaterSurfaceQuery,Is.SameAs(oldQuery),"Prepare exposed unpublished water.");
+                    rollback.CommitBindings();
+                    Assert.That(rivers.WaterSurfaceQuery,Is.Not.SameAs(oldQuery));
+                }
+                Assert.That(rivers.WaterSurfaceQuery,Is.SameAs(oldQuery),"Rollback lost previous query.");
                 using(var staged=rivers.PrepareFromSnapshot(input,bounds,requests))
                 {
                     terrain.terrainData=original;
@@ -66,9 +80,14 @@ namespace TerraLoom.Tests
                 }
                 Assert.That(rivers.GeneratedRoot,Is.SameAs(root));
                 Assert.That(rivers.PlanJson,Is.EqualTo(json));
+                Assert.That(rivers.WaterSurfaceQuery,Is.SameAs(oldQuery));
                 Assert.That(rivers.LoadPlanJson(json),Is.True,rivers.Diagnostics);
+                Assert.That(rivers.WaterSurfaceQuery,Is.Not.SameAs(oldQuery));
+                Assert.That(oldQuery.TryGetSurfaceHeight(receiving.X,receiving.Z,out var retainedY),Is.True);
+                Assert.That(retainedY,Is.EqualTo(physicalY));
                 Assert.That(rivers.LastPlan.HasContinuousSourceToMouth,Is.True);
                 rivers.Clear();
+                Assert.That(rivers.WaterSurfaceQuery,Is.Null);
                 Assert.That(terrain.terrainData,Is.SameAs(original));
                 Assert.That(terrain.GetComponent<TerrainCollider>().terrainData,Is.SameAs(original));
             }

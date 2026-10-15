@@ -7,8 +7,21 @@ namespace TerraLoom.Rivers.Unity
     {
         [SerializeField] private RiverGeometryRole role;
         [SerializeField] private bool ownsMesh;
+        [SerializeField] private bool hasPhysicalSurfaceMetadata;
+        [SerializeField] private Vector3 physicalSurfaceRenderOffsetLocal;
+        public bool HasPhysicalSurfaceMetadata => hasPhysicalSurfaceMetadata;
+        public Vector3 PhysicalSurfaceRenderOffsetLocal => physicalSurfaceRenderOffsetLocal;
         public RiverGeometryRole Role => role;
-        public void Initialize(RiverGeometryRole value) { role = value; ownsMesh = true; Restore(); }
+        public void Initialize(RiverGeometryRole value) { Initialize(value, Vector3.zero); }
+        public void Initialize(RiverGeometryRole value, Vector3 renderOffsetLocal)
+        {
+            if (float.IsNaN(renderOffsetLocal.x) || float.IsInfinity(renderOffsetLocal.x)
+                || float.IsNaN(renderOffsetLocal.y) || float.IsInfinity(renderOffsetLocal.y)
+                || float.IsNaN(renderOffsetLocal.z) || float.IsInfinity(renderOffsetLocal.z))
+                throw new System.ArgumentException("Physical surface render offset must be finite.");
+            role = value; ownsMesh = true; physicalSurfaceRenderOffsetLocal = renderOffsetLocal;
+            hasPhysicalSurfaceMetadata = true; Restore();
+        }
         public void MarkBaked() { ownsMesh = false; }
         private void OnEnable() { Restore(); }
         public void Restore()

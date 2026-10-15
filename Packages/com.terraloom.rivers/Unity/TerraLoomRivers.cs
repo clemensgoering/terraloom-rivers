@@ -74,6 +74,9 @@ namespace TerraLoom.Rivers.Unity
         public TerrainData OriginalTerrainData => originalData;
         public TerrainData CarvedTerrainData => carvedData;
         public RiverPlan LastPlan { get; private set; }
+        /// <summary>Physical snapshot of the current in-memory publication. Null before
+        /// generation, after Clear, or after domain reload until regeneration.</summary>
+        public RiverWaterSurfaceSnapshot WaterSurfaceQuery { get; private set; }
         private void Start() { if (GenerateOnStart && !generatedRoot && !Generate()) Debug.LogError(diagnostics, this); }
 
         public RiverProfile CaptureProfile() => CaptureProfile(null);
@@ -215,7 +218,7 @@ namespace TerraLoom.Rivers.Unity
                 }
                 cancellation.ThrowIfCancellationRequested();
                 string serialized = RiverPlanStore.Save(plan);
-                var result=new PreparedPublication(this,staged,stagedData,basis,target,plan,serialized);
+                var result=new PreparedPublication(this,staged,stagedData,basis,target,plan,serialized,cancellation);
                 staged=null;stagedData=null;return result;
             }
             finally { try{DestroyRoot(staged);}finally{ReleaseData(stagedData);} }
@@ -246,10 +249,11 @@ namespace TerraLoom.Rivers.Unity
                 for(int i=0;i<earthworks.Water.Length;i++)
                     AddFallGeometry(staged,earthworks.Water[i],RiverGeometryRole.Water,
                         i==1&&FallWaterMaterial?FallWaterMaterial:WaterMaterial,
-                        i==0?"Fall upper water":i==1?"Fall vertical water":i==2?"Fall pool and outlet water":"Fall receiving route water");
+                        i==0?"Fall upper water":i==1?"Fall vertical water":i==2?"Fall pool and outlet water":"Fall receiving route water",
+                        PreparedFallEarthworks.WaterRenderOffset);
                 cancellation.ThrowIfCancellationRequested();
                 stagedData=earthworks.TakeTerrainAndMeshes();
-                var prepared=new PreparedPublication(this,staged,stagedData,basis,target,published,serialized);
+                var prepared=new PreparedPublication(this,staged,stagedData,basis,target,published,serialized,cancellation);
                 diagnostics=published.Reports[0].Detail;
                 staged=null;stagedData=null;return prepared;
             }
@@ -258,11 +262,12 @@ namespace TerraLoom.Rivers.Unity
                 try{DestroyRoot(staged);}finally{try{ReleaseData(stagedData);}finally{earthworks?.Dispose();}}
             }
         }
-        private void AddFallGeometry(GameObject root,Mesh mesh,RiverGeometryRole role,Material material,string name)
+        private void AddFallGeometry(GameObject root,Mesh mesh,RiverGeometryRole role,Material material,string name,float renderOffset=0)
         {
             var child=new GameObject(name);child.transform.SetParent(root.transform,false);
             var marker=child.AddComponent<RiverGeneratedGeometry>();
-            child.AddComponent<MeshFilter>().sharedMesh=mesh;marker.Initialize(role);
+            child.AddComponent<MeshFilter>().sharedMesh=mesh;
+            marker.Initialize(role,child.transform.InverseTransformVector(Vector3.up*renderOffset));
             var positions=mesh.vertices;
             for(int i=0;i<positions.Length;i++)positions[i]=child.transform.InverseTransformPoint(positions[i]);
             mesh.vertices=positions;mesh.RecalculateNormals();mesh.RecalculateBounds();
@@ -285,13 +290,16 @@ namespace TerraLoom.Rivers.Unity
             private readonly int colliderId;
             private readonly bool oldOwned,oldActive;
             private readonly RiverPlan plan,oldPlan;
+            private readonly RiverWaterSurfaceSnapshot query,oldQuery;
             private readonly string json,oldJson;
             private bool committed,completed,disposed;
-            internal PreparedPublication(TerraLoomRivers owner,GameObject root,TerrainData data,TerrainData basis,Terrain target,RiverPlan plan,string json)
+            internal PreparedPublication(TerraLoomRivers owner,GameObject root,TerrainData data,TerrainData basis,Terrain target,RiverPlan plan,string json,CancellationToken cancellation=default)
             {
                 this.owner=owner;this.root=root;this.data=data;this.basis=basis;this.target=target;this.plan=plan;this.json=json;
                 oldRoot=owner.generatedRoot;oldData=owner.carvedData;oldOriginal=owner.originalData;oldTerrain=owner.carvedTerrain;
                 oldOwned=owner.ownsTransientData;oldPlan=owner.LastPlan;oldJson=owner.planJson;oldActive=oldRoot&&oldRoot.activeSelf;
+                oldQuery=owner.WaterSurfaceQuery;
+                query=RiverWaterSurfaceCapture.Capture(root,plan.Identity,cancellation);
                 oldBinding=target.terrainData;collider=target.GetComponent<TerrainCollider>();colliderId=collider?collider.GetInstanceID():0;oldColliderBinding=collider?collider.terrainData:null;
             }
             /// <summary>Captures the staged final grid directly, without temporarily binding it to the live world.</summary>
@@ -310,7 +318,8 @@ namespace TerraLoom.Rivers.Unity
                 bool sameCollider=colliderId==0?!currentCollider:currentCollider&&currentCollider.GetInstanceID()==colliderId;
                 if(!owner||!target||owner.World.Terrain!=target||target.terrainData!=oldBinding
                     ||!sameCollider
-                    ||(collider&&collider.terrainData!=oldColliderBinding)||owner.generatedRoot!=oldRoot||owner.carvedData!=oldData)
+                    ||(collider&&collider.terrainData!=oldColliderBinding)||owner.generatedRoot!=oldRoot||owner.carvedData!=oldData
+                    ||owner.WaterSurfaceQuery!=oldQuery)
                     throw new InvalidOperationException("River bindings changed after preparation.");
             }
             public void CommitBindings()
@@ -318,7 +327,7 @@ namespace TerraLoom.Rivers.Unity
                 ValidateBeforeCommit();committed=true;
                 owner.originalData=data?basis:null;owner.carvedTerrain=data?target:null;owner.carvedData=data;owner.ownsTransientData=data!=null;
                 target.terrainData=data?data:basis;if(collider)collider.terrainData=data?data:basis;
-                owner.generatedRoot=root;owner.LastPlan=plan;owner.planJson=json;
+                owner.generatedRoot=root;owner.LastPlan=plan;owner.planJson=json;owner.WaterSurfaceQuery=query;
                 if(oldRoot)oldRoot.SetActive(false);root.SetActive(true);
             }
             public void SealBindings()
@@ -341,7 +350,7 @@ namespace TerraLoom.Rivers.Unity
                 {
                     target.terrainData=oldBinding;if(collider)collider.terrainData=oldColliderBinding;
                     owner.generatedRoot=oldRoot;owner.originalData=oldOriginal;owner.carvedData=oldData;owner.carvedTerrain=oldTerrain;
-                    owner.ownsTransientData=oldOwned;owner.LastPlan=oldPlan;owner.planJson=oldJson;
+                    owner.ownsTransientData=oldOwned;owner.LastPlan=oldPlan;owner.planJson=oldJson;owner.WaterSurfaceQuery=oldQuery;
                     if(oldRoot)oldRoot.SetActive(oldActive);
                 }
                 try{DestroyRoot(root);}finally{ReleaseData(data);}
@@ -370,7 +379,7 @@ namespace TerraLoom.Rivers.Unity
         }
         public void Clear()
         {
-            DestroyRoot(generatedRoot); generatedRoot = null; LastPlan = null; planJson = "";
+            DestroyRoot(generatedRoot); generatedRoot = null; LastPlan = null; planJson = ""; WaterSurfaceQuery = null;
             if (carvedTerrain && carvedTerrain.terrainData == carvedData) Assign(carvedTerrain, originalData);
             if (ownsTransientData) ReleaseData(carvedData);
             originalData = null; carvedData = null; carvedTerrain = null; ownsTransientData = false;

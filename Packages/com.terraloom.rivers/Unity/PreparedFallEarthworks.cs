@@ -13,6 +13,7 @@ namespace TerraLoom.Rivers.Unity
     /// Owns every cloned asset until the caller either validates and transfers it or disposes it.</summary>
     public sealed class PreparedFallEarthworks : IDisposable
     {
+        public const float WaterRenderOffset = .01f;
         public TerrainData TerrainData { get; private set; }
         public Mesh Solid { get; private set; }
         public Mesh[] Water { get; private set; }
@@ -70,6 +71,7 @@ namespace TerraLoom.Rivers.Unity
                 result.Solid=BuildSolid(source,result.TerrainData,world.Terrain.transform.position,candidate,site,profile,cancellation);
                 result.Water=WaterfallWaterGeometry.Build(candidate.Recipe,(float)site.UpperLength,
                     (float)(candidate.Site.WorldBoundaryMouth?candidate.LowerReach.JoinStation:site.LowerLength),
+                    renderOffset:WaterRenderOffset,
                     cancelled:()=>cancellation.IsCancellationRequested);
                 if(candidate.Site.WorldBoundaryMouth)
                     result.Water=result.Water.Concat(new[]{BuildReceivingWater(candidate.LowerReach,cancellation)}).ToArray();
@@ -194,7 +196,7 @@ namespace TerraLoom.Rivers.Unity
                     float fraction=j/(float)across;
                     float lateral=(fraction*2-1)*(float)route.ChannelHalfWidth;
                     vertices[i*stride+j]=new Vector3((float)centre.X+axis.x*lateral,
-                        (float)centre.Y+.01f,(float)centre.Z+axis.y*lateral);
+                        (float)centre.Y+WaterRenderOffset,(float)centre.Z+axis.y*lateral);
                     uv[i*stride+j]=new Vector2(fraction,i);
                 }
             }
