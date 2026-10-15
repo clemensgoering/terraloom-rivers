@@ -71,17 +71,48 @@ JSON preservation, retained snapshots after replacement, Clear, and physical
 height under a rotated/nonuniformly scaled host. Report:
 `.artifacts/WaterQueryPublication-20261015/Publication.xml`.
 
+## Automatic baked-scene rehydration (15 October 2026)
+
+On first access after reopening, `WaterSurfaceQuery` automatically reconstructs
+the immutable snapshot without generating a plan or changing root/terrain bindings.
+An explicit version-1 saved publication certificate includes the plan identity,
+Terrain/TerrainData references and SHA-256 evidence of the exact plan JSON, water
+mesh vertices/indices/transforms/physical offset metadata, terrain transform/size,
+heights and holes. Collider presence and TerrainData binding must also match.
+This is integrity checking of a saved publication, not authorization of arbitrary
+edited plans or a substitute for fresh planning.
+
+The baker validates unchanged physical content before rebinding copied terrain
+assets. The certificate participates in the same commit/rollback as the live
+query. Legacy scenes without a certificate require regeneration. A failed restore
+leaves the query null and supplies a diagnostic; it is attempted once until a new
+publication is generated. Changing a cached live scene is still handled through
+the normal regeneration/publication lifecycle, not per-frame content hashing.
+
+One-time rehydration reads and hashes the saved water and full terrain data; it has
+not been profiled for large streaming worlds. Per-point query lookup is unchanged.
+No surface is reconstructed solely from corridor bounds or an unchecked JSON plan.
+
+Separate Unity 6000.3.9f1 processes prove boundary-fall Bake **1/1** then reopened
+query/negative cases/publication regression **6/6**, zero failed/skipped.
+`LastPlan` remains null while the reopened query answers the saved physical height
+and dry-land probe, showing that no regeneration or retained managed snapshot
+supplies it. The expected water height is recorded from the published route before
+bake, not inferred from raw terrain height. Negative checks cover edited JSON,
+geometry, terrain heights and collider binding; commit/rollback tests remain green.
+Evidence: `.artifacts/WaterQueryReopen-20261015/{Bake,Reopen}.xml` and matching logs.
+
 ## Remaining integration boundary
 
-The snapshot is deliberately nonserialized. After domain reload or opening a baked
-scene, the query remains null until validated regeneration; a stale query is never
-inferred from a saved root. Reconstructing it on baked reopen from jointly validated
-plan/physical metadata remains a separate persistence slice. The active query
+The snapshot itself remains nonserialized; only validated saved publication data
+is used to reconstruct it. The active query
 must be acquired with its matching publication identity. A retained old snapshot
 continues describing its old world, even when a new one is published.
 
 Core revision `9f41af8` adds the required interface. It must be included in the Core dependency revision before
 shipping this Rivers change. Existing local development manifests were preserved;
 package dependency pins/publication were not changed by this runtime slice.
-There is no baked-reopen query, Player gameplay, Epos migration or visual acceptance
-claim here. No Epos files were changed.
+The native roundtrip covers the standalone owned boundary-fall fixture. Shared
+Composition reopen, ordinary/foreign-terrain roundtrips, Player gameplay integration,
+large-world startup cost and Epos migration remain separate acceptance gates.
+There is no visual acceptance claim here. No Epos files were changed.

@@ -214,6 +214,7 @@ namespace TerraLoom.Rivers.Editor
             if(rivers.FallWaterMaterial)rivers.FallWaterMaterial = persistence.Material(rivers.FallWaterMaterial);
             if(rivers.BedMaterial)rivers.BedMaterial = persistence.Material(rivers.BedMaterial);
             if(rivers.BankMaterial)rivers.BankMaterial = persistence.Material(rivers.BankMaterial);
+            rivers.RebindBakedWaterQuery();
             EditorUtility.SetDirty(terrain); MarkDirty(rivers); AssetDatabase.SaveAssets();
         }
 

@@ -68,6 +68,9 @@ namespace TerraLoom.Rivers.Unity
         [SerializeField, HideInInspector] private Terrain carvedTerrain;
         [SerializeField, HideInInspector] private TerrainData originalData, carvedData;
         [SerializeField, HideInInspector] private bool ownsTransientData;
+        [SerializeField, HideInInspector] private RiverWaterQueryPersistence savedWaterQuery;
+        private RiverWaterSurfaceSnapshot waterSurfaceQuery;
+        private bool waterQueryRestoreAttempted;
         public string Diagnostics => diagnostics;
         public string PlanJson => planJson;
         public GameObject GeneratedRoot => generatedRoot;
@@ -75,9 +78,30 @@ namespace TerraLoom.Rivers.Unity
         public TerrainData CarvedTerrainData => carvedData;
         public RiverPlan LastPlan { get; private set; }
         /// <summary>Physical snapshot of the current in-memory publication. Null before
-        /// generation, after Clear, or after domain reload until regeneration.</summary>
-        public RiverWaterSurfaceSnapshot WaterSurfaceQuery { get; private set; }
+        /// generation or after Clear. After reopen, lazily rehydrates only the exact
+        /// saved publication; invalid/legacy content stays null with a diagnostic.</summary>
+        public RiverWaterSurfaceSnapshot WaterSurfaceQuery
+        {
+            get
+            {
+                if(waterSurfaceQuery==null&&!waterQueryRestoreAttempted&&savedWaterQuery!=null)
+                {
+                    waterQueryRestoreAttempted=true;
+                    try { waterSurfaceQuery=savedWaterQuery.Restore(generatedRoot,World?World.Terrain:null,planJson); }
+                    catch(Exception ex) { diagnostics="Water query restore refused: "+ex.Message; }
+                }
+                return waterSurfaceQuery;
+            }
+            private set { waterSurfaceQuery=value;waterQueryRestoreAttempted=true; }
+        }
         private void Start() { if (GenerateOnStart && !generatedRoot && !Generate()) Debug.LogError(diagnostics, this); }
+
+        /// <summary>Called by a baker after copying assets. Physical content must remain
+        /// byte-identical; only the validated TerrainData reference is rebound.</summary>
+        public void RebindBakedWaterQuery()
+        {
+            if(savedWaterQuery!=null)savedWaterQuery.RebindBakedTerrain(generatedRoot,World?World.Terrain:null,planJson);
+        }
 
         public RiverProfile CaptureProfile() => CaptureProfile(null);
         public RiverProfile CaptureProfile(TerrainData sourceData) => new RiverProfile(Width, Depth, BankWidth, CellSize, MaximumSlope,
@@ -291,6 +315,7 @@ namespace TerraLoom.Rivers.Unity
             private readonly bool oldOwned,oldActive;
             private readonly RiverPlan plan,oldPlan;
             private readonly RiverWaterSurfaceSnapshot query,oldQuery;
+            private readonly RiverWaterQueryPersistence savedQuery,oldSavedQuery;
             private readonly string json,oldJson;
             private bool committed,completed,disposed;
             internal PreparedPublication(TerraLoomRivers owner,GameObject root,TerrainData data,TerrainData basis,Terrain target,RiverPlan plan,string json,CancellationToken cancellation=default)
@@ -300,6 +325,9 @@ namespace TerraLoom.Rivers.Unity
                 oldOwned=owner.ownsTransientData;oldPlan=owner.LastPlan;oldJson=owner.planJson;oldActive=oldRoot&&oldRoot.activeSelf;
                 oldQuery=owner.WaterSurfaceQuery;
                 query=RiverWaterSurfaceCapture.Capture(root,plan.Identity,cancellation);
+                oldSavedQuery=owner.savedWaterQuery;
+                savedQuery=RiverWaterQueryPersistence.Capture(root,target,data?data:basis,plan.Identity,json);
+                cancellation.ThrowIfCancellationRequested();
                 oldBinding=target.terrainData;collider=target.GetComponent<TerrainCollider>();colliderId=collider?collider.GetInstanceID():0;oldColliderBinding=collider?collider.terrainData:null;
             }
             /// <summary>Captures the staged final grid directly, without temporarily binding it to the live world.</summary>
@@ -328,6 +356,7 @@ namespace TerraLoom.Rivers.Unity
                 owner.originalData=data?basis:null;owner.carvedTerrain=data?target:null;owner.carvedData=data;owner.ownsTransientData=data!=null;
                 target.terrainData=data?data:basis;if(collider)collider.terrainData=data?data:basis;
                 owner.generatedRoot=root;owner.LastPlan=plan;owner.planJson=json;owner.WaterSurfaceQuery=query;
+                owner.savedWaterQuery=savedQuery;
                 if(oldRoot)oldRoot.SetActive(false);root.SetActive(true);
             }
             public void SealBindings()
@@ -351,6 +380,7 @@ namespace TerraLoom.Rivers.Unity
                     target.terrainData=oldBinding;if(collider)collider.terrainData=oldColliderBinding;
                     owner.generatedRoot=oldRoot;owner.originalData=oldOriginal;owner.carvedData=oldData;owner.carvedTerrain=oldTerrain;
                     owner.ownsTransientData=oldOwned;owner.LastPlan=oldPlan;owner.planJson=oldJson;owner.WaterSurfaceQuery=oldQuery;
+                    owner.savedWaterQuery=oldSavedQuery;
                     if(oldRoot)oldRoot.SetActive(oldActive);
                 }
                 try{DestroyRoot(root);}finally{ReleaseData(data);}
@@ -380,6 +410,7 @@ namespace TerraLoom.Rivers.Unity
         public void Clear()
         {
             DestroyRoot(generatedRoot); generatedRoot = null; LastPlan = null; planJson = ""; WaterSurfaceQuery = null;
+            savedWaterQuery=null;
             if (carvedTerrain && carvedTerrain.terrainData == carvedData) Assign(carvedTerrain, originalData);
             if (ownsTransientData) ReleaseData(carvedData);
             originalData = null; carvedData = null; carvedTerrain = null; ownsTransientData = false;

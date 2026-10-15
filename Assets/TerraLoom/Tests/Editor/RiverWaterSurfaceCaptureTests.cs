@@ -8,6 +8,35 @@ namespace TerraLoom.Tests
 {
     public sealed class RiverWaterSurfaceCaptureTests
     {
+        [Test] public void SavedCertificateRejectsChangedPlanGeometryTerrainAndCollider()
+        {
+            var root=new GameObject("Saved query certificate");var mesh=new Mesh();
+            var data=new TerrainData{heightmapResolution=33,size=new Vector3(4,8,4)};
+            var terrainObject=Terrain.CreateTerrainGameObject(data);var terrain=terrainObject.GetComponent<Terrain>();
+            try
+            {
+                mesh.vertices=new[]{new Vector3(0,2,0),new Vector3(2,2,0),new Vector3(0,2,2)};
+                mesh.triangles=new[]{0,1,2};root.AddComponent<MeshFilter>().sharedMesh=mesh;
+                root.AddComponent<RiverGeneratedGeometry>().Initialize(RiverGeometryRole.Water);
+                var identity=new PlanIdentity(42,1,"saved-query-check","physical");
+                var certificate=RiverWaterQueryPersistence.Capture(root,terrain,data,identity,"saved-plan");
+                Assert.That(certificate.Restore(root,terrain,"saved-plan").Identity,Is.EqualTo(identity));
+                Assert.Throws<InvalidOperationException>(()=>certificate.Restore(root,terrain,"edited-plan"));
+                root.transform.position=Vector3.up;
+                Assert.Throws<InvalidOperationException>(()=>certificate.Restore(root,terrain,"saved-plan"));
+                root.transform.position=Vector3.zero;
+                var heights=data.GetHeights(0,0,33,33);heights[0,0]=.1f;data.SetHeights(0,0,heights);
+                Assert.Throws<InvalidOperationException>(()=>certificate.Restore(root,terrain,"saved-plan"));
+                heights[0,0]=0;data.SetHeights(0,0,heights);
+                terrainObject.GetComponent<TerrainCollider>().terrainData=null;
+                Assert.Throws<InvalidOperationException>(()=>certificate.Restore(root,terrain,"saved-plan"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);UnityEngine.Object.DestroyImmediate(terrainObject);
+                UnityEngine.Object.DestroyImmediate(data);if(mesh)UnityEngine.Object.DestroyImmediate(mesh);
+            }
+        }
         [Test] public void OffsetIsRemovedBeforeRotatedScaledHostTransform()
         {
             var root=new GameObject("Query transform test");var mesh=new Mesh();

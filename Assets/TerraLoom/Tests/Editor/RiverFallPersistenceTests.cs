@@ -55,6 +55,8 @@ namespace TerraLoom.Tests
                 Assert.That(probeScript,Is.Not.Null);host.AddComponent(probeScript.GetClass());
                 Assert.That(rivers.Generate(),Is.True,rivers.Diagnostics);
                 Assert.That(rivers.LastPlan.HasContinuousSourceToMouth,Is.True);
+                File.WriteAllText(BoundaryFolder+"/ExpectedPhysicalHeight.txt",
+                    rivers.LastPlan.Routes[0].WaterPolyline.Last().Y.ToString("R",System.Globalization.CultureInfo.InvariantCulture));
                 RiversSampleBuilder.Bake(rivers,BoundaryFolder+"/Baked");
                 Assert.That(EditorSceneManager.SaveScene(host.scene,BoundaryScene),Is.True);
             }
@@ -84,6 +86,29 @@ namespace TerraLoom.Tests
                     rivers.CarvedTerrainData.holesResolution);
                 Assert.That(holes.Cast<bool>().Any(x=>!x),Is.True,"Fall opening must survive bake/reopen.");
                 var json=rivers.PlanJson;Assert.That(json,Does.Contain("\"format\": 4"));
+                Assert.That(rivers.LastPlan,Is.Null,"Reopen must not regenerate the plan to restore a query.");
+                var savedRoot=rivers.GeneratedRoot;
+                var restored=rivers.WaterSurfaceQuery;
+                Assert.That(restored,Is.Not.Null,rivers.Diagnostics);
+                Assert.That(restored.TryGetSurfaceHeight(24,16,out var physicalY),Is.True);
+                var expectedY=double.Parse(File.ReadAllText(BoundaryFolder+"/ExpectedPhysicalHeight.txt"),System.Globalization.CultureInfo.InvariantCulture);
+                Assert.That(physicalY,Is.EqualTo(expectedY).Within(.0001),"Render offset leaked after reopen.");
+                Assert.That(restored.TryGetSurfaceHeight(24,0,out _),Is.False);
+                Assert.That(rivers.GeneratedRoot,Is.SameAs(savedRoot));
+                Assert.That(rivers.LastPlan,Is.Null);
+                try
+                {
+                    var edited=new SerializedObject(rivers);
+                    edited.FindProperty("planJson").stringValue=json+" ";edited.ApplyModifiedPropertiesWithoutUndo();
+                    typeof(TerraLoomRivers).GetField("waterSurfaceQuery",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).SetValue(rivers,null);
+                    typeof(TerraLoomRivers).GetField("waterQueryRestoreAttempted",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).SetValue(rivers,false);
+                    Assert.That(rivers.WaterSurfaceQuery,Is.Null,"Edited plan must not rehydrate a query.");
+                }
+                finally
+                {
+                    var unchanged=new SerializedObject(rivers);
+                    unchanged.FindProperty("planJson").stringValue=json;unchanged.ApplyModifiedPropertiesWithoutUndo();
+                }
                 Assert.That(rivers.LoadPlanJson(json),Is.True,rivers.Diagnostics);
                 Assert.That(rivers.LastPlan.HasContinuousSourceToMouth,Is.True);
                 Assert.That(rivers.LastPlan.ToContribution(rivers.LastPlan.CoreInputIdentity).Waters.Count,Is.GreaterThan(0));
