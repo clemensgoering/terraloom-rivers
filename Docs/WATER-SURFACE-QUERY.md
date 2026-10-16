@@ -161,14 +161,50 @@ contains `Bake.xml`, `Reopen.xml`, logs and the initial negative material probe.
 Tracked fixture source is under `Rivers/IntegrationProject`; its canonical
 Integration mirror has the same SHA-256. No product code or Epos files changed.
 
-Two buyer-facing bake gaps remain explicit. The central
-`IntegrationEditor.BakeGeneratedForScene` currently requires a Core-owned recipe
-and decoration and rejects generic supplied-terrain worlds. This probe therefore
-calls the existing Rivers/Paths bakers and saves the shared scene. Transient
-materials copied by those bakers change captured material references and make
-`ValidateCurrent` correctly reject the result; the successful fixture uses
-already-persistent buyer material assets. Harness work `work-20261015-2058-5qkp`
-tracks these gaps. No guard or freshness rule was relaxed.
+The initial 15 October probe identified two buyer-facing gaps: the central bake
+required a Core-owned recipe/decoration, and sequential module bakers invalidated
+shared transient material references. Those findings were carried from review
+`work-20261015-2058-5qkp` into implementation `work-20261016-0834-3xuk`.
+
+## Central transactional Composition bake (16 October 2026)
+
+`IntegrationEditor.BakeGeneratedForScene` now delegates to the package's
+`CompositionSceneBaker`. It accepts current shared output on supplied or owned
+terrain without requiring a recipe or decoration. Existing generated decoration
+is included. All new resource assets are copied first, using one dependency map
+for both modules. Material aliases, Texture2D dependencies, original/carved terrain,
+terrain layers, generated meshes and collider bindings remain consistent. Existing
+caller assets are never overwritten; persistent parents with transient texture
+dependencies are copied instead of modifying the caller's asset.
+
+The scene swap journals serialized resource references and ownership flags,
+including the saved WaterQuery certificate and Composition's captured material
+bindings. Freshness is checked before and after the swap, and the physical query
+certificate validates copied geometry/terrain content. Old module-owned transient
+meshes/carved terrain are retired only after success. Failure before completion
+restores original references before deleting this attempt's copies. Nonempty or
+linked folders are refused. If cleanup itself fails, the error names retained
+paths; if reference recovery fails, staged assets are retained for recovery.
+This is an in-process reversible bake, not crash recovery or resource-aware Undo.
+Transient non-Texture2D textures and transient terrain/detail prefabs require
+separate persistence. Saving the scene remains the caller's final step.
+
+Focused Unity 6000.3.9f1 checks: Bake/rollback/owned-decoration compatibility **2/2**,
+then supplied-terrain Reopen **1/1** in a separate process, zero failures/skips.
+The supplied-terrain fixture now uses the central action with a transient shared
+material and Texture2D. Three injected IO failures (assets staged, bindings swapped,
+before completion) restore exact terrain/query/material/root/mesh references and
+remove partial assets. A real unsupported RenderTexture and an occupied directory
+also fail safely. The Core-owned world with decoration passes rollback and a
+successful bake while retaining `ValidateCurrent` and its decoration root/assets.
+Reopen verifies the persistent shared material alias, smoothness and texture pixel
+alongside the existing water/road/truss/ramp/collider checks and Clear restoration.
+
+Evidence: canonical `Integration/.artifacts/CentralCompositionBake-20261016/`
+contains `BakeAndRollback.xml`, `Reopen.xml` and logs. No Epos files or runtime
+generation algorithms changed. A Core-owned decorated Save/Reopen and broader
+streaming/performance cases remain separate gates; the tested separate-process
+roundtrip here is the supplied-terrain scene.
 
 These probes cover owned boundary falls and ordinary/brush supplied-terrain rivers,
 including an explicit bridge in shared Composition. Curved/multi-tile cases,

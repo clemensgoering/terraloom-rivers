@@ -81,14 +81,20 @@ or supplied terrain as appropriate.
    `TerrainData`.
 5. For a scene that must survive closing Unity, choose **Bake generated world
    for scene save** in the Composition Inspector, select a new empty folder
-   under `Assets`, then save the scene. This action delegates to the existing
-   Rivers bake (which persists the original and carved TerrainData and river
-   meshes) followed by the Paths mesh bake. Keep the bake folder, profiles,
-   materials, recipe and scene together in source control. Saving a scene
+   under `Assets`, then save the scene. This works with supplied Terrain as
+   well as Core-owned worlds; a recipe and regional decoration are optional.
+   The action stages original/carved TerrainData, meshes, materials and Texture2D
+   dependencies before switching scene bindings together. Shared material
+   references remain shared across Rivers and Paths. Caller assets are copied
+   when needed and are never overwritten. Existing generated decoration is
+   included. Keep the bake folder, profiles, materials, recipe and scene together
+   in source control. Saving a scene
    before baking leaves transient TerrainData references that will be missing
-   after reopening. The button requires a current generated recipe; a changed
-   input must be regenerated first. A failed bake can leave partial assets in
-   the chosen folder; choose a fresh folder on retry.
+   after reopening. The button requires current shared output; a changed input
+   must be regenerated first. Failure before completion restores the previous
+   scene bindings and removes this attempt's asset copies. Nonempty folders are
+   refused. Transient RenderTextures and terrain/detail prefabs must be persisted
+   separately before baking. Bake does not save the scene or provide resource Undo.
 
 After generation, Composition reports whether each bridge is a surface-only
 deck or a physical timber kit with crossing bindings verified at generation. The Inspector

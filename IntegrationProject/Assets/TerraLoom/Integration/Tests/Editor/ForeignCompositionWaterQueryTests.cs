@@ -5,6 +5,7 @@ using NUnit.Framework;
 using TerraLoom.Core;
 using TerraLoom.Core.Unity;
 using TerraLoom.Integration;
+using TerraLoom.Integration.Editor;
 using TerraLoom.Paths.Unity;
 using TerraLoom.Paths.Editor;
 using TerraLoom.Rivers.Unity;
@@ -22,6 +23,30 @@ namespace TerraLoom.Tests
         private const string Scene=Folder+"/World.unity";
         [Serializable] private sealed class Expected
         { public double x,y,z;public string fingerprint,riverJson,pathJson;public int ground,deck,body,ramps,approvals; }
+
+        [Test] public void CentralBakeKeepsCoreOwnedWorldAndDecorationCurrent()
+        {
+            var previous=EditorSceneManager.GetSceneManagerSetup();
+            try
+            {
+                EditorSceneManager.OpenScene("Assets/TerraLoom/Integration/Generated/TerraLoomDynamic.unity");
+                var demo=Object.FindFirstObjectByType<SeededWorldDemo>();Assert.That(demo,Is.Not.Null);
+                Assert.That(demo.Rebuild(),Is.True,demo.Diagnostics);
+                var composition=demo.Composition;Assert.That(composition.World.OwnsTerrain,Is.True);
+                Assert.That(demo.Decoration.GeneratedRoot,Is.Not.Null);
+                EnsureFolder(Folder);string run=Folder+"/Owned-"+Guid.NewGuid().ToString("N");EnsureFolder(run);
+                var decorationRoot=demo.Decoration.GeneratedRoot;
+                AssertBakeFailureRetainsPublication(composition,run+"/Failed","bindings-swapped");
+                Assert.That(demo.Decoration.GeneratedRoot,Is.SameAs(decorationRoot));
+                IntegrationEditor.BakeGeneratedForScene(composition,run+"/Baked");
+                Assert.That(composition.ValidateCurrent(out var reason),Is.True,reason);
+                Assert.That(composition.World.OwnsTerrain,Is.True);
+                Assert.That(demo.Decoration.GeneratedRoot,Is.SameAs(decorationRoot));
+                foreach(var filter in decorationRoot.GetComponentsInChildren<MeshFilter>(true))
+                    Assert.That(AssetDatabase.Contains(filter.sharedMesh),Is.True);
+            }
+            finally { Restore(previous); }
+        }
 
         [Test] public void BakeSuppliedTerrainCompositionWithAuthorizedTruss()
         {
@@ -42,7 +67,9 @@ namespace TerraLoom.Tests
                     new ManualWorldAnchor{Id="source",Position=new Vector3(48,0,4)},new ManualWorldAnchor{Id="mouth",Position=new Vector3(48,0,92)},
                     new ManualWorldAnchor{Id="west",Position=new Vector3(24,0,57)},new ManualWorldAnchor{Id="east",Position=new Vector3(72,0,57)}};
                 var material=new Material(Shader.Find("Universal Render Pipeline/Lit"));
-                AssetDatabase.CreateAsset(material,run+"/Surface.mat");
+                var texture=new Texture2D(2,2,TextureFormat.RGBA32,false);
+                texture.SetPixels(Enumerable.Repeat(new Color(.2f,.4f,.6f,1),4).ToArray());texture.Apply();
+                material.SetTexture("_BaseMap",texture);material.SetFloat("_Smoothness",.17f);
                 var paths=host.AddComponent<TerraLoomPaths>();paths.World=world;paths.GroundMaterial=material;paths.BridgeMaterial=material;
                 paths.AutomaticNetwork=false;paths.MaximumSlope=.35f;paths.BridgeClearance=1.2f;paths.TimberTrussBridge=true;
                 paths.MaximumFordDepth=0;paths.Connections.Add(new PathConnectionSettings{Id="buyer-road",StartId="west",EndId="east"});
@@ -78,7 +105,27 @@ namespace TerraLoom.Tests
                 var expected=new Expected{x=point.X,y=point.Y,z=point.Z,fingerprint=query.Identity.InputFingerprint,
                     riverJson=rivers.PlanJson,pathJson=paths.PlanJson,approvals=authority.Approvals.Length,
                     ground=parts.Count(p=>p.Role==PathGeometryRole.Ground),deck=parts.Count(p=>p.Role==PathGeometryRole.BridgeDeck),body=1,ramps=2};
-                RiversSampleBuilder.Bake(rivers,run+"/Rivers");PathsSampleBuilder.Bake(paths,run+"/Paths");
+                foreach(string pointName in new[]{"assets-staged","bindings-swapped","before-complete"})
+                    AssertBakeFailureRetainsPublication(composition,run+"/Fail-"+pointName,pointName);
+                var unsupported=new RenderTexture(2,2,0);var beforeUnsupported=terrain.terrainData;
+                try
+                {
+                    material.SetTexture("_BaseMap",unsupported);
+                    Assert.Throws<InvalidOperationException>(()=>IntegrationEditor.BakeGeneratedForScene(composition,run+"/UnsupportedTexture"));
+                    Assert.That(terrain.terrainData,Is.SameAs(beforeUnsupported));
+                    Assert.That(rivers.WaterMaterial,Is.SameAs(material));
+                    Assert.That(Directory.Exists(run+"/UnsupportedTexture"),Is.False);
+                }
+                finally { material.SetTexture("_BaseMap",texture);Object.DestroyImmediate(unsupported); }
+                string occupied=run+"/Occupied";EnsureFolder(occupied);File.WriteAllText(occupied+"/Keep.txt","user file");
+                Assert.Throws<InvalidOperationException>(()=>IntegrationEditor.BakeGeneratedForScene(composition,occupied));
+                Assert.That(File.ReadAllText(occupied+"/Keep.txt"),Is.EqualTo("user file"));
+                Assert.That(composition.ValidateCurrent(out var untouched),Is.True,untouched);
+                IntegrationEditor.BakeGeneratedForScene(composition,run+"/Baked");
+                Assert.That(AssetDatabase.Contains(rivers.WaterMaterial),Is.True);
+                Assert.That(rivers.WaterMaterial,Is.SameAs(paths.GroundMaterial));
+                Assert.That(rivers.WaterMaterial,Is.SameAs(paths.BridgeMaterial));
+                Assert.That(AssetDatabase.Contains(rivers.WaterMaterial.GetTexture("_BaseMap")),Is.True);
                 Assert.That(composition.ValidateCurrent(out var baked),Is.True,baked);
                 File.WriteAllText(Folder+"/Expected.json",JsonUtility.ToJson(expected));
                 Assert.That(EditorSceneManager.SaveScene(host.scene,Scene),Is.True);
@@ -120,6 +167,13 @@ namespace TerraLoom.Tests
                 var authority=composition.CrossingPermissionSource as ExplicitCrossingPermissionSource;
                 Assert.That(authority,Is.Not.Null);Assert.That(authority.isActiveAndEnabled,Is.True);
                 Assert.That(authority.Approvals.Length,Is.EqualTo(expected.approvals));
+                Assert.That(AssetDatabase.Contains(rivers.WaterMaterial),Is.True);
+                Assert.That(rivers.WaterMaterial,Is.SameAs(paths.GroundMaterial));
+                Assert.That(rivers.WaterMaterial,Is.SameAs(paths.BridgeMaterial));
+                Assert.That(rivers.WaterMaterial.GetFloat("_Smoothness"),Is.EqualTo(.17f).Within(.00001));
+                var texture=rivers.WaterMaterial.GetTexture("_BaseMap") as Texture2D;
+                Assert.That(texture,Is.Not.Null);Assert.That(AssetDatabase.Contains(texture),Is.True);
+                Assert.That(texture.GetPixel(0,0).g,Is.EqualTo(.4f).Within(.001));
                 Assert.That(composition.ValidateCurrent(out var after),Is.True,after);
                 Assert.That(rivers.LastPlan,Is.Null);Assert.That(paths.LastPlan,Is.Null);
                 Assert.That(rivers.GeneratedRoot,Is.SameAs(riverRoot));Assert.That(paths.GeneratedRoot,Is.SameAs(pathRoot));
@@ -135,6 +189,31 @@ namespace TerraLoom.Tests
         {
             if(AssetDatabase.IsValidFolder(path))return;var parent=Path.GetDirectoryName(path).Replace('\\','/');EnsureFolder(parent);
             AssetDatabase.CreateFolder(parent,Path.GetFileName(path));
+        }
+        private static void AssertBakeFailureRetainsPublication(TerraLoomIntegration composition,string directory,string point)
+        {
+            var rivers=composition.Rivers;var paths=composition.Paths;var terrain=composition.World.Terrain;
+            var data=terrain.terrainData;var query=rivers.WaterSurfaceQuery;var material=rivers.WaterMaterial;
+            var ground=paths.GroundMaterial;var bridge=paths.BridgeMaterial;
+            var riverRoot=rivers.GeneratedRoot;var pathRoot=paths.GeneratedRoot;
+            var filters=riverRoot.GetComponentsInChildren<MeshFilter>(true).Concat(pathRoot.GetComponentsInChildren<MeshFilter>(true)).ToArray();
+            var meshes=filters.Select(f=>f.sharedMesh).ToArray();
+            var fault=typeof(CompositionSceneBaker).GetField("InjectFailureAt",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic);
+            try
+            {
+                fault.SetValue(null,point);
+                Assert.Throws<IOException>(()=>IntegrationEditor.BakeGeneratedForScene(composition,directory));
+            }
+            finally { fault.SetValue(null,null); }
+            Assert.That(terrain.terrainData,Is.SameAs(data));Assert.That(terrain.GetComponent<TerrainCollider>().terrainData,Is.SameAs(data));
+            Assert.That(rivers.CarvedTerrainData,Is.SameAs(data));Assert.That(rivers.WaterSurfaceQuery,Is.SameAs(query));
+            Assert.That(rivers.WaterMaterial,Is.SameAs(material));Assert.That(paths.GroundMaterial,Is.SameAs(ground));
+            Assert.That(paths.BridgeMaterial,Is.SameAs(bridge));Assert.That(rivers.GeneratedRoot,Is.SameAs(riverRoot));
+            Assert.That(paths.GeneratedRoot,Is.SameAs(pathRoot));
+            for(int i=0;i<filters.Length;i++){Assert.That(meshes[i],Is.Not.Null);Assert.That(filters[i].sharedMesh,Is.SameAs(meshes[i]));}
+            Assert.That(new SerializedObject(rivers).FindProperty("savedWaterQuery.terrainData").objectReferenceValue,Is.SameAs(data));
+            Assert.That(Directory.Exists(directory),Is.False,"Failed bake left partial assets behind.");
+            Assert.That(composition.ValidateCurrent(out var reason),Is.True,reason);
         }
         private static void Restore(SceneSetup[] previous)
         {
