@@ -29,6 +29,8 @@ namespace TerraLoom.Integration
         public readonly RegionDecoration Decoration;
         // Recipe-backed requests reject edits to their authoring asset before publication.
         internal Action ValidateAuthoring;
+        internal CompositionRecipe AuthoringRecipe;
+        internal CompositionRecipeSettings AuthoringInputs;
         public PreparedSeededWorldRequest(TerrainData terrain,int seed,TerrainRecipe recipe,int resolution,Vector3 size,float frequency,
             ManualWorldAnchor[] anchors,LandscapeArea[] areas,RiverConnectionSettings[] rivers,PathConnectionSettings[] paths,
             RegionalStyleProfile[] profiles,int decorationCount,RegionalProfileSelection selection,float boundary,RegionDecoration decoration)

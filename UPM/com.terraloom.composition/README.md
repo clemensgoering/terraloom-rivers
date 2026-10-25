@@ -52,6 +52,12 @@ Direct `GenerateRecipe` and `Generate` remain explicit low-level entry points.
 The shared Workbench section shows the effective input source, saved-recipe
 navigation and last attempt diagnostics; technical bindings are collapsed.
 A last successful attempt is not a freshness certificate after editing inputs.
+A recipe assigned to the host records a separate serialized input receipt when
+published. `ValidateCurrent` rejects later recipe-field, schema, binding or
+InputSource changes; the receipt survives scene reopen without relying on
+session-specific instance IDs. It is result metadata, not an editable second
+authoring source. In-place edits to referenced art/profile asset contents and
+arbitrary scene-recipe internals are not certified by this receipt.
 Scene values are not implicit overrides of a saved recipe. Full override
 editing, dependency explanations and guided source/style/target authoring
 remain in progress.

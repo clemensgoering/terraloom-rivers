@@ -48,6 +48,10 @@ namespace TerraLoom.Integration
         [SerializeField, HideInInspector] private float builtSedimentExposure;
         [SerializeField, HideInInspector] private Material[] builtMaterials;
         [SerializeField, HideInInspector] private Matrix4x4 builtPathsTransform, builtRiversTransform;
+        [SerializeField, HideInInspector] private CompositionRecipe builtRecipeAsset;
+        [SerializeField, HideInInspector] private CompositionRecipeSettings builtRecipeInputs;
+        [SerializeField, HideInInspector] private int builtRecipeSchema;
+        [SerializeField, HideInInspector] private CompositionInputSource builtRecipeInputSource;
         public string Diagnostics => diagnostics;
         /// <summary>Non-blocking review of the last committed route geometry, retained with a saved scene.</summary>
         public string PresentationWarnings => presentationWarnings;
@@ -221,6 +225,7 @@ namespace TerraLoom.Integration
                         settings.ProfileSelection,0,decoration))
                     {
                         request.ValidateAuthoring=validateRecipe;
+                        if(RecipeAsset==recipe){request.AuthoringRecipe=recipe;request.AuthoringInputs=settings;}
                         accepted=GenerateCore(null,cancellation,request);
                     }
                     return accepted;
@@ -237,6 +242,7 @@ namespace TerraLoom.Integration
                 using(var request=recipe.Prepare(World,decoration,settings))
                 {
                     request.ValidateAuthoring=validateRecipe;
+                        if(RecipeAsset==recipe){request.AuthoringRecipe=recipe;request.AuthoringInputs=settings;}
                     accepted=GenerateSeedRequest(request,cancellation);
                 }
                 if(accepted)
@@ -468,6 +474,10 @@ namespace TerraLoom.Integration
                         Paths.Connections=nextPathConnections;Rivers.Connections=nextRiverConnections;
                         Paths.AutomaticNetwork=false;Rivers.AutomaticSourceAndMouth=false;
                     }
+                    builtRecipeAsset=request?.AuthoringRecipe;
+                    builtRecipeInputs=request?.AuthoringInputs==null?null:CompositionRecipe.Freeze(request.AuthoringInputs);
+                    builtRecipeSchema=builtRecipeAsset?builtRecipeAsset.SchemaVersion:0;
+                    builtRecipeInputSource=InputSource;
                     builtTerrain=World.TerrainContentFingerprint;
                     builtPathsJson=Digest(Paths.PlanJson);builtRiversJson=Digest(Rivers.PlanJson);
                     builtInput=input.Identity.InputFingerprint;builtRiverProfile=plannedRiverProfile;
@@ -556,6 +566,12 @@ namespace TerraLoom.Integration
         {
             try
             {
+                if(builtRecipeInputs!=null&&builtRecipeSchema!=0
+                    &&(!builtRecipeAsset||RecipeAsset!=builtRecipeAsset||builtRecipeAsset.SchemaVersion!=builtRecipeSchema
+                    ||InputSource!=builtRecipeInputSource
+                    ||JsonUtility.ToJson(builtRecipeInputs)!=JsonUtility.ToJson(builtRecipeAsset.Settings)))
+                    throw new InvalidOperationException("Authoring recipe or input source changed; rebuild the shared world. Previous output may still be visible.");
+
                 // GenerationState describes the most recent attempt. A failed retry can leave a
                 // previously published world intact; validate that publication independently.
                 if((generationState!=GenerationRunState.Ready&&string.IsNullOrEmpty(builtInput))||!Paths||!Rivers||!Paths.GeneratedRoot||!Rivers.GeneratedRoot)throw new InvalidOperationException("Composition is not ready.");
@@ -583,7 +599,7 @@ namespace TerraLoom.Integration
             generationState=GenerationRunState.Pending;activeStep="";
             generationTrace="Cleared in reverse order: decoration, Paths, Rivers, owned Core source.\n";
             presentationWarnings="";
-            PublishedSharedInput=null;
+            PublishedSharedInput=null;builtRecipeAsset=null;builtRecipeInputs=null;builtRecipeSchema=0;
             foreach(var decoration in UnityEngine.Object.FindObjectsByType<RegionDecoration>(FindObjectsInactive.Include,FindObjectsSortMode.None))
                 if(decoration.World==World&&World)decoration.Clear();
             if(Paths)Paths.Clear();if(Rivers)Rivers.Clear();

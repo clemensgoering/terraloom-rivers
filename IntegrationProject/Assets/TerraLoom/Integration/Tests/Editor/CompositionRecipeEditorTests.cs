@@ -91,7 +91,13 @@ namespace TerraLoom.Tests
                 workbench.Generate(c);
                 Assert.That(c.Paths.Width,Is.EqualTo(width));
                 Assert.That(c.ValidateCurrent(out reason),Is.True,reason);
+                saved.Settings.Modules.Paths.Width+=.25f;
+                Assert.That(c.ValidateCurrent(out reason),Is.False,"An edited authoritative asset must not leave the old output certified current.");
+                StringAssert.Contains("Authoring recipe",reason);
+                saved.Settings.Modules.Paths.Width=width;
+                Assert.That(c.ValidateCurrent(out reason),Is.True,reason);
                 c.InputSource=CompositionInputSource.SceneRecipe;
+                Assert.That(c.ValidateCurrent(out reason),Is.False,"Selecting another source must invalidate its previous receipt.");
                 Assert.That(c.ConfiguredSceneRecipe,Is.SameAs(demo));
                 c.RecipeAsset=null;c.InputSource=CompositionInputSource.SavedRecipe;
                 data=c.World.Terrain.terrainData;

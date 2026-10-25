@@ -69,7 +69,7 @@ namespace TerraLoom.Integration
             catch
             {if(Application.isPlaying)Destroy(terrain);else DestroyImmediate(terrain);throw;}
         }
-        private static CompositionRecipeSettings Freeze(CompositionRecipeSettings value)
+        internal static CompositionRecipeSettings Freeze(CompositionRecipeSettings value)
             => JsonUtility.FromJson<CompositionRecipeSettings>(JsonUtility.ToJson(value));
     }
 

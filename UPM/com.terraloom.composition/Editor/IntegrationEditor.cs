@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using TerraLoom.Core.Unity;
 using TerraLoom.Integration;
+using TerraLoom.Core.Editor;
 using TerraLoom.Paths.Editor;
 using TerraLoom.Rivers.Editor;
 using UnityEditor;
@@ -111,7 +112,7 @@ namespace TerraLoom.Integration.Editor
             EditorSceneManager.MarkSceneDirty(instance.gameObject.scene);
             return true;
         }
-        /// <summary>Rebuild from the explicitly assigned schema-2 recipe, rather than stale scene defaults.</summary>
+        /// <summary>Rebuild from the explicitly assigned versioned recipe, rather than stale scene defaults.</summary>
         public static void RestoreSavedRecipe(TerraLoomIntegration instance)
         {
             GenerateSavedRecipe(instance);
@@ -133,7 +134,20 @@ namespace TerraLoom.Integration.Editor
         }
         public override void OnInspectorGUI()
         {
-            DrawDefaultInspector(); var instance=(TerraLoomIntegration)target;
+            var instance=(TerraLoomIntegration)target;
+            if(!WorldWorkbenchGUI.IsDrawingEmbedded)
+            {
+                if(!instance.World)
+                {
+                    serializedObject.Update();
+                    EditorGUILayout.PropertyField(serializedObject.FindProperty("World"));
+                    serializedObject.ApplyModifiedProperties();
+                }
+                WorldInspectorSections.DrawWorkbenchEntry("Composition",instance.World,
+                    "Last attempt: "+instance.GenerationState+" | Inputs: "+instance.InputSource);
+                return;
+            }
+            DrawDefaultInspector();
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Bridge construction and crossing rights",EditorStyles.boldLabel);
             if(instance.Paths)
@@ -184,7 +198,7 @@ namespace TerraLoom.Integration.Editor
                 catch(Exception ex){actionError=ex.Message;}
             }
             using(new EditorGUI.DisabledScope(!instance.RecipeAsset))
-                if(GUILayout.Button("Generate from saved Recipe (Core terrain)"))
+                if(GUILayout.Button("Generate from saved recipe"))
                 {
                     try{GenerateSavedRecipe(instance);actionError=null;}
                     catch(Exception ex){actionError=ex.Message;}
@@ -212,7 +226,7 @@ namespace TerraLoom.Integration.Editor
                 }
                 catch(Exception ex){actionError=ex.Message;}
             }
-            EditorGUILayout.HelpBox("Recipe generation creates Core-owned terrain. Supplied Terrain uses the separate Paths + Rivers action; regional decoration remains configured on Region Decoration.",MessageType.None);
+            EditorGUILayout.HelpBox("Saved recipes support Generated or Supplied terrain. They apply their saved inputs and optional decoration through one publication. The direct supplied-terrain action uses current component settings instead.",MessageType.None);
             if (GUILayout.Button("Clear generated composition (not undoable)"))
             {
                 try
