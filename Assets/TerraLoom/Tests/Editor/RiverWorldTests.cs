@@ -244,6 +244,58 @@ namespace TerraLoom.Tests
             finally{if(clipped)Object.DestroyImmediate(clipped);Object.DestroyImmediate(mesh);Object.DestroyImmediate(data);}
         }
 
+        [Test] public void WaterClipperPreservesClippedGeometryAndInterpolatesSmoothSourceNormals()
+        {
+            var data=new TerrainData{heightmapResolution=33,size=new Vector3(10,10,10)};
+            data.SetHeights(0,0,new float[33,33]);
+            var mesh=new Mesh();Mesh clipped=null;
+            var inputVertices=new[]{new Vector3(2,1,2),new Vector3(2,2,8),new Vector3(8,1.5f,2),new Vector3(8,3,8)};
+            var inputUv=new[]{new Vector2(0,0),new Vector2(0,6),new Vector2(6,0),new Vector2(6,6)};
+            try
+            {
+                mesh.vertices=inputVertices;mesh.uv=inputUv;mesh.triangles=new[]{0,1,2,2,1,3};mesh.RecalculateNormals();
+                clipped=RiverWaterTerrainClipper.Build(mesh,Matrix4x4.identity,data,Vector3.zero,1000);
+
+                var expectedVertices=new[]{
+                    new Vector3(2,1,2),new Vector3(2,1.5f,5),new Vector3(5,1.25f,2),
+                    new Vector3(2,1.5f,5),new Vector3(2,2,8),new Vector3(5,1.75f,5),
+                    new Vector3(5,1.25f,2),new Vector3(5,1.75f,5),new Vector3(8,1.5f,2),
+                    new Vector3(2,1.5f,5),new Vector3(5,1.75f,5),new Vector3(5,1.25f,2),
+                    new Vector3(8,1.5f,2),new Vector3(5,1.75f,5),new Vector3(8,2.25f,5),
+                    new Vector3(5,1.75f,5),new Vector3(2,2,8),new Vector3(5,2.5f,8),
+                    new Vector3(8,2.25f,5),new Vector3(5,2.5f,8),new Vector3(8,3,8),
+                    new Vector3(5,1.75f,5),new Vector3(5,2.5f,8),new Vector3(8,2.25f,5)
+                };
+                var expectedUv=new[]{
+                    new Vector2(0,0),new Vector2(0,3),new Vector2(3,0),
+                    new Vector2(0,3),new Vector2(0,6),new Vector2(3,3),
+                    new Vector2(3,0),new Vector2(3,3),new Vector2(6,0),
+                    new Vector2(0,3),new Vector2(3,3),new Vector2(3,0),
+                    new Vector2(6,0),new Vector2(3,3),new Vector2(6,3),
+                    new Vector2(3,3),new Vector2(0,6),new Vector2(3,6),
+                    new Vector2(6,3),new Vector2(3,6),new Vector2(6,6),
+                    new Vector2(3,3),new Vector2(3,6),new Vector2(6,3)
+                };
+                Assert.That(clipped.vertices,Is.EqualTo(expectedVertices));
+                Assert.That(clipped.triangles,Is.EqualTo(Enumerable.Range(0,expectedVertices.Length).ToArray()));
+                Assert.That(clipped.uv,Is.EqualTo(expectedUv));
+                Assert.That(clipped.uv2,Is.EqualTo(expectedUv));
+
+                var normals=clipped.normals;
+                Assert.That(normals.Length,Is.EqualTo(clipped.vertexCount));
+                Assert.That(normals.All(n=>!float.IsNaN(n.x)&&!float.IsNaN(n.y)&&!float.IsNaN(n.z)
+                    &&!float.IsInfinity(n.x)&&!float.IsInfinity(n.y)&&!float.IsInfinity(n.z)
+                    &&Mathf.Abs(n.magnitude-1)<1e-4f),Is.True);
+                foreach(var group in Enumerable.Range(0,clipped.vertexCount).GroupBy(i=>clipped.vertices[i]))
+                {
+                    var shared=group.Select(i=>normals[i]).ToArray();
+                    for(int i=1;i<shared.Length;i++)Assert.That(Vector3.Distance(shared[0],shared[i]),Is.LessThan(1e-5f),
+                        "Duplicated clipped vertices at a shared source edge must carry the same interpolated normal.");
+                }
+            }
+            finally{if(clipped)Object.DestroyImmediate(clipped);Object.DestroyImmediate(mesh);Object.DestroyImmediate(data);}
+        }
+
         [TestCase(false)] [TestCase(true)] public void SeededInsetUsesSameTerrainClippingForThreeSeeds(bool brush)
         {
             rivers.World.UseSeedAnchors=true;rivers.World.SeedAnchorCount=5;rivers.World.AnchorMargin=10;

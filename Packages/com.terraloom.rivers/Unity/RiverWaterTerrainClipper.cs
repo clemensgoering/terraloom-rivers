@@ -14,11 +14,14 @@ namespace TerraLoom.Rivers.Unity
         private readonly struct Vertex
         {
             public readonly Vector3 Position;
+            public readonly Vector3 Normal;
             public readonly Vector2 Uv;
             public readonly float HalfWidth;
-            public Vertex(Vector3 position,Vector2 uv,float halfWidth=0){Position=position;Uv=uv;HalfWidth=halfWidth;}
+            public Vertex(Vector3 position,Vector3 normal,Vector2 uv,float halfWidth=0)
+            {Position=position;Normal=normal;Uv=uv;HalfWidth=halfWidth;}
             public static Vertex Lerp(Vertex a,Vertex b,float t)
-                => new Vertex(Vector3.Lerp(a.Position,b.Position,t),Vector2.Lerp(a.Uv,b.Uv,t),Mathf.Lerp(a.HalfWidth,b.HalfWidth,t));
+                => new Vertex(Vector3.Lerp(a.Position,b.Position,t),Vector3.Lerp(a.Normal,b.Normal,t),
+                    Vector2.Lerp(a.Uv,b.Uv,t),Mathf.Lerp(a.HalfWidth,b.HalfWidth,t));
         }
 
         /// <summary>Returns an owned replacement mesh. Input mesh and TerrainData are unchanged.
@@ -32,7 +35,7 @@ namespace TerraLoom.Rivers.Unity
             const float margin=.005f;
             const int maximumDepth=8,maximumVisits=2000000;
             int visits=0;
-            var vertices=new List<Vector3>();var uv=new List<Vector2>();var shoreline=new List<Vector2>();var indices=new List<int>();
+            var vertices=new List<Vector3>();var normals=new List<Vector3>();var uv=new List<Vector2>();var shoreline=new List<Vector2>();var indices=new List<int>();
             var size=terrain.size;
             float Depth(Vertex v)
             {
@@ -46,17 +49,21 @@ namespace TerraLoom.Rivers.Unity
             bool Safe(Vertex a,Vertex b,Vertex c)
             {
                 // Centre, all edge midpoints and three near-edge interior samples.
-                return Depth(new Vertex((a.Position+b.Position+c.Position)/3,default))>0
+                return Depth(new Vertex((a.Position+b.Position+c.Position)/3,default,default))>0
                     && Depth(Vertex.Lerp(a,b,.5f))>0 && Depth(Vertex.Lerp(b,c,.5f))>0 && Depth(Vertex.Lerp(c,a,.5f))>0
-                    && Depth(new Vertex(a.Position*.45f+b.Position*.45f+c.Position*.1f,default))>0
-                    && Depth(new Vertex(b.Position*.45f+c.Position*.45f+a.Position*.1f,default))>0
-                    && Depth(new Vertex(c.Position*.45f+a.Position*.45f+b.Position*.1f,default))>0;
+                    && Depth(new Vertex(a.Position*.45f+b.Position*.45f+c.Position*.1f,default,default))>0
+                    && Depth(new Vertex(b.Position*.45f+c.Position*.45f+a.Position*.1f,default,default))>0
+                    && Depth(new Vertex(c.Position*.45f+a.Position*.45f+b.Position*.1f,default,default))>0;
             }
             void Emit(Vertex a,Vertex b,Vertex c)
             {
                 if(Vector3.Cross(b.Position-a.Position,c.Position-a.Position).sqrMagnitude<1e-16f)return;
                 if(vertices.Count>vertexBudget-3)throw new InvalidOperationException("Inset water clipping exceeds the shared geometry vertex budget.");
-                foreach(var v in new[]{a,b,c}){indices.Add(vertices.Count);vertices.Add(v.Position);uv.Add(v.Uv);shoreline.Add(new Vector2(v.HalfWidth,0));}
+                foreach(var v in new[]{a,b,c})
+                {
+                    indices.Add(vertices.Count);vertices.Add(v.Position);normals.Add(v.Normal.normalized);
+                    uv.Add(v.Uv);shoreline.Add(new Vector2(v.HalfWidth,0));
+                }
             }
             Vertex Boundary(Vertex a,Vertex b,bool aWet)
             {
@@ -90,7 +97,7 @@ namespace TerraLoom.Rivers.Unity
                 {
                     if(Depth(Vertex.Lerp(a,b,.5f))>=margin||Depth(Vertex.Lerp(b,c,.5f))>=margin
                         ||Depth(Vertex.Lerp(c,a,.5f))>=margin
-                        ||Depth(new Vertex((a.Position+b.Position+c.Position)/3,default))>=margin)
+                        ||Depth(new Vertex((a.Position+b.Position+c.Position)/3,default,default))>=margin)
                         Split(a,b,c,depth);
                     return;
                 }
@@ -109,8 +116,9 @@ namespace TerraLoom.Rivers.Unity
             }
             var sourceVertices=source.vertices;var sourceUv=source.uv;var triangles=source.triangles;
             if(sourceUv.Length!=sourceVertices.Length)throw new ArgumentException("Water mesh requires UVs.");
+            var sourceNormals=SmoothSourceNormals(source,sourceVertices,triangles);
             var sourceShoreline=new List<Vector2>();source.GetUVs(2,sourceShoreline);
-            Vertex At(int i)=>new Vertex(sourceVertices[i],sourceUv[i],
+            Vertex At(int i)=>new Vertex(sourceVertices[i],sourceNormals[i],sourceUv[i],
                 sourceShoreline.Count==sourceVertices.Length?sourceShoreline[i].x:Mathf.Abs(sourceUv[i].x));
             for(int i=0;i<triangles.Length;i+=3)Process(At(triangles[i]),At(triangles[i+1]),At(triangles[i+2]),0);
             if(indices.Count==0)throw new InvalidOperationException("Actual terrain leaves no inset water surface.");
@@ -118,12 +126,54 @@ namespace TerraLoom.Rivers.Unity
                 indexFormat=vertices.Count>65535?IndexFormat.UInt32:IndexFormat.UInt16};
             try
             {
-                result.SetVertices(vertices);result.SetUVs(0,uv);result.SetUVs(1,uv);result.SetUVs(2,shoreline);
+                result.SetVertices(vertices);result.SetNormals(normals);result.SetUVs(0,uv);result.SetUVs(1,uv);result.SetUVs(2,shoreline);
                 var colors=new Color[vertices.Count];for(int i=0;i<colors.Length;i++)colors[i]=Color.white;
-                result.colors=colors;result.SetTriangles(indices,0);result.RecalculateNormals();result.RecalculateBounds();
+                result.colors=colors;result.SetTriangles(indices,0);result.RecalculateBounds();
                 return result;
             }
             catch{if(Application.isPlaying)UnityEngine.Object.Destroy(result);else UnityEngine.Object.DestroyImmediate(result);throw;}
         }
+
+        private static Vector3[] SmoothSourceNormals(Mesh source,Vector3[] vertices,int[] triangles)
+        {
+            var normals=source.normals;
+            bool valid=normals.Length==vertices.Length;
+            if(valid)
+            {
+                var used=new bool[vertices.Length];
+                foreach(int index in triangles)
+                {
+                    if(index<0||index>=vertices.Length)throw new ArgumentException("Water mesh triangle index is invalid.");
+                    used[index]=true;
+                }
+                for(int i=0;i<used.Length;i++)
+                    if(used[i]&&(!Finite(normals[i])||normals[i].sqrMagnitude<1e-12f)){valid=false;break;}
+            }
+            if(valid)return normals;
+
+            // Test/helper meshes may omit normals. Recreate the same shared-vertex smoothing
+            // as Mesh.RecalculateNormals without modifying the caller's mesh.
+            normals=new Vector3[vertices.Length];
+            if(triangles.Length%3!=0)throw new ArgumentException("Water mesh triangle index count is invalid.");
+            for(int i=0;i<triangles.Length;i+=3)
+            {
+                int a=triangles[i],b=triangles[i+1],c=triangles[i+2];
+                if(a<0||a>=vertices.Length||b<0||b>=vertices.Length||c<0||c>=vertices.Length)
+                    throw new ArgumentException("Water mesh triangle index is invalid.");
+                var face=Vector3.Cross(vertices[b]-vertices[a],vertices[c]-vertices[a]);
+                if(!Finite(face))throw new ArgumentException("Water mesh contains non-finite face normals.");
+                normals[a]+=face;normals[b]+=face;normals[c]+=face;
+            }
+            for(int i=0;i<normals.Length;i++)
+            {
+                if(normals[i].sqrMagnitude<1e-12f)continue;
+                normals[i].Normalize();
+            }
+            return normals;
+        }
+
+        private static bool Finite(Vector3 value)
+            =>Finite(value.x)&&Finite(value.y)&&Finite(value.z);
+        private static bool Finite(float value)=>!float.IsNaN(value)&&!float.IsInfinity(value);
     }
 }
