@@ -68,18 +68,30 @@ namespace TerraLoom.Integration.Editor
             EditorUtility.SetDirty(composition);
         }
 
-        public override void DrawInspector(Component component)
+        public override void DrawBuildControls(Component component)
         {
             var c=(TerraLoomIntegration)component;
             EditorGUILayout.LabelField("Effective world inputs",EditorStyles.boldLabel);
+            EditorGUI.BeginChangeCheck();
             var chosen=(CompositionInputSource)EditorGUILayout.EnumPopup("Input source",c.InputSource);
-            if(chosen!=c.InputSource){Undo.RecordObject(c,"Choose world input source");c.InputSource=chosen;EditorUtility.SetDirty(c);}
+            var recipe=(CompositionRecipe)EditorGUILayout.ObjectField("Saved recipe",c.RecipeAsset,typeof(CompositionRecipe),false);
+            if(EditorGUI.EndChangeCheck())
+            {
+                Undo.RecordObject(c,"Choose world inputs");c.InputSource=chosen;c.RecipeAsset=recipe;EditorUtility.SetDirty(c);
+                UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(c.gameObject.scene);
+            }
             try{EditorGUILayout.HelpBox("Build uses: "+c.ResolveConfiguredSource()+". Saved recipes apply their own settings; component edits are not recipe overrides.",MessageType.Info);}
             catch(Exception ex){EditorGUILayout.HelpBox(ex.Message,MessageType.Error);}
             if(c.RecipeAsset&&GUILayout.Button("Open saved recipe"))Selection.activeObject=c.RecipeAsset;
             EditorGUILayout.LabelField("Last build attempt",c.GenerationState+" (not an output freshness check)");
             if(!string.IsNullOrEmpty(c.Diagnostics))EditorGUILayout.HelpBox(c.Diagnostics,
                 c.GenerationState==TerraLoom.Core.GenerationRunState.Failed?MessageType.Warning:MessageType.None);
+        }
+
+        public override void DrawInspector(Component component)
+        {
+            var c=(TerraLoomIntegration)component;
+            DrawBuildControls(component);
             bool details=SessionState.GetBool("TerraLoom.Composition.Advanced."+c.GetInstanceID(),false);
             details=EditorGUILayout.Foldout(details,"Bindings and advanced settings",true);
             SessionState.SetBool("TerraLoom.Composition.Advanced."+c.GetInstanceID(),details);
