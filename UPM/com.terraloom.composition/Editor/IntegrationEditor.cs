@@ -23,24 +23,22 @@ namespace TerraLoom.Integration.Editor
             if(!instance.World)throw new InvalidOperationException("Assign Core World on the Composition host.");
             var matches=UnityEngine.Object.FindObjectsByType<RegionDecoration>(FindObjectsInactive.Include,FindObjectsSortMode.None)
                 .Where(d=>d.World==instance.World).ToArray();
-            if(matches.Length!=1)throw new InvalidOperationException(matches.Length==0
-                ?"Add Region Decoration and assign the same Core World before capturing a recipe."
-                :"Several Region Decorations use this Core World. Assign Recipe Decoration explicitly on the Composition host.");
-            return matches[0];
+            if(matches.Length>1)throw new InvalidOperationException("Several Region Decorations use this Core World. Assign Recipe Decoration explicitly on the Composition host.");
+            return matches.Length==0?null:matches[0];
         }
         /// <summary>Read-only authoring preflight; never changes a terrain or creates an asset.</summary>
         public static void ValidateRecipeInputs(TerraLoomIntegration instance,RegionDecoration decoration)
         {
             if(!instance||!instance.World||!instance.Paths||!instance.Rivers)
                 throw new InvalidOperationException("Assign Core World, Paths and Rivers on the Composition host.");
-            if(!decoration||instance.Paths.World!=instance.World||instance.Rivers.World!=instance.World||decoration.World!=instance.World)
+            if(instance.Paths.World!=instance.World||instance.Rivers.World!=instance.World||(decoration&&decoration.World!=instance.World))
                 throw new InvalidOperationException("Paths, Rivers and Region Decoration must reference the same Core World.");
             if(!instance.Paths.GroundMaterial)throw new InvalidOperationException("Assign Paths Ground Material before capturing a recipe.");
             if(!instance.Paths.BridgeMaterial)throw new InvalidOperationException("Assign Paths Bridge Material before capturing a recipe.");
             if(!instance.Rivers.WaterMaterial)throw new InvalidOperationException("Assign Rivers Water Material before capturing a recipe.");
             if(!instance.Rivers.TerrainBrush&&(!instance.Rivers.BedMaterial||!instance.Rivers.BankMaterial))
                 throw new InvalidOperationException("Assign Rivers Bed and Bank Materials for mesh banks, or enable Terrain Brush.");
-            if(decoration.Count>0&&(decoration.Profiles==null||decoration.Profiles.Length==0))
+            if(decoration&&decoration.Count>0&&(decoration.Profiles==null||decoration.Profiles.Length==0))
                 throw new InvalidOperationException("Assign at least one Region Decoration profile, or set its count to zero.");
         }
         /// <summary>Create and assign a new asset; never overwrite an existing recipe.</summary>
@@ -74,7 +72,7 @@ namespace TerraLoom.Integration.Editor
             if(!instance||!instance.RecipeAsset)throw new InvalidOperationException("Capture or assign a saved Composition Recipe first.");
             var decoration=ResolveDecoration(instance);
             if(!instance.World||!instance.Paths||!instance.Rivers||instance.Paths.World!=instance.World
-                ||instance.Rivers.World!=instance.World||decoration.World!=instance.World)
+                ||instance.Rivers.World!=instance.World||(decoration&&decoration.World!=instance.World))
                 throw new InvalidOperationException("Core World, Paths, Rivers and Region Decoration must reference the same world.");
             instance.RecipeAsset.Validate();
             var modules=instance.RecipeAsset.Settings.Modules;
@@ -83,8 +81,6 @@ namespace TerraLoom.Integration.Editor
             if(!modules.Rivers.WaterMaterial||(!modules.Rivers.TerrainBrush
                 &&(!modules.Rivers.BedMaterial||!modules.Rivers.BankMaterial)))
                 throw new InvalidOperationException("Saved Recipe needs Rivers Water Material and, for mesh banks, Bed and Bank Materials. Recapture after assigning them.");
-            if(instance.World.Terrain&&!instance.World.OwnsTerrain)
-                throw new InvalidOperationException("A saved seed recipe generates Core-owned terrain. For supplied terrain, use Generate on supplied terrain.");
             if(!instance.GenerateRecipe(instance.RecipeAsset,decoration))throw new InvalidOperationException(instance.Diagnostics);
             instance.RecipeDecoration=decoration;
             EditorUtility.SetDirty(instance);

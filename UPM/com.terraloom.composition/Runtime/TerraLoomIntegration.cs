@@ -121,16 +121,40 @@ namespace TerraLoom.Integration
         {
             CompositionModuleSettings previous=null;
             bool accepted=false;
+            int previousSeed=World?World.Seed:0;
+            bool previousSeedAnchors=World&&World.UseSeedAnchors;
+            var previousAnchors=World?World.ManualAnchors:null;
+            var previousAreas=World?World.Areas:null;
             try
             {
                 if(!recipe)throw new InvalidOperationException("Assign a composition recipe asset.");
                 var settings=recipe.Snapshot();cancellation.ThrowIfCancellationRequested();
-                if(!World||!Paths||!Rivers||!decoration||Paths.World!=World||Rivers.World!=World||decoration.World!=World)
-                    throw new InvalidOperationException("Assign Core, Paths, Rivers and decoration bound to the same world.");
-                if(World.Terrain&&!World.OwnsTerrain)
-                    throw new InvalidOperationException("Seed recipes require Core-owned terrain. Use Generate for supplied terrain.");
+                if(!World||!Paths||!Rivers||Paths.World!=World||Rivers.World!=World||(decoration&&decoration.World!=World))
+                    throw new InvalidOperationException("Assign Core, Paths, Rivers and optional decoration bound to the same world.");
+                if(settings.TerrainSource==CompositionTerrainSource.Supplied)
+                {
+                    if(!World.Terrain||World.OwnsTerrain)
+                        throw new InvalidOperationException("Supplied recipes require an explicitly assigned borrowed terrain.");
+                    if(!settings.Modules.Rivers.CarveTerrainCopy)
+                        throw new InvalidOperationException("Supplied recipes require Carve Terrain Copy; the source remains borrowed.");
+                }
+                else if(World.Terrain&&!World.OwnsTerrain)
+                    throw new InvalidOperationException("Generated recipes require Core-owned terrain; choose Supplied terrain in the recipe.");
+                if(!decoration&&settings.DecorationCount>0)
+                    throw new InvalidOperationException("This recipe requests decoration; assign its Region Decoration component.");
                 previous=CompositionModuleSettings.Capture(this,decoration);
                 settings.Modules.Apply(this,decoration);
+                if(settings.TerrainSource==CompositionTerrainSource.Supplied)
+                {
+                    World.Seed=settings.Seed;World.UseSeedAnchors=false;
+                    World.ManualAnchors=settings.Anchors;World.Areas=settings.Regions;
+                    using(var request=new PreparedSeededWorldRequest(null,settings.Seed,settings.TerrainRecipe,
+                        settings.Resolution,settings.Size,settings.Frequency,settings.Anchors,settings.Regions,
+                        settings.Rivers,settings.Paths,settings.DecorationProfiles,settings.DecorationCount,
+                        settings.ProfileSelection,0,decoration))
+                        accepted=GenerateCore(null,cancellation,request);
+                    return accepted;
+                }
                 if(!World.Terrain)
                 {
                     var s=settings;
@@ -150,7 +174,12 @@ namespace TerraLoom.Integration
             {
                 // Source/module publication owns geometry rollback. Restore authoring parameters
                 // as well when preparation or publication fails; shared assets are never mutated.
-                if(!accepted&&previous!=null)previous.Apply(this,decoration);
+                if(!accepted&&previous!=null)
+                {
+                    previous.Apply(this,decoration);
+                    World.Seed=previousSeed;World.UseSeedAnchors=previousSeedAnchors;
+                    World.ManualAnchors=previousAnchors;World.Areas=previousAreas;
+                }
             }
         }
 
@@ -306,7 +335,7 @@ namespace TerraLoom.Integration
                             source?.Data??(Rivers.CarvedTerrainData?Rivers.OriginalTerrainData:World.Terrain.terrainData),
                             World.Terrain.transform.position,riverPlan,Rivers.CaptureProfile(source?.Data),
                             Paths.LastAttemptPlan,Paths.CaptureProfile(),cancellation);
-                    if(request!=null)
+                    if(request!=null&&request.Decoration)
                     {
                         preparedDecoration=request.Decoration.PrepareCandidate(preparedRiver.FinalTerrainData,request.Seed,
                             request.Areas,request.Profiles,request.DecorationCount,request.Selection,
@@ -338,6 +367,9 @@ namespace TerraLoom.Integration
                     if(preparedDecoration!=null)
                     {
                         preparedDecoration.Commit();
+                    }
+                    if(request!=null)
+                    {
                         configApplied=true;
                         Paths.Connections=nextPathConnections;Rivers.Connections=nextRiverConnections;
                         Paths.AutomaticNetwork=false;Rivers.AutomaticSourceAndMouth=false;

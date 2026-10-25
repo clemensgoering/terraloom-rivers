@@ -19,12 +19,12 @@ namespace TerraLoom.Integration
         public Rect PathRoutingZone;
         internal static CompositionModuleSettings Capture(TerraLoomIntegration c,RegionDecoration d) => new CompositionModuleSettings {
             Core=CoreRecipeParameters.Capture(c.World),Paths=PathRecipeParameters.Capture(c.Paths),
-            Rivers=RiverRecipeParameters.Capture(c.Rivers),Decoration=DecorationRecipeParameters.Capture(d),
+            Rivers=RiverRecipeParameters.Capture(c.Rivers),Decoration=d?DecorationRecipeParameters.Capture(d):new DecorationRecipeParameters(),
             RestrictPathRouting=c.RestrictPathRouting,PathRoutingZone=c.PathRoutingZone
         };
         internal void Apply(TerraLoomIntegration c,RegionDecoration d)
         {
-            Core.Apply(c.World);Paths.Apply(c.Paths);Rivers.Apply(c.Rivers);Decoration.Apply(d);
+            Core.Apply(c.World);Paths.Apply(c.Paths);Rivers.Apply(c.Rivers);if(d)Decoration.Apply(d);
             c.RestrictPathRouting=RestrictPathRouting;c.PathRoutingZone=PathRoutingZone;
         }
         internal void Validate()

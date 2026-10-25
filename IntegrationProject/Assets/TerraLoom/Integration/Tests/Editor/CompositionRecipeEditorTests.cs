@@ -42,6 +42,10 @@ namespace TerraLoom.Tests
                 AssetDatabase.CreateFolder("Assets","TerraLoomRecipeEditorConsumerTest");
                 var saved=IntegrationEditor.CaptureAndSaveRecipe(c,decoration,path);
                 Assert.That(AssetDatabase.Contains(saved),Is.True);
+                Assert.That(saved.SchemaVersion,Is.EqualTo(3));
+                Assert.That(saved.Settings.TerrainSource,Is.EqualTo(CompositionTerrainSource.Generated));
+                // Previously saved schema-2 generated recipes remain usable without rewriting the asset.
+                saved.SchemaVersion=2;
                 Assert.That(c.RecipeAsset,Is.SameAs(saved));
                 Assert.That(c.RecipeDecoration,Is.SameAs(decoration));
                 Assert.That(saved.Settings.Modules.Paths.BridgeMaterial,Is.SameAs(oldBridge));

@@ -11,17 +11,21 @@ namespace TerraLoom.Integration
     [CreateAssetMenu(menuName="TerraLoom/Composition Recipe",fileName="WorldRecipe")]
     public sealed class CompositionRecipe : ScriptableObject
     {
-        public const int CurrentSchemaVersion=2;
+        public const int CurrentSchemaVersion=3;
         public int SchemaVersion=CurrentSchemaVersion;
         public CompositionRecipeSettings Settings=new CompositionRecipeSettings();
 
         public void Validate()
         {
-            if(SchemaVersion!=CurrentSchemaVersion)
+            if(SchemaVersion!=CurrentSchemaVersion && SchemaVersion!=2)
                 throw new InvalidOperationException("Unsupported TerraLoom composition recipe schema "+SchemaVersion+"; supported schema is "+CurrentSchemaVersion+". No generation was started.");
+            if(SchemaVersion==2 && Settings!=null && Settings.TerrainSource!=CompositionTerrainSource.Generated)
+                throw new InvalidOperationException("Schema 2 supports generated terrain only; capture a schema 3 recipe for supplied terrain.");
             if(Settings==null)throw new InvalidOperationException("Composition recipe settings are missing.");
             if(Settings.Modules==null)throw new InvalidOperationException("Schema 2 module parameters are missing; recapture the source recipe.");
             Settings.Modules.Validate();
+            if(!Enum.IsDefined(typeof(CompositionTerrainSource),Settings.TerrainSource))
+                throw new InvalidOperationException("Unknown terrain source mode.");
             if(!Enum.IsDefined(typeof(TerrainRecipe),Settings.TerrainRecipe))throw new InvalidOperationException("Unknown terrain recipe.");
             if(Settings.Anchors==null||Settings.Regions==null||Settings.Rivers==null||Settings.Paths==null||Settings.DecorationProfiles==null)
                 throw new InvalidOperationException("Recipe arrays must be present; use empty arrays for empty inputs.");
@@ -33,14 +37,15 @@ namespace TerraLoom.Integration
         /// <summary>Copies authoring inputs, retaining explicit profile asset references. Does not capture geometry.</summary>
         public void CaptureFrom(TerraLoomIntegration composition,RegionDecoration decoration)
         {
-            if(!composition||!composition.World||!composition.Paths||!composition.Rivers||!decoration)
-                throw new ArgumentException("Assign composition, Core, Paths, Rivers and decoration.");
+            if(!composition||!composition.World||!composition.Paths||!composition.Rivers)
+                throw new ArgumentException("Assign composition, Core, Paths and Rivers.");
             var world=composition.World;
             Settings=Freeze(new CompositionRecipeSettings {
+                TerrainSource=world.Terrain&&!world.OwnsTerrain?CompositionTerrainSource.Supplied:CompositionTerrainSource.Generated,
                 Seed=world.Seed,TerrainRecipe=world.Recipe,Resolution=world.Resolution,Size=world.TerrainSize,Frequency=world.Frequency,
                 Anchors=world.ManualAnchors,Regions=world.Areas,
                 Rivers=composition.Rivers.Connections.ToArray(),Paths=composition.Paths.Connections.ToArray(),
-                DecorationProfiles=decoration.Profiles,DecorationCount=decoration.Count,ProfileSelection=decoration.ProfileSelection,
+                DecorationProfiles=decoration?decoration.Profiles:Array.Empty<RegionalStyleProfile>(),DecorationCount=decoration?decoration.Count:0,ProfileSelection=decoration?decoration.ProfileSelection:RegionalProfileSelection.PriorityWinner,
                 Modules=CompositionModuleSettings.Capture(composition,decoration)
             });
             SchemaVersion=CurrentSchemaVersion;
@@ -67,10 +72,13 @@ namespace TerraLoom.Integration
             => JsonUtility.FromJson<CompositionRecipeSettings>(JsonUtility.ToJson(value));
     }
 
-    /// <summary>Schema 2 source and module inputs. Region/profile IDs are explicit; biomes are not required.</summary>
+    public enum CompositionTerrainSource { Generated=0, Supplied=1 }
+
+    /// <summary>Versioned source and module inputs. Region/profile IDs are explicit; biomes are not required.</summary>
     [Serializable]
     public sealed class CompositionRecipeSettings
     {
+        public CompositionTerrainSource TerrainSource=CompositionTerrainSource.Generated;
         public int Seed=2042;
         public TerrainRecipe TerrainRecipe=TerrainRecipe.DrainageValley;
         public int Resolution=129;

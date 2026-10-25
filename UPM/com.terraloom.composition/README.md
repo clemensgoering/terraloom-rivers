@@ -6,7 +6,32 @@ Composition depends on all three. The package includes a runtime host, an
 Editor inspector, and a World Workbench extension for coordinated generation;
 it does not include sample scenes or art assets.
 
-## Install the tested package set
+## Current development boundary (25 October 2026)
+
+The source checkout now captures schema-3 recipes with an explicit
+`TerrainSource`: Generated or Supplied. Generated schema-2 recipes remain
+readable without rewriting their assets; schema 1 and unknown versions are
+rejected before mutation. Older package pins below do not include this change
+or the latest central bake. They remain dated installation evidence, not a
+release qualification of this checkout.
+
+Both source modes use `GenerateRecipe` and the same prepared Rivers/Paths
+publication. Supplied mode requires an explicitly assigned borrowed terrain
+and Carve Terrain Copy. The scene owns the terrain binding; the recipe stores
+inputs, not a Terrain scene reference or generated output. A generated recipe
+cannot take ownership of supplied terrain. Decoration is optional when the
+recipe requests zero instances; otherwise its same-world component is required.
+Core, Paths and Rivers are still required by Composition in this first slice.
+Capture/save and generate actions in the shipped Inspector use this contract.
+
+Supplied mode applies saved anchors, regions, connections and module settings
+to the existing source; it does not regenerate or repaint the original terrain.
+Failed preparation restores previous authoring settings and publication bindings.
+Bake outputs before saving the scene. A fully atomic first generated terrain
+bootstrap, optional single-module composition, recipe/scene override UI and
+broader fingerprints remain separate product gates.
+
+## Install the historically tested package set
 
 Add these four entries to `Packages/manifest.json`. These exact Git revisions
 resolved in a fresh Unity 6000.3 consumer for the package inspector's recipe

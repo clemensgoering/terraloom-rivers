@@ -59,6 +59,21 @@ namespace TerraLoom.Tests
                 var heights=new float[129,129];
                 for(int z=0;z<129;z++)for(int x=0;x<129;x++)heights[z,x]=(6-.03f*(96f*z/128))/16;
                 source.SetHeights(0,0,heights);AssetDatabase.CreateAsset(source,run+"/SuppliedTerrain.asset");
+                var sourceLayer=new TerrainLayer();AssetDatabase.CreateAsset(sourceLayer,run+"/SourceLayer.asset");
+                source.terrainLayers=new[]{sourceLayer};
+                source.alphamapResolution=32;
+                var alpha=new float[32,32,1];for(int z=0;z<32;z++)for(int x=0;x<32;x++)alpha[z,x,0]=1;
+                source.SetAlphamaps(0,0,alpha);
+                var detailTexture=new Texture2D(2,2);AssetDatabase.CreateAsset(detailTexture,run+"/Detail.asset");
+                source.detailPrototypes=new[]{new DetailPrototype{prototypeTexture=detailTexture,renderMode=DetailRenderMode.GrassBillboard}};
+                source.SetDetailResolution(32,8);
+                var detail=new int[32,32];for(int z=0;z<32;z++)for(int x=0;x<32;x++)detail[z,x]=3;
+                source.SetDetailLayer(0,0,0,detail);
+                var treeObject=GameObject.CreatePrimitive(PrimitiveType.Cube);
+                var treePrefab=PrefabUtility.SaveAsPrefabAsset(treeObject,run+"/Tree.prefab");Object.DestroyImmediate(treeObject);
+                source.treePrototypes=new[]{new TreePrototype{prefab=treePrefab}};
+                source.treeInstances=new[]{new TreeInstance{prototypeIndex=0,position=new Vector3(.5f,.2f,.5f),widthScale=1,heightScale=1,color=Color.white,lightmapColor=Color.white}};
+                var trees=source.treeInstances;
                 var original=source.GetHeights(0,0,129,129);
                 var terrain=Terrain.CreateTerrainGameObject(source).GetComponent<Terrain>();
                 var host=new GameObject("Supplied terrain composition roundtrip");var world=host.AddComponent<TerraLoomWorld>();
@@ -91,9 +106,50 @@ namespace TerraLoom.Tests
                 var authority=host.AddComponent<ExplicitCrossingPermissionSource>();
                 authority.Approvals=candidates.SelectMany(c=>new[]{0,1}.Select(axis=>new CrossingApproval{CrossingId="bridge:"+c.Id+":"+axis,Sections=sections})).ToArray();
                 composition.CrossingPermissionSource=authority;
-                Assert.That(composition.Generate(),Is.True,composition.Diagnostics);
+                var recipe=ScriptableObject.CreateInstance<CompositionRecipe>();
+                try
+                {
+                    recipe.CaptureFrom(composition,null);
+                    Assert.That(recipe.SchemaVersion,Is.EqualTo(3));
+                    Assert.That(recipe.Settings.TerrainSource,Is.EqualTo(CompositionTerrainSource.Supplied));
+                    Assert.That(recipe.Settings.DecorationCount,Is.Zero);
+                    Assert.That(composition.GenerateRecipe(recipe,null),Is.True,composition.Diagnostics);
+                    foreach(var boundary in new[]{"river-prepared","before-commit","river-bound","all-bound"})
+                    {
+                        var oldData=terrain.terrainData;var oldQuery=rivers.WaterSurfaceQuery;
+                        var oldRivers=rivers.GeneratedRoot;var oldPaths=paths.GeneratedRoot;
+                        var oldAnchors=world.ManualAnchors;var oldAreas=world.Areas;
+                        var oldPathConnections=paths.Connections;var oldRiverConnections=rivers.Connections;
+                        composition.PublicationBoundary=stage=>{if(stage==boundary)throw new InvalidOperationException("Supplied recipe rollback "+boundary);};
+                        Assert.That(composition.GenerateRecipe(recipe,null),Is.False);
+                        composition.PublicationBoundary=null;
+                        StringAssert.Contains("Supplied recipe rollback",composition.Diagnostics);
+                        Assert.That(terrain.terrainData,Is.SameAs(oldData));
+                        Assert.That(terrain.GetComponent<TerrainCollider>().terrainData,Is.SameAs(oldData));
+                        Assert.That(rivers.WaterSurfaceQuery,Is.SameAs(oldQuery));
+                        Assert.That(rivers.GeneratedRoot,Is.SameAs(oldRivers));Assert.That(paths.GeneratedRoot,Is.SameAs(oldPaths));
+                        Assert.That(world.ManualAnchors,Is.SameAs(oldAnchors));Assert.That(world.Areas,Is.SameAs(oldAreas));
+                        Assert.That(paths.Connections,Is.SameAs(oldPathConnections));Assert.That(rivers.Connections,Is.SameAs(oldRiverConnections));
+                        Assert.That(composition.ValidateCurrent(out var retained),Is.True,retained);
+                    }
+                    using(var cancelled=new System.Threading.CancellationTokenSource())
+                    {
+                        cancelled.Cancel();
+                        Assert.That(composition.GenerateRecipe(recipe,null,cancelled.Token),Is.False);
+                    }
+                    // Recipe source mode is explicit; legacy schema 2 may not silently reinterpret supplied terrain.
+                    recipe.SchemaVersion=2;
+                    Assert.That(composition.GenerateRecipe(recipe,null),Is.False);
+                    recipe.SchemaVersion=3;
+                    Assert.That(composition.GenerateRecipe(recipe,null),Is.True,composition.Diagnostics);
+                    Assert.That(world.OwnsTerrain,Is.False);
+                }
+                finally { composition.PublicationBoundary=null;Object.DestroyImmediate(recipe); }
                 Assert.That(composition.ValidateCurrent(out var reason),Is.True,reason);
                 Assert.That(source.GetHeights(0,0,129,129),Is.EqualTo(original));
+                Assert.That(source.GetAlphamaps(0,0,32,32),Is.EqualTo(alpha));
+                Assert.That(source.GetDetailLayer(0,0,32,32,0),Is.EqualTo(detail));
+                Assert.That(source.treeInstances,Is.EqualTo(trees));
                 var parts=paths.GeneratedRoot.GetComponentsInChildren<PathGeneratedGeometry>(true);
                 Assert.That(parts.Count(p=>p.Role==PathGeometryRole.Ground),Is.GreaterThan(0));
                 Assert.That(parts.Count(p=>p.Role==PathGeometryRole.BridgeDeck),Is.EqualTo(1));
@@ -128,6 +184,11 @@ namespace TerraLoom.Tests
                 Assert.That(AssetDatabase.Contains(rivers.WaterMaterial.GetTexture("_BaseMap")),Is.True);
                 Assert.That(composition.ValidateCurrent(out var baked),Is.True,baked);
                 File.WriteAllText(Folder+"/Expected.json",JsonUtility.ToJson(expected));
+                var savedRecipe=IntegrationEditor.CaptureAndSaveRecipe(composition,null,run+"/SuppliedRecipe.asset");
+                Assert.That(savedRecipe.Settings.TerrainSource,Is.EqualTo(CompositionTerrainSource.Supplied));
+                IntegrationEditor.GenerateSavedRecipe(composition);
+                Assert.That(composition.ValidateCurrent(out var recipeReason),Is.True,recipeReason);
+                IntegrationEditor.BakeGeneratedForScene(composition,run+"/RecipeBaked");
                 Assert.That(EditorSceneManager.SaveScene(host.scene,Scene),Is.True);
             }
             finally { Restore(previous); }
@@ -143,6 +204,10 @@ namespace TerraLoom.Tests
                 var rivers=composition.Rivers;var paths=composition.Paths;var terrain=composition.World.Terrain;
                 var expected=JsonUtility.FromJson<Expected>(File.ReadAllText(Folder+"/Expected.json"));
                 Assert.That(composition.World.OwnsTerrain,Is.False);Assert.That(composition.ValidateCurrent(out var reason),Is.True,reason);
+                Assert.That(composition.RecipeAsset,Is.Not.Null);
+                Assert.That(composition.RecipeAsset.SchemaVersion,Is.EqualTo(3));
+                Assert.That(composition.RecipeAsset.Settings.TerrainSource,Is.EqualTo(CompositionTerrainSource.Supplied));
+                Assert.That(composition.RecipeDecoration,Is.Null);
                 Assert.That(rivers.LastPlan,Is.Null);Assert.That(paths.LastPlan,Is.Null);
                 var riverRoot=rivers.GeneratedRoot;var pathRoot=paths.GeneratedRoot;var data=terrain.terrainData;
                 var query=rivers.WaterSurfaceQuery;Assert.That(query,Is.Not.Null,rivers.Diagnostics);
