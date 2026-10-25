@@ -1,4 +1,4 @@
-# TerraLoom Rivers 0.2
+# TerraLoom Rivers 0.3.0
 
 Deterministische beschraenkte Flussplanung, Core-Angebote, reversible Terrainkopie, Bett/Ufer/Wassergeometrie, Speicherung und Editorbedienung.
 

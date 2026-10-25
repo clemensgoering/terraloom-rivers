@@ -95,7 +95,7 @@ floating branches or unrelated package revisions.
 ```
 
 The development checkout Composition 0.7.0 targets Unity 6000.3 and depends on
-Core 0.4.0, Paths 0.3.0 and Rivers 0.4.0. The dated installation pins above
+Core 0.4.0, Paths 0.3.0 and Rivers 0.3.0. The dated installation pins above
 predate these versions; they do not distribute the new Core asset-shape contract. The Git pins above are the tested installation set, not a claim that
 other Unity versions or render pipelines have been qualified.
 The isolated consumer recipe test confirmed that Unity selects the package
