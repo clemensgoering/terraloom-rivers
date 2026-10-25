@@ -327,6 +327,18 @@ namespace TerraLoom.Integration
             return ownedSourcePublication;
         }
 
+#if UNITY_EDITOR
+        /// <summary>Editor bake preflight; completion runs only after successful reference
+        /// publication. External publishers passed to GenerateWithSource are never adopted.</summary>
+        public Action PrepareBakedSourceRetirement()
+        {
+            if (ownedSourcePublication == null) return () => { };
+            var publisher = ownedSourcePublication;
+            var retire = publisher.PrepareBakedReplacementRetirement(Rivers.CarvedTerrainData);
+            return () => { retire(); ownedSourcePublication = null; };
+        }
+#endif
+
         public bool GenerateSeedRequest(PreparedSeededWorldRequest request,CancellationToken cancellation=default)
         {
             if(request==null)throw new ArgumentNullException(nameof(request));
@@ -577,8 +589,17 @@ namespace TerraLoom.Integration
                 if((generationState!=GenerationRunState.Ready&&string.IsNullOrEmpty(builtInput))||!Paths||!Rivers||!Paths.GeneratedRoot||!Rivers.GeneratedRoot)throw new InvalidOperationException("Composition is not ready.");
                 if(Paths.World!=World||Rivers.World!=World||builtCarve!=Rivers.CarveTerrainCopy||builtSpacing!=Paths.MeshSpacing
                     ||(Rivers.TerrainBrush&&(builtSedimentLayer!=Rivers.SedimentTerrainLayer||builtSedimentExposure!=Rivers.SedimentExposureDepth))
-                    ||builtMaterials==null||!builtMaterials.SequenceEqual(Materials())||builtPathsTransform!=Paths.transform.localToWorldMatrix||builtRiversTransform!=Rivers.transform.localToWorldMatrix)
+                    ||builtPathsTransform!=Paths.transform.localToWorldMatrix||builtRiversTransform!=Rivers.transform.localToWorldMatrix)
                     throw new InvalidOperationException("Module bindings, geometry settings or transforms changed; rebuild composition.");
+                var materials=Materials();
+                bool legacyMaterials=builtMaterials!=null&&builtMaterials.Length==5
+                    &&!Rivers.FallRockMaterial&&!Rivers.FallWaterMaterial;
+                if(builtMaterials==null||(builtMaterials.Length!=materials.Length&&!legacyMaterials))
+                    throw new InvalidOperationException("Material publication receipt is missing or from an older version; rebuild composition.");
+                string[] materialRoles={"path ground","bridge","river water","river bed","river bank","waterfall rock","waterfall water"};
+                for(int i=0;i<builtMaterials.Length;i++)
+                    if(builtMaterials[i]!=materials[i])
+                        throw new InvalidOperationException("The "+materialRoles[i]+" material binding changed; rebuild composition.");
                 var input=CaptureSource(out var bounds,out var graph);
                 if(Paths.LastPlan!=null)PathCrossingPermissions.RequireCurrent(Paths.LastPlan,PublishedSharedInput==null?null:CurrentCrossingPermissions(PublishedSharedInput));
                 if(input.Identity.InputFingerprint!=builtInput||RiverPlanner.ProfileVersion(Rivers.CaptureProfile(),bounds,Requests(input))!=builtRiverProfile
@@ -590,7 +611,7 @@ namespace TerraLoom.Integration
         }
         private static string Digest(string value)
         {using(var sha=System.Security.Cryptography.SHA256.Create())return Convert.ToBase64String(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(value??"")));}
-        private Material[] Materials()=>new[]{Paths.GroundMaterial,Paths.BridgeMaterial,Rivers.WaterMaterial,Rivers.BedMaterial,Rivers.BankMaterial};
+        private Material[] Materials()=>new[]{Paths.GroundMaterial,Paths.BridgeMaterial,Rivers.WaterMaterial,Rivers.BedMaterial,Rivers.BankMaterial,Rivers.FallRockMaterial,Rivers.FallWaterMaterial};
         /// <summary>Releases generated decoration, geometry and owned source in reverse order.
         /// This runtime operation is irreversible; recording scene fields alone cannot restore disposed resources.</summary>
         public void Clear()

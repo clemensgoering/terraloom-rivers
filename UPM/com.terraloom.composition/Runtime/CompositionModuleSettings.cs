@@ -141,6 +141,8 @@ namespace TerraLoom.Integration
         public Material WaterMaterial=null;
         public Material BedMaterial=null;
         public Material BankMaterial=null;
+        public Material FallRockMaterial=null;
+        public Material FallWaterMaterial=null;
         public bool CarveTerrainCopy=true;
         public bool TerrainBrush=false;
         public int SedimentTerrainLayer=-1;
@@ -164,6 +166,8 @@ namespace TerraLoom.Integration
             WaterMaterial=component.WaterMaterial,
             BedMaterial=component.BedMaterial,
             BankMaterial=component.BankMaterial,
+            FallRockMaterial=component.FallRockMaterial,
+            FallWaterMaterial=component.FallWaterMaterial,
             CarveTerrainCopy=component.CarveTerrainCopy,
             TerrainBrush=component.TerrainBrush,
             SedimentTerrainLayer=component.SedimentTerrainLayer,
@@ -189,6 +193,8 @@ namespace TerraLoom.Integration
             component.WaterMaterial=WaterMaterial;
             component.BedMaterial=BedMaterial;
             component.BankMaterial=BankMaterial;
+            component.FallRockMaterial=FallRockMaterial;
+            component.FallWaterMaterial=FallWaterMaterial;
             component.CarveTerrainCopy=CarveTerrainCopy;
             component.TerrainBrush=TerrainBrush;
             component.SedimentTerrainLayer=SedimentTerrainLayer;

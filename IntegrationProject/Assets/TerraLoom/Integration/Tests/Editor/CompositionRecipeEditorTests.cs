@@ -153,6 +153,9 @@ namespace TerraLoom.Tests
                     "Preflight failure must not create an incomplete asset.");
                 Assert.That(c.RecipeAsset,Is.SameAs(previous));
                 c.Paths.BridgeMaterial=oldBridge;
+                c.Rivers.FallRockMaterial=c.Rivers.BankMaterial;
+                c.Rivers.FallWaterMaterial=c.Rivers.WaterMaterial;
+                var fallRock=c.Rivers.FallRockMaterial;var fallWater=c.Rivers.FallWaterMaterial;
                 AssetDatabase.CreateFolder("Assets","TerraLoomRecipeEditorConsumerTest");
                 var saved=IntegrationEditor.CaptureAndSaveRecipe(c,decoration,path);
                 Assert.That(AssetDatabase.Contains(saved),Is.True);
@@ -171,12 +174,27 @@ namespace TerraLoom.Tests
                 Assert.That(saved.Settings.Modules.Paths.BridgeMaterial,Is.SameAs(oldBridge));
                 string pathJson=c.Paths.PlanJson,riverJson=c.Rivers.PlanJson;
                 c.Paths.BridgeMaterial=null;c.Rivers.WaterMaterial=null;
+                c.Rivers.FallRockMaterial=null;c.Rivers.FallWaterMaterial=null;
                 IntegrationEditor.GenerateSavedRecipe(c);
                 Assert.That(c.Paths.BridgeMaterial,Is.SameAs(oldBridge));
                 Assert.That(c.Rivers.WaterMaterial,Is.SameAs(saved.Settings.Modules.Rivers.WaterMaterial));
                 Assert.That(c.Paths.PlanJson,Is.EqualTo(pathJson));
                 Assert.That(c.Rivers.PlanJson,Is.EqualTo(riverJson));
                 Assert.That(c.ValidateCurrent(out var reason),Is.True,reason);
+                Assert.That(c.Rivers.FallRockMaterial,Is.SameAs(fallRock));
+                Assert.That(c.Rivers.FallWaterMaterial,Is.SameAs(fallWater));
+                c.Rivers.FallWaterMaterial=null;
+                Assert.That(c.ValidateCurrent(out reason),Is.False,"Fall override changes must invalidate the publication.");
+                c.Rivers.FallWaterMaterial=fallWater;
+                var before=c.World.Terrain.terrainData;var beforeRoot=c.Rivers.GeneratedRoot;
+                var connections=saved.Settings.Rivers;
+                saved.Settings.Rivers=new[]{new TerraLoom.Rivers.Unity.RiverConnectionSettings{Id="fall-recipe",SourceId="a",MouthId="b",FallId="fall",FallAnchorId="lip"}};
+                saved.Settings.Modules.Rivers.FallRockMaterial=null;
+                Assert.That(c.GenerateRecipe(saved,decoration),Is.False);
+                StringAssert.Contains("explicit fall rock material",c.Diagnostics);
+                Assert.That(c.World.Terrain.terrainData,Is.SameAs(before));
+                Assert.That(c.Rivers.GeneratedRoot,Is.SameAs(beforeRoot));
+                saved.Settings.Rivers=connections;saved.Settings.Modules.Rivers.FallRockMaterial=fallRock;
             }
             finally
             {

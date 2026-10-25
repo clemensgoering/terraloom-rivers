@@ -35,16 +35,23 @@ namespace TerraLoom.Integration.Editor
             var oldCarve=instance.Rivers.CarvedTerrainData;
             bool ownedCarve=ReadBool(instance.Rivers,"ownsTransientData");
             bool success=false;
+            Action retireSource=null,retireSession=null;
             try
             {
                 // Discover and copy every supported resource before changing a binding.
-                foreach(var target in targets)
+                copies.PrepareDirectory();
+                AssetDatabase.StartAssetEditing();
+                try
                 {
-                    var serialized=new SerializedObject(target);var iterator=serialized.GetIterator();
-                    while(iterator.Next(true))
-                        if(iterator.propertyType==SerializedPropertyType.ObjectReference)
-                            copies.Persist(iterator.objectReferenceValue);
+                    foreach(var target in targets)
+                    {
+                        var serialized=new SerializedObject(target);var iterator=serialized.GetIterator();
+                        while(iterator.Next(true))
+                            if(iterator.propertyType==SerializedPropertyType.ObjectReference)
+                                copies.Persist(iterator.objectReferenceValue);
+                    }
                 }
+                finally { AssetDatabase.StopAssetEditing(); }
                 AssetDatabase.SaveAssets();Fault("assets-staged");
                 if(!instance.ValidateCurrent(out var beforeSwap))
                     throw new InvalidOperationException("Composition changed while staging assets: "+beforeSwap);
@@ -69,6 +76,8 @@ namespace TerraLoom.Integration.Editor
                 Fault("bindings-swapped");
                 if(!instance.ValidateCurrent(out var final))
                     throw new InvalidOperationException("Baked resources do not match the shared publication: "+final);
+                retireSource=instance.PrepareBakedSourceRetirement();
+                retireSession=instance.World.PrepareBakedSessionRetirement();
                 AssetDatabase.SaveAssets();Fault("before-complete");
                 foreach(var target in targets)EditorUtility.SetDirty(target);
                 EditorSceneManager.MarkSceneDirty(instance.gameObject.scene);
@@ -89,6 +98,8 @@ namespace TerraLoom.Integration.Editor
             }
             // Retirement is after the reversible boundary. Caller-supplied materials/source
             // terrain stay alive; only module-owned transient output resources are retired.
+            retireSource();
+            retireSession();
             foreach(var mesh in retiredMeshes)if(mesh&&!AssetDatabase.Contains(mesh))Object.DestroyImmediate(mesh);
             if(ownedCarve&&oldCarve&&!AssetDatabase.Contains(oldCarve))Object.DestroyImmediate(oldCarve);
         }
@@ -165,15 +176,34 @@ namespace TerraLoom.Integration.Editor
             private readonly List<string> assets=new List<string>(),folders=new List<string>();
             private readonly List<Object> allocated=new List<Object>();
             public Copies(string directory){this.directory=directory;}
+            // Folders are fully imported before the asset-editing scope. Staging never
+            // attempts to load any of its newly created assets while imports are paused.
+            public void PrepareDirectory()=>EnsureFolder(directory);
             public Object Persist(Object source)
             {
                 if(!source)return source;
                 if(Map.TryGetValue(source,out var existing))return existing;
-                if(!(source is Mesh||source is Material||source is Texture||source is TerrainData||source is TerrainLayer))return source;
+                if(!(source is Mesh||source is Material||source is Texture||source is TerrainData||source is TerrainLayer
+                    ||source is CompositionRecipe||source is RegionalStyleProfile))return source;
                 if(!NeedsCopy(source))return source;
                 if(source is Texture&&!(source is Texture2D))
                     throw new InvalidOperationException("Persist transient textures as Texture2D assets before baking; unsupported texture: "+source.GetType().Name);
                 var copy=Object.Instantiate(source);allocated.Add(copy);copy.name=source.name;copy.hideFlags=HideFlags.None;Map.Add(source,copy);
+                if(copy is CompositionRecipe||copy is RegionalStyleProfile)
+                {
+                    // Only the two explicit TerraLoom authoring asset types participate.
+                    // Never edit the caller's recipe/profile or clone arbitrary scene prefabs.
+                    var serialized=new SerializedObject(copy);var iterator=serialized.GetIterator();
+                    while(iterator.Next(true))
+                        if(iterator.propertyType==SerializedPropertyType.ObjectReference&&iterator.propertyPath!="m_Script")
+                        {
+                            var reference=iterator.objectReferenceValue;
+                            if(reference is GameObject&&!AssetDatabase.Contains(reference))
+                                throw new InvalidOperationException("Save transient regional prefabs before baking.");
+                            iterator.objectReferenceValue=Persist(reference);
+                        }
+                    serialized.ApplyModifiedPropertiesWithoutUndo();
+                }
                 if(copy is Material material)
                     foreach(string property in material.GetTexturePropertyNames())material.SetTexture(property,(Texture)Persist(material.GetTexture(property)));
                 if(copy is TerrainLayer layer)
@@ -194,7 +224,6 @@ namespace TerraLoom.Integration.Editor
                     }
                     terrain.detailPrototypes=details;
                 }
-                EnsureFolder(directory);
                 string path=directory+"/Resource"+assets.Count+(copy is Material?".mat":".asset");
                 if(File.Exists(path)||AssetDatabase.LoadMainAssetAtPath(path))
                     throw new InvalidOperationException("A staged bake asset path is occupied: "+path);
@@ -205,6 +234,14 @@ namespace TerraLoom.Integration.Editor
             {
                 if(!source)return false;
                 if(!AssetDatabase.Contains(source))return true;
+                if(source is CompositionRecipe||source is RegionalStyleProfile)
+                {
+                    var serialized=new SerializedObject(source);var iterator=serialized.GetIterator();
+                    while(iterator.Next(true))
+                        if(iterator.propertyType==SerializedPropertyType.ObjectReference&&iterator.propertyPath!="m_Script"
+                            &&NeedsCopy(iterator.objectReferenceValue))return true;
+                    return false;
+                }
                 // Persistent caller assets may contain temporary dependencies. Copy the
                 // parent too; never rewrite the caller's material/layer/terrain asset.
                 if(source is Material material)return material.GetTexturePropertyNames().Any(p=>NeedsCopy(material.GetTexture(p)));
@@ -221,8 +258,13 @@ namespace TerraLoom.Integration.Editor
             public void Discard()
             {
                 var failures=new List<string>();
-                for(int i=assets.Count-1;i>=0;i--)
-                    if((File.Exists(assets[i])||AssetDatabase.LoadMainAssetAtPath(assets[i]))&&!AssetDatabase.DeleteAsset(assets[i]))failures.Add(assets[i]);
+                AssetDatabase.StartAssetEditing();
+                try
+                {
+                    for(int i=assets.Count-1;i>=0;i--)
+                        if((File.Exists(assets[i])||AssetDatabase.LoadMainAssetAtPath(assets[i]))&&!AssetDatabase.DeleteAsset(assets[i]))failures.Add(assets[i]);
+                }
+                finally { AssetDatabase.StopAssetEditing(); }
                 foreach(var item in allocated)if(item&&!AssetDatabase.Contains(item))Object.DestroyImmediate(item);
                 for(int i=folders.Count-1;i>=0;i--)
                     if(AssetDatabase.IsValidFolder(folders[i])&&!Directory.EnumerateFileSystemEntries(folders[i]).Any()&&!AssetDatabase.DeleteAsset(folders[i]))failures.Add(folders[i]);

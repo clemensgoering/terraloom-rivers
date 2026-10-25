@@ -151,14 +151,13 @@ or supplied terrain as appropriate.
    component links, materials and decoration profiles before creating the asset.
    An existing asset is never overwritten. Keep the new asset and its referenced
    profiles/materials in source control.
-4. Choose **Generate from saved Recipe (Core terrain)**. The saved recipe
-   supplies its own seed, configuration and material references even if scene
-   fields have since changed. The optional **Generate On Start** host field
-   runs the same recipe at runtime when both recipe and decoration are assigned.
-   For existing/foreign Terrain, use **Generate Paths + Rivers on supplied
-   terrain** in this inspector; that operation leaves regional decoration to
-   its separate component. Recipe generation refuses to replace external
-   `TerrainData`.
+4. Select **SavedRecipe** in the Workbench and generate the world. The recipe
+   supplies its seed, terrain source mode, configuration and material bindings.
+   Generated mode creates Core-owned terrain. Supplied mode prepares a private
+   copy of the explicitly assigned source and leaves caller TerrainData intact.
+   Decoration is optional. **Generate On Start** uses the same source selection
+   and publication lifecycle. Automatic selection rejects competing saved and
+   scene recipes; choose a source explicitly to resolve the conflict.
 5. For a scene that must survive closing Unity, choose **Bake generated world
    for scene save** in the Composition Inspector, select a new empty folder
    under `Assets`, then save the scene. This works with supplied Terrain as
@@ -167,7 +166,10 @@ or supplied terrain as appropriate.
    dependencies before switching scene bindings together. Shared material
    references remain shared across Rivers and Paths. Caller assets are copied
    when needed and are never overwritten. Existing generated decoration is
-   included. Keep the bake folder, profiles, materials, recipe and scene together
+   included. Recipes and regional profiles with transient dependencies receive
+   private saved copies; their original assets are never rewritten. Profile
+   prefabs must already be saved assets. Waterfall rock/water overrides are part
+   of the recipe and material freshness receipt. Keep the bake folder and scene together
    in source control. Saving a scene
    before baking leaves transient TerrainData references that will be missing
    after reopening. The button requires current shared output; a changed input
@@ -248,10 +250,10 @@ policy and are not serialized or granted by a saved plan. The recipe uses its
 explicit anchors and connections instead of automatic target/network discovery.
 The host must rebind its transforms and crossing policy after loading a scene.
 
-Initial blank-scene creation bootstraps owned Core terrain before downstream
-publication; later recipe generations prepare the source, Rivers, Paths and
-decoration together and retain the previous published world if preparation or
-publication fails. This package does not provide player-relative streaming,
+Initial blank-scene creation stages an inactive owned terrain inside the same
+failure scope. Failed first builds release that terrain; later recipe builds
+prepare source, Rivers, Paths and decoration together and retain the published
+world when preparation or publication fails. This package does not provide player-relative streaming,
 performance budgets, a complete buyer UI, visual acceptance, or a support matrix.
 Those remain project-specific validation and product-release gates.
 
@@ -265,3 +267,8 @@ the destroyed transient meshes/TerrainData or the nonserialized source publisher
 Regenerate the saved recipe to reconstruct the world. The sample Clear button
 states this limitation. A full resource-aware Undo/Redo adapter is still pending;
 recording component fields alone would restore invalid resource references.
+
+A successful central bake retires the unbound private source publisher and the
+owned session bootstrap only after reference publication succeeds. Regeneration
+in the same Editor session then borrows the saved source, matching a cold reopen.
+Bake faults before completion retain the original publisher and live resources.

@@ -24,7 +24,7 @@ namespace TerraLoom.Tests
         [Serializable] private sealed class Expected
         { public double x,y,z;public string fingerprint,riverJson,pathJson;public int ground,deck,body,ramps,approvals; }
 
-        [Test] public void CentralBakeKeepsCoreOwnedWorldAndDecorationCurrent()
+        [Test, Timeout(600000)] public void CentralBakeKeepsCoreOwnedWorldAndDecorationCurrent()
         {
             var previous=EditorSceneManager.GetSceneManagerSetup();
             try
@@ -32,18 +32,38 @@ namespace TerraLoom.Tests
                 EditorSceneManager.OpenScene("Assets/TerraLoom/Integration/Generated/TerraLoomDynamic.unity");
                 var demo=Object.FindFirstObjectByType<SeededWorldDemo>();Assert.That(demo,Is.Not.Null);
                 Assert.That(demo.Rebuild(),Is.True,demo.Diagnostics);
+                // First demo build may predate the prepared source lifecycle. Establish an
+                // actual live publisher before Bake, rather than testing only cold output.
+                Assert.That(demo.Rebuild(),Is.True,demo.Diagnostics);
                 var composition=demo.Composition;Assert.That(composition.World.OwnsTerrain,Is.True);
                 Assert.That(demo.Decoration.GeneratedRoot,Is.Not.Null);
                 EnsureFolder(Folder);string run=Folder+"/Owned-"+Guid.NewGuid().ToString("N");EnsureFolder(run);
                 var decorationRoot=demo.Decoration.GeneratedRoot;
                 AssertBakeFailureRetainsPublication(composition,run+"/Failed","bindings-swapped");
                 Assert.That(demo.Decoration.GeneratedRoot,Is.SameAs(decorationRoot));
+                AssertBakeFailureRetainsPublication(composition,run+"/FailedBeforeComplete","before-complete");
+                Assert.That(demo.Rebuild(),Is.True,"Failed Bake must retain a usable source publisher: "+demo.Diagnostics);
+                decorationRoot=demo.Decoration.GeneratedRoot;
+                var privateSource=composition.Rivers.OriginalTerrainData;
+                var bootstrap=(TerrainData)new SerializedObject(composition.World).FindProperty("generatedData").objectReferenceValue;
+                Assert.That(AssetDatabase.Contains(privateSource),Is.False);
                 IntegrationEditor.BakeGeneratedForScene(composition,run+"/Baked");
+                Assert.That(privateSource==null,Is.True,"Unbound private source must retire after successful Bake.");
+                Assert.That(bootstrap==null,Is.True,"Owned bootstrap must retire after successful Bake.");
                 Assert.That(composition.ValidateCurrent(out var reason),Is.True,reason);
                 Assert.That(composition.World.OwnsTerrain,Is.True);
                 Assert.That(demo.Decoration.GeneratedRoot,Is.SameAs(decorationRoot));
                 foreach(var filter in decorationRoot.GetComponentsInChildren<MeshFilter>(true))
                     Assert.That(AssetDatabase.Contains(filter.sharedMesh),Is.True);
+                var bakedSource=composition.Rivers.OriginalTerrainData;
+                var bakedCarve=composition.Rivers.CarvedTerrainData;
+                Assert.That(AssetDatabase.Contains(bakedSource),Is.True);
+                Assert.That(demo.Rebuild(),Is.True,"Warm rebuild after Bake: "+demo.Diagnostics);
+                Assert.That(composition.ValidateCurrent(out reason),Is.True,reason);
+                Assert.That(composition.World.Terrain.GetComponent<TerrainCollider>().terrainData,
+                    Is.SameAs(composition.Rivers.CarvedTerrainData));
+                Assert.That(bakedSource,Is.Not.Null,"Saved source is borrowed, never retired by regeneration.");
+                Assert.That(bakedCarve,Is.Not.Null,"Saved carve remains a reusable asset.");
             }
             finally { Restore(previous); }
         }
@@ -97,6 +117,10 @@ namespace TerraLoom.Tests
                 paths.AutomaticNetwork=false;paths.MaximumSlope=.35f;paths.BridgeClearance=1.2f;paths.TimberTrussBridge=true;
                 paths.MaximumFordDepth=0;paths.Connections.Add(new PathConnectionSettings{Id="buyer-road",StartId="west",EndId="east"});
                 var rivers=host.AddComponent<TerraLoomRivers>();rivers.World=world;rivers.WaterMaterial=material;
+                rivers.FallRockMaterial=new Material(material){name="Transient fall rock"};
+                rivers.FallWaterMaterial=new Material(material){name="Transient fall water"};
+                rivers.FallRockMaterial.SetFloat("_Smoothness",.13f);
+                rivers.FallWaterMaterial.SetFloat("_Smoothness",.61f);
                 rivers.AutomaticSourceAndMouth=false;rivers.TerrainBrush=true;rivers.WaterInset=.6f;
                 rivers.Connections.Add(new RiverConnectionSettings{Id="buyer-river",SourceId="source",MouthId="mouth"});
                 var composition=host.AddComponent<TerraLoomIntegration>();composition.World=world;composition.Rivers=rivers;composition.Paths=paths;
@@ -159,6 +183,8 @@ namespace TerraLoom.Tests
                     Assert.That(world.OwnsTerrain,Is.False);
                 }
                 finally { composition.PublicationBoundary=null;Object.DestroyImmediate(recipe); }
+                var originalRecipe=IntegrationEditor.CaptureAndSaveRecipe(composition,null,run+"/SuppliedRecipe.asset");
+                IntegrationEditor.GenerateSavedRecipe(composition);
                 Assert.That(composition.ValidateCurrent(out var reason),Is.True,reason);
                 Assert.That(source.GetHeights(0,0,129,129),Is.EqualTo(original));
                 Assert.That(source.GetAlphamaps(0,0,32,32),Is.EqualTo(alpha));
@@ -192,13 +218,22 @@ namespace TerraLoom.Tests
                 Assert.That(File.ReadAllText(occupied+"/Keep.txt"),Is.EqualTo("user file"));
                 Assert.That(composition.ValidateCurrent(out var untouched),Is.True,untouched);
                 IntegrationEditor.BakeGeneratedForScene(composition,run+"/Baked");
+                Assert.That(AssetDatabase.Contains(rivers.FallRockMaterial),Is.True);
+                Assert.That(AssetDatabase.Contains(rivers.FallWaterMaterial),Is.True);
+                Assert.That(rivers.FallRockMaterial.GetFloat("_Smoothness"),Is.EqualTo(.13f).Within(.00001));
+                Assert.That(rivers.FallWaterMaterial.GetFloat("_Smoothness"),Is.EqualTo(.61f).Within(.00001));
+                Assert.That(composition.RecipeAsset.Settings.Modules.Rivers.FallRockMaterial==rivers.FallRockMaterial,Is.True);
+                Assert.That(composition.RecipeAsset.Settings.Modules.Rivers.FallWaterMaterial==rivers.FallWaterMaterial,Is.True);
                 Assert.That(AssetDatabase.Contains(rivers.WaterMaterial),Is.True);
                 Assert.That(rivers.WaterMaterial,Is.SameAs(paths.GroundMaterial));
                 Assert.That(rivers.WaterMaterial,Is.SameAs(paths.BridgeMaterial));
                 Assert.That(AssetDatabase.Contains(rivers.WaterMaterial.GetTexture("_BaseMap")),Is.True);
                 Assert.That(composition.ValidateCurrent(out var baked),Is.True,baked);
                 File.WriteAllText(Folder+"/Expected.json",JsonUtility.ToJson(expected));
-                var savedRecipe=IntegrationEditor.CaptureAndSaveRecipe(composition,null,run+"/SuppliedRecipe.asset");
+                Assert.That(composition.RecipeAsset,Is.Not.SameAs(originalRecipe),"Bake copies a recipe whose dependencies were transient.");
+                Assert.That(originalRecipe.Settings.Modules.Rivers.WaterMaterial,Is.SameAs(material));
+                Assert.That(material.GetTexture("_BaseMap"),Is.SameAs(texture));
+                var savedRecipe=composition.RecipeAsset;
                 Assert.That(savedRecipe.Settings.TerrainSource,Is.EqualTo(CompositionTerrainSource.Supplied));
                 IntegrationEditor.GenerateSavedRecipe(composition);
                 Assert.That(composition.ValidateCurrent(out var recipeReason),Is.True,recipeReason);
@@ -249,6 +284,12 @@ namespace TerraLoom.Tests
                 Assert.That(AssetDatabase.Contains(rivers.WaterMaterial),Is.True);
                 Assert.That(rivers.WaterMaterial,Is.SameAs(paths.GroundMaterial));
                 Assert.That(rivers.WaterMaterial,Is.SameAs(paths.BridgeMaterial));
+                Assert.That(AssetDatabase.Contains(rivers.FallRockMaterial),Is.True);
+                Assert.That(AssetDatabase.Contains(rivers.FallWaterMaterial),Is.True);
+                Assert.That(rivers.FallRockMaterial.GetFloat("_Smoothness"),Is.EqualTo(.13f).Within(.00001));
+                Assert.That(rivers.FallWaterMaterial.GetFloat("_Smoothness"),Is.EqualTo(.61f).Within(.00001));
+                Assert.That(composition.RecipeAsset.Settings.Modules.Rivers.FallRockMaterial==rivers.FallRockMaterial,Is.True);
+                Assert.That(composition.RecipeAsset.Settings.Modules.Rivers.FallWaterMaterial==rivers.FallWaterMaterial,Is.True);
                 Assert.That(rivers.WaterMaterial.GetFloat("_Smoothness"),Is.EqualTo(.17f).Within(.00001));
                 var texture=rivers.WaterMaterial.GetTexture("_BaseMap") as Texture2D;
                 Assert.That(texture,Is.Not.Null);Assert.That(AssetDatabase.Contains(texture),Is.True);
@@ -271,7 +312,11 @@ namespace TerraLoom.Tests
         }
         private static void AssertBakeFailureRetainsPublication(TerraLoomIntegration composition,string directory,string point)
         {
+            Assert.That(composition.ValidateCurrent(out var initial),Is.True,"Before injected bake: "+initial);
             var rivers=composition.Rivers;var paths=composition.Paths;var terrain=composition.World.Terrain;
+            var receipt=new SerializedObject(composition).FindProperty("builtMaterials");
+            var bindings=Enumerable.Range(0,receipt.arraySize).Select(i=>receipt.GetArrayElementAtIndex(i).objectReferenceValue).ToArray();
+            var recipeAsset=composition.RecipeAsset;
             var data=terrain.terrainData;var query=rivers.WaterSurfaceQuery;var material=rivers.WaterMaterial;
             var ground=paths.GroundMaterial;var bridge=paths.BridgeMaterial;
             var riverRoot=rivers.GeneratedRoot;var pathRoot=paths.GeneratedRoot;
@@ -292,6 +337,9 @@ namespace TerraLoom.Tests
             for(int i=0;i<filters.Length;i++){Assert.That(meshes[i],Is.Not.Null);Assert.That(filters[i].sharedMesh,Is.SameAs(meshes[i]));}
             Assert.That(new SerializedObject(rivers).FindProperty("savedWaterQuery.terrainData").objectReferenceValue,Is.SameAs(data));
             Assert.That(Directory.Exists(directory),Is.False,"Failed bake left partial assets behind.");
+            var restored=new SerializedObject(composition).FindProperty("builtMaterials");
+            Assert.That(Enumerable.Range(0,restored.arraySize).Select(i=>restored.GetArrayElementAtIndex(i).objectReferenceValue).ToArray(),Is.EqualTo(bindings),"Material receipt must roll back.");
+            Assert.That(composition.RecipeAsset,Is.SameAs(recipeAsset));
             Assert.That(composition.ValidateCurrent(out var reason),Is.True,reason);
         }
         private static void Restore(SceneSetup[] previous)

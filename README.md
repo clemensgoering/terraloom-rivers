@@ -4,6 +4,11 @@ Deterministische Flussplanung, reversible Terrainkopie, Bett/Ufer/Wassergeometri
 Editor/Runtime und eigene Beispielszene. [Anleitung](Docs/USER-GUIDE.md),
 [gemeinsames Testprojekt](Docs/INTEGRATION.md).
 
+Aktuelle Entwicklung: Rivers 0.3.0 und Composition 0.7.0; Paketumfang und Grenzen
+in [Rivers](Packages/com.terraloom.rivers/README.md) und
+[Composition](UPM/com.terraloom.composition/README.md). Historische Testzahlen
+sind keine Freigabe des aktuellen Entwicklungsstands.
+
 ## Einstieg
 1. Dieses Repository als Unity-Projekt oeffnen: Assets, Packages und ProjectSettings liegen im Root.
 2. [Cloud-Uebergabe](Docs/CLOUD-HANDOFF.md) und [Konzept](https://github.com/clemensgoering/terraloom-core/blob/2d35ab21401870692fde11028e71147cc2327e2f/Docs/CONCEPT.md) lesen.

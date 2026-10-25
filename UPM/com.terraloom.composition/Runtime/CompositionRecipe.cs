@@ -29,6 +29,9 @@ namespace TerraLoom.Integration
             if(!Enum.IsDefined(typeof(TerrainRecipe),Settings.TerrainRecipe))throw new InvalidOperationException("Unknown terrain recipe.");
             if(Settings.Anchors==null||Settings.Regions==null||Settings.Rivers==null||Settings.Paths==null||Settings.DecorationProfiles==null)
                 throw new InvalidOperationException("Recipe arrays must be present; use empty arrays for empty inputs.");
+            if(Settings.Rivers.Any(r=>r!=null&&!string.IsNullOrWhiteSpace(r.FallId))
+                &&!Settings.Modules.Rivers.FallRockMaterial)
+                throw new InvalidOperationException("Waterfall recipes require an explicit fall rock material; recapture or assign the recipe binding before generation.");
             if(Settings.DecorationCount<0)throw new InvalidOperationException("Decoration count cannot be negative.");
             foreach(var profile in Settings.DecorationProfiles)
             {if(!profile)throw new InvalidOperationException("Missing decoration profile asset.");profile.Validate();}
