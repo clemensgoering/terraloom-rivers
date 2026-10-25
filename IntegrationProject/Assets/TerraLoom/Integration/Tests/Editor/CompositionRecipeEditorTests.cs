@@ -160,6 +160,12 @@ namespace TerraLoom.Tests
                 Assert.That(saved.Settings.TerrainSource,Is.EqualTo(CompositionTerrainSource.Generated));
                 // Previously saved schema-2 generated recipes remain usable without rewriting the asset.
                 saved.SchemaVersion=2;
+                // Real older JSON has neither source-mode nor contact-producer fields.
+                string legacy=JsonUtility.ToJson(saved.Settings);
+                StringAssert.Contains("\"ContactSourceId\":\"decoration\",",legacy);
+                legacy=legacy.Replace("\"ContactSourceId\":\"decoration\",","").Replace("\"ContactCellSize\":8.0,","").Replace("\"ContactCellSize\":8,","")
+                    .Replace("\"MaximumContactCellReferences\":1000000,","").Replace("\"TerrainSource\":0,","");
+                saved.Settings=JsonUtility.FromJson<CompositionRecipeSettings>(legacy);
                 Assert.That(c.RecipeAsset,Is.SameAs(saved));
                 Assert.That(c.RecipeDecoration,Is.SameAs(decoration));
                 Assert.That(saved.Settings.Modules.Paths.BridgeMaterial,Is.SameAs(oldBridge));

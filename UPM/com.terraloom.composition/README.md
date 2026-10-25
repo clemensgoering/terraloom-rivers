@@ -53,6 +53,15 @@ the visual crown. Invalid reviewed data rejects generation; unreviewed assets
 retain the conservative legacy mesh measurement. This first body adapter does
 not yet change detail-layer clearing or apply a shared soil/vegetation contact
 mask. Existing art does not become reviewed just by installing the component.
+Core also publishes reviewed RegionDecoration placement envelopes through
+`CaptureGroundContactPlan`: immutable, bounded and shared by subsequent ground
+and vegetation consumers. Definition/binding/placement changes reject capture;
+serialized contact receipts restore after scene reopen. They currently use
+conservative axis-aligned envelopes and do not include existing terrain trees
+or arbitrary scene objects. Actual painting/vegetation use is still pending.
+Contact source IDs and index budgets are retained in the recipe; missing older
+producer fields select documented defaults rather than inventing old placement
+parameters.
 
 ## Authoritative inputs
 

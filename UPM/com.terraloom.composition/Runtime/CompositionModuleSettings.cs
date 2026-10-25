@@ -200,16 +200,21 @@ namespace TerraLoom.Integration
     public sealed class DecorationRecipeParameters
     {
         public int SeedOffset=103;
+        public string ContactSourceId="decoration";
+        public float ContactCellSize=8;
+        public int MaximumContactCellReferences=1000000;
         public float Margin=4;
         public float MaximumSlope=40;
         internal static DecorationRecipeParameters Capture(RegionDecoration component) => new DecorationRecipeParameters {
-            SeedOffset=component.SeedOffset,
+            SeedOffset=component.SeedOffset,ContactSourceId=component.EffectiveContactSourceId,
+            ContactCellSize=component.ContactCellSize,MaximumContactCellReferences=component.MaximumContactCellReferences,
             Margin=component.Margin,
             MaximumSlope=component.MaximumSlope
         };
         internal void Apply(RegionDecoration component)
         {
-            component.SeedOffset=SeedOffset;
+            component.SeedOffset=SeedOffset;component.ContactSourceId=ContactSourceId??"decoration";
+            component.ContactCellSize=ContactCellSize;component.MaximumContactCellReferences=MaximumContactCellReferences;
             component.Margin=Margin;
             component.MaximumSlope=MaximumSlope;
         }

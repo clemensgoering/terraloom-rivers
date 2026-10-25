@@ -32,6 +32,29 @@ namespace TerraLoom.Tests
             }
             finally{Object.DestroyImmediate(go);}
         }
+        [Test] public void MeasuringVisualEnvelopeDoesNotTurnCrownIntoBody()
+        {
+            var root=new GameObject("Tree body and crown");
+            try
+            {
+                root.transform.position=new Vector3(-100,6,-75);root.transform.rotation=Quaternion.Euler(0,40,0);
+                root.transform.localScale=new Vector3(2,1,.7f);
+                var trunk=GameObject.CreatePrimitive(PrimitiveType.Cube);trunk.transform.SetParent(root.transform,false);
+                trunk.transform.localPosition=new Vector3(0,2,0);trunk.transform.localScale=new Vector3(.5f,4,.5f);
+                var crown=GameObject.CreatePrimitive(PrimitiveType.Cube);crown.transform.SetParent(root.transform,false);
+                crown.transform.localPosition=new Vector3(0,5,0);crown.transform.localScale=new Vector3(6,3,6);
+                var shape=root.AddComponent<LandscapeAssetShape>();
+                shape.PhysicalBody=new Bounds(new Vector3(0,2,0),new Vector3(.5f,4,.5f));
+                var body=shape.PhysicalBody;
+                var visual=TerraLoom.Core.Editor.LandscapeAssetShapeEditor.MeasureVisualEnvelope(shape);
+                Assert.That(visual.size.x,Is.InRange(6,6.001f));Assert.That(visual.size.z,Is.InRange(6,6.001f));
+                Assert.That(shape.PhysicalBody,Is.EqualTo(body));
+                shape.VisualEnvelope=visual;shape.Role=LandscapeAssetRole.Root;shape.UseExplicitBody=true;
+                Assert.DoesNotThrow(()=>shape.Validate());
+            }
+            finally{Object.DestroyImmediate(root);}
+        }
+
         [Test] public void UnreviewedOrInvalidShapesCannotClaimPhysicalClearance()
         {
             var go=new GameObject("Unreviewed shape");
