@@ -22,9 +22,9 @@ namespace TerraLoom.Integration.Editor
         private static ICompositionWorldRecipe SceneRecipe(TerraLoomIntegration composition) =>
             composition.GetComponents<MonoBehaviour>().OfType<ICompositionWorldRecipe>().FirstOrDefault();
         public override bool IncludesDecoration(Component component) => component is TerraLoomIntegration c &&
-            (SceneRecipe(c)?.IncludesDecoration == true || c.RecipeAsset && c.RecipeDecoration);
+            (SceneRecipe(c)?.IncludesDecoration == true || c.RecipeAsset);
         public override bool PreparesTerrain(Component component) => component is TerraLoomIntegration c &&
-            (SceneRecipe(c)?.PreparesTerrain == true || c.RecipeAsset && c.RecipeDecoration);
+            (SceneRecipe(c)?.PreparesTerrain == true || c.RecipeAsset);
 
         public override Component[] Find(TerraLoomWorld world) =>
             Object.FindObjectsByType<TerraLoomIntegration>(FindObjectsSortMode.None)

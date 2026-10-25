@@ -27,9 +27,15 @@ Capture/save and generate actions in the shipped Inspector use this contract.
 Supplied mode applies saved anchors, regions, connections and module settings
 to the existing source; it does not regenerate or repaint the original terrain.
 Failed preparation restores previous authoring settings and publication bindings.
-Bake outputs before saving the scene. A fully atomic first generated terrain
-bootstrap, optional single-module composition, recipe/scene override UI and
-broader fingerprints remain separate product gates.
+The first generated terrain is staged inactive until shared publication succeeds.
+A failed first build releases its owned terrain/data after downstream rollback,
+restores scene inputs, and allows a clean retry. With no regional profiles the
+generated source keeps its normal Core surface rather than requiring decoration.
+The Workbench delegates this bootstrap to the recipe even without decoration.
+
+Bake outputs before saving the scene. Optional single-module composition,
+recipe/scene override UI, Player deferred-destruction checks and broader
+fingerprints remain separate product gates.
 
 ## Install the historically tested package set
 

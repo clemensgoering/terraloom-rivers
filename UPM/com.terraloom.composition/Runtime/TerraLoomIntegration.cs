@@ -121,6 +121,11 @@ namespace TerraLoom.Integration
         {
             CompositionModuleSettings previous=null;
             bool accepted=false;
+            TerraLoomWorld.InitialTerrainPublication initialTerrain=null;
+            var previousTerrainRecipe=World?World.Recipe:default;
+            int previousResolution=World?World.Resolution:0;
+            var previousSize=World?World.TerrainSize:default;
+            float previousFrequency=World?World.Frequency:0;
             int previousSeed=World?World.Seed:0;
             bool previousSeedAnchors=World&&World.UseSeedAnchors;
             var previousAnchors=World?World.ManualAnchors:null;
@@ -159,10 +164,17 @@ namespace TerraLoom.Integration
                 {
                     var s=settings;
                     World.Seed=s.Seed;World.Recipe=s.TerrainRecipe;World.Resolution=s.Resolution;World.TerrainSize=s.Size;World.Frequency=s.Frequency;
-                    World.GenerateTerrain();
+                    if(ownedSourcePublication!=null)throw new InvalidOperationException("Clear retained source publication before creating an initial terrain.");
+                    initialTerrain=World.PrepareInitialTerrain();
+                    PublicationBoundary?.Invoke("initial-terrain-prepared");
+                    cancellation.ThrowIfCancellationRequested();
                 }
                 using(var request=recipe.Prepare(World,decoration,settings))accepted=GenerateSeedRequest(request,cancellation);
-                if(accepted&&World.Terrain)World.Terrain.materialTemplate=settings.Modules.Core.GeneratedTerrainMaterial;
+                if(accepted)
+                {
+                    initialTerrain?.Commit();
+                    if(World.Terrain)World.Terrain.materialTemplate=settings.Modules.Core.GeneratedTerrainMaterial;
+                }
                 return accepted;
             }
             catch(Exception ex)
@@ -176,7 +188,18 @@ namespace TerraLoom.Integration
                 // as well when preparation or publication fails; shared assets are never mutated.
                 if(!accepted&&previous!=null)
                 {
+                    if(initialTerrain!=null)
+                    {
+                        try
+                        {
+                            ownedSourcePublication?.Dispose();ownedSourcePublication=null;
+                            initialTerrain.Dispose();
+                        }
+                        catch(Exception cleanup){diagnostics+="\nInitial terrain cleanup failed: "+cleanup.Message;}
+                    }
                     previous.Apply(this,decoration);
+                    World.Recipe=previousTerrainRecipe;World.Resolution=previousResolution;
+                    World.TerrainSize=previousSize;World.Frequency=previousFrequency;
                     World.Seed=previousSeed;World.UseSeedAnchors=previousSeedAnchors;
                     World.ManualAnchors=previousAnchors;World.Areas=previousAreas;
                 }

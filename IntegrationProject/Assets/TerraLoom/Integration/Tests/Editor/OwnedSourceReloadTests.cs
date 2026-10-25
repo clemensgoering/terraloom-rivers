@@ -12,6 +12,93 @@ namespace TerraLoom.Tests
 {
     public sealed class OwnedSourceReloadTests
     {
+        [Test] public void FirstRecipeFailureReleasesBootstrapAndRetryPublishes()
+        {
+            var setup=EditorSceneManager.GetSceneManagerSetup();
+            CompositionRecipe saved=null;
+            try
+            {
+                EditorSceneManager.OpenScene("Assets/TerraLoom/Integration/Generated/TerraLoomDynamic.unity");
+                var demo=UnityEngine.Object.FindFirstObjectByType<SeededWorldDemo>();
+                Assert.That(demo.Rebuild(),Is.True,demo.Diagnostics);
+                saved=ScriptableObject.CreateInstance<CompositionRecipe>();
+                saved.hideFlags=HideFlags.HideAndDontSave;
+                saved.CaptureFrom(demo.Composition,null);
+                // A real river and a short dry path: no crossing authority is implied by this fixture.
+                var west=saved.Settings.Anchors.Single(a=>a.Id=="west");
+                var east=saved.Settings.Anchors.Single(a=>a.Id=="east");
+                east.Position=west.Position+new Vector3(0,0,8);
+                saved.Settings.Modules.Paths.MaximumSlope=.8f;
+                EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
+                var host=new GameObject("First recipe publication");
+                var world=host.AddComponent<TerraLoom.Core.Unity.TerraLoomWorld>();
+                world.WorldId="first-recipe-transaction";
+                var paths=host.AddComponent<TerraLoom.Paths.Unity.TerraLoomPaths>();paths.World=world;
+                var rivers=host.AddComponent<TerraLoom.Rivers.Unity.TerraLoomRivers>();rivers.World=world;
+                var c=host.AddComponent<TerraLoomIntegration>();c.World=world;c.Paths=paths;c.Rivers=rivers;
+                c.RecipeAsset=saved;
+                var workbench=new TerraLoom.Integration.Editor.CompositionWorldEditorExtension();
+                Assert.That(workbench.PreparesTerrain(c),Is.True,"Workbench must not bootstrap outside the recipe transaction.");
+                Assert.That(workbench.IncludesDecoration(c),Is.True,"Zero-decoration recipe owns decoration invalidation too.");
+                int seed=world.Seed,resolution=world.Resolution;var size=world.TerrainSize;
+                var recipe=world.Recipe;float frequency=world.Frequency;
+                var anchors=world.ManualAnchors;var regions=world.Areas;
+                var oldPaths=paths.Connections;var oldRivers=rivers.Connections;
+                var dataIds=Resources.FindObjectsOfTypeAll<TerrainData>().Select(x=>x.GetInstanceID()).OrderBy(x=>x).ToArray();
+                var meshIds=Resources.FindObjectsOfTypeAll<Mesh>().Select(x=>x.GetInstanceID()).OrderBy(x=>x).ToArray();
+                var objectIds=Resources.FindObjectsOfTypeAll<GameObject>().Where(x=>x.scene==host.scene).Select(x=>x.GetInstanceID()).OrderBy(x=>x).ToArray();
+                void AssertEmpty()
+                {
+                    Assert.That(world.Terrain,Is.Null);Assert.That(world.OwnsTerrain,Is.False);
+                    Assert.That(paths.GeneratedRoot,Is.Null);Assert.That(rivers.GeneratedRoot,Is.Null);
+                    Assert.That(rivers.WaterSurfaceQuery,Is.Null);Assert.That(c.PublishedSharedInput,Is.Null);
+                    Assert.That(c.RecipeAsset,Is.SameAs(saved));
+                    Assert.That(world.Seed,Is.EqualTo(seed));Assert.That(world.Resolution,Is.EqualTo(resolution));
+                    Assert.That(world.TerrainSize,Is.EqualTo(size));Assert.That(world.Recipe,Is.EqualTo(recipe));
+                    Assert.That(world.Frequency,Is.EqualTo(frequency));
+                    Assert.That(world.ManualAnchors,Is.SameAs(anchors));Assert.That(world.Areas,Is.SameAs(regions));
+                    Assert.That(paths.Connections,Is.SameAs(oldPaths));Assert.That(rivers.Connections,Is.SameAs(oldRivers));
+                    Assert.That(Resources.FindObjectsOfTypeAll<TerrainData>().Select(x=>x.GetInstanceID()).OrderBy(x=>x),Is.EqualTo(dataIds));
+                    Assert.That(Resources.FindObjectsOfTypeAll<Mesh>().Select(x=>x.GetInstanceID()).OrderBy(x=>x),Is.EqualTo(meshIds));
+                    Assert.That(Resources.FindObjectsOfTypeAll<GameObject>().Where(x=>x.scene==host.scene).Select(x=>x.GetInstanceID()).OrderBy(x=>x),Is.EqualTo(objectIds));
+                }
+                foreach(var boundary in new[]{"initial-terrain-prepared","source-prepared","river-prepared","before-commit","river-bound","all-bound"})
+                {
+                    c.PublicationBoundary=stage=>{
+                        if(stage=="initial-terrain-prepared")Assert.That(world.Terrain.gameObject.activeSelf,Is.False);
+                        if(stage==boundary)throw new InvalidOperationException("First build failure "+boundary);
+                    };
+                    Assert.That(c.GenerateRecipe(saved,null),Is.False);
+                    StringAssert.Contains("First build failure",c.Diagnostics);
+                    c.PublicationBoundary=null;AssertEmpty();
+                }
+                using(var cancelled=new System.Threading.CancellationTokenSource())
+                {
+                    c.PublicationBoundary=stage=>{if(stage=="source-prepared")cancelled.Cancel();};
+                    Assert.That(c.GenerateRecipe(saved,null,cancelled.Token),Is.False);
+                    c.PublicationBoundary=null;AssertEmpty();
+                }
+                int validResolution=saved.Settings.Resolution;saved.Settings.Resolution=30;
+                Assert.That(c.GenerateRecipe(saved,null),Is.False);AssertEmpty();
+                saved.Settings.Resolution=validResolution;
+                workbench.Generate(c);
+                Assert.That(world.OwnsTerrain,Is.True);Assert.That(world.Terrain.gameObject.activeSelf,Is.True);
+                Assert.That(c.ValidateCurrent(out var reason),Is.True,reason);
+                Assert.That(paths.LastPlan.Routes.Count,Is.EqualTo(1));Assert.That(rivers.LastPlan.Routes.Count,Is.EqualTo(1));
+                Assert.That(world.Terrain.GetComponent<TerrainCollider>().terrainData,Is.SameAs(world.Terrain.terrainData));
+                c.Clear();
+                var initial=world.Terrain.terrainData;
+                UnityEngine.Object.DestroyImmediate(world.Terrain.gameObject);
+                UnityEngine.Object.DestroyImmediate(initial);
+            }
+            finally
+            {
+                if(saved)UnityEngine.Object.DestroyImmediate(saved);
+                if(setup.Any(s=>s.isLoaded&&s.isActive&&!string.IsNullOrEmpty(s.path)))EditorSceneManager.RestoreSceneManagerSetup(setup);
+                else EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
+            }
+        }
+
         [Test] public void BakedOwnedSeedWorldReopensWithSourceAndCarveBindings()
         {
             const string folder="Assets/TerraLoomAtomicReloadTest";

@@ -61,7 +61,8 @@ namespace TerraLoom.Integration
             var terrain=world.CreateGeneratedTerrainData(s.Seed,s.TerrainRecipe,s.Resolution,s.Size,s.Frequency);
             try
             {
-                RegionSurfacePainter.PaintUnboundTerrain(world,terrain,s.DecorationProfiles,s.Regions);
+                if(s.DecorationProfiles.Length>0)
+                    RegionSurfacePainter.PaintUnboundTerrain(world,terrain,s.DecorationProfiles,s.Regions);
                 return new PreparedSeededWorldRequest(terrain,s.Seed,s.TerrainRecipe,s.Resolution,s.Size,s.Frequency,
                     s.Anchors,s.Regions,s.Rivers,s.Paths,s.DecorationProfiles,s.DecorationCount,s.ProfileSelection,0,decoration);
             }
