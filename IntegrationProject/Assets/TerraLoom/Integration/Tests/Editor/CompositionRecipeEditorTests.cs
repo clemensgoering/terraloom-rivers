@@ -12,6 +12,56 @@ namespace TerraLoom.Tests
 {
     public sealed class CompositionRecipeEditorTests
     {
+        [Test] public void SuppliedRecipeStagesDecorationAndRejectsConcurrentRecipeEdits()
+        {
+            var setup=EditorSceneManager.GetSceneManagerSetup();
+            CompositionRecipe recipe=null;
+            try
+            {
+                EditorSceneManager.OpenScene("Assets/TerraLoom/Integration/Generated/TerraLoomIntegration.unity");
+                var c=Object.FindFirstObjectByType<TerraLoomIntegration>();
+                var decoration=c.World.GetComponent<TerraLoom.Core.Unity.RegionDecoration>();
+                Assert.That(c.Generate(),Is.True,c.Diagnostics);
+                recipe=ScriptableObject.CreateInstance<CompositionRecipe>();recipe.CaptureFrom(c,decoration);
+                Assert.That(recipe.Settings.TerrainSource,Is.EqualTo(CompositionTerrainSource.Supplied));
+                Assert.That(c.GenerateRecipe(recipe,decoration),Is.True,c.Diagnostics);
+                Assert.That(decoration.GeneratedRoot,Is.Not.Null);Assert.That(decoration.PlacedCount,Is.GreaterThan(0));
+                var oldData=c.World.Terrain.terrainData;var oldRiver=c.Rivers.GeneratedRoot;var oldPath=c.Paths.GeneratedRoot;
+                var oldQuery=c.Rivers.WaterSurfaceQuery;var oldNature=decoration.GeneratedRoot;int oldSeed=c.World.Seed;
+                foreach(var stage in new[]{"decoration-prepared","all-bound"})
+                {
+                    int seed=recipe.Settings.Seed;
+                    c.PublicationBoundary=boundary=>{if(boundary==stage)recipe.Settings.Seed++;};
+                    Assert.That(c.GenerateRecipe(recipe,decoration),Is.False);
+                    StringAssert.Contains("Recipe inputs changed",c.Diagnostics);
+                    c.PublicationBoundary=null;
+                    Assert.That(c.World.Seed,Is.EqualTo(oldSeed));
+                    Assert.That(c.World.Terrain.terrainData,Is.SameAs(oldData));
+                    Assert.That(c.World.Terrain.GetComponent<TerrainCollider>().terrainData,Is.SameAs(oldData));
+                    Assert.That(c.Rivers.GeneratedRoot,Is.SameAs(oldRiver));Assert.That(c.Paths.GeneratedRoot,Is.SameAs(oldPath));
+                    Assert.That(c.Rivers.WaterSurfaceQuery,Is.SameAs(oldQuery));Assert.That(decoration.GeneratedRoot,Is.SameAs(oldNature));
+                    Assert.That(c.ValidateCurrent(out var reason),Is.True,reason);
+                    recipe.Settings.Seed=seed;
+                }
+                // A failed seed switch restores the published identity as well as decoration.
+                recipe.Settings.Seed++;
+                c.PublicationBoundary=stage=>{if(stage=="before-commit")throw new InvalidOperationException("Seed switch rollback");};
+                Assert.That(c.GenerateRecipe(recipe,decoration),Is.False);
+                StringAssert.Contains("Seed switch rollback",c.Diagnostics);
+                c.PublicationBoundary=null;
+                Assert.That(c.World.Seed,Is.EqualTo(oldSeed));Assert.That(decoration.GeneratedRoot,Is.SameAs(oldNature));
+                Assert.That(c.GenerateRecipe(recipe,decoration),Is.True,c.Diagnostics);
+                Assert.That(c.World.Seed,Is.EqualTo(recipe.Settings.Seed));
+                Assert.That(c.ValidateCurrent(out var current),Is.True,current);
+            }
+            finally
+            {
+                if(recipe)Object.DestroyImmediate(recipe);
+                if(setup.Any(s=>s.isLoaded&&s.isActive&&!string.IsNullOrEmpty(s.path)))EditorSceneManager.RestoreSceneManagerSetup(setup);
+                else EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
+            }
+        }
+
         [Test] public void ConfiguredBuildRejectsCompetingRecipesBeforeMutation()
         {
             var setup=EditorSceneManager.GetSceneManagerSetup();

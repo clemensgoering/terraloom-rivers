@@ -27,6 +27,9 @@ Capture/save and generate actions in the shipped Inspector use this contract.
 Supplied mode applies saved anchors, regions, connections and module settings
 to the existing source; it does not regenerate or repaint the original terrain.
 Failed preparation restores previous authoring settings and publication bindings.
+Recipe-backed preparation freezes its inputs and checks the asset again before
+binding and before sealing publication. Concurrent recipe edits reject that attempt;
+the new asset edits remain available for the next build.
 The first generated terrain is staged inactive until shared publication succeeds.
 A failed first build releases its owned terrain/data after downstream rollback,
 restores scene inputs, and allows a clean retry. With no regional profiles the

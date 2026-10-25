@@ -190,6 +190,12 @@ namespace TerraLoom.Integration
             {
                 if(!recipe)throw new InvalidOperationException("Assign a composition recipe asset.");
                 var settings=recipe.Snapshot();cancellation.ThrowIfCancellationRequested();
+                int recipeSchema=recipe.SchemaVersion;
+                string recipeInputs=JsonUtility.ToJson(recipe.Settings);
+                Action validateRecipe=()=>{
+                    if(!recipe||recipe.SchemaVersion!=recipeSchema||JsonUtility.ToJson(recipe.Settings)!=recipeInputs)
+                        throw new InvalidOperationException("Recipe inputs changed during preparation; rebuild from the new recipe.");
+                };
                 if(!World||!Paths||!Rivers||Paths.World!=World||Rivers.World!=World||(decoration&&decoration.World!=World))
                     throw new InvalidOperationException("Assign Core, Paths, Rivers and optional decoration bound to the same world.");
                 if(settings.TerrainSource==CompositionTerrainSource.Supplied)
@@ -213,7 +219,10 @@ namespace TerraLoom.Integration
                         settings.Resolution,settings.Size,settings.Frequency,settings.Anchors,settings.Regions,
                         settings.Rivers,settings.Paths,settings.DecorationProfiles,settings.DecorationCount,
                         settings.ProfileSelection,0,decoration))
+                    {
+                        request.ValidateAuthoring=validateRecipe;
                         accepted=GenerateCore(null,cancellation,request);
+                    }
                     return accepted;
                 }
                 if(!World.Terrain)
@@ -225,7 +234,11 @@ namespace TerraLoom.Integration
                     PublicationBoundary?.Invoke("initial-terrain-prepared");
                     cancellation.ThrowIfCancellationRequested();
                 }
-                using(var request=recipe.Prepare(World,decoration,settings))accepted=GenerateSeedRequest(request,cancellation);
+                using(var request=recipe.Prepare(World,decoration,settings))
+                {
+                    request.ValidateAuthoring=validateRecipe;
+                    accepted=GenerateSeedRequest(request,cancellation);
+                }
                 if(accepted)
                 {
                     initialTerrain?.Commit();
@@ -423,6 +436,7 @@ namespace TerraLoom.Integration
                     }
                     PublicationBoundary?.Invoke("before-commit");
                     cancellation.ThrowIfCancellationRequested();
+                    request?.ValidateAuthoring?.Invoke();
                     var current=CaptureSource(out var liveBounds,out var liveGraph,source,requestedPaths,requestedRivers);
                     if(current.Identity.InputFingerprint!=input.Identity.InputFingerprint
                         ||RiverPlanner.ProfileVersion(Rivers.CaptureProfile(source?.Data),liveBounds,Requests(current,requestedRivers))!=plannedRiverProfile
@@ -443,6 +457,7 @@ namespace TerraLoom.Integration
                         PublicationBoundary?.Invoke("source-bound");cancellation.ThrowIfCancellationRequested();
                     }
                     PublicationBoundary?.Invoke("all-bound");
+                    cancellation.ThrowIfCancellationRequested();request?.ValidateAuthoring?.Invoke();
                     if(preparedDecoration!=null)
                     {
                         preparedDecoration.Commit();
