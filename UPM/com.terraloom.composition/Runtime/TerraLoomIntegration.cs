@@ -11,6 +11,8 @@ using UnityEngine;
 
 namespace TerraLoom.Integration
 {
+    public enum CompositionInputSource { Automatic=0, SavedRecipe=1, SceneRecipe=2, ComponentSettings=3 }
+
     /// <summary>Optional shared publication host. Core, Paths and Rivers remain independent packages.</summary>
     [ExecuteAlways]
     [DefaultExecutionOrder(300)]
@@ -19,6 +21,8 @@ namespace TerraLoom.Integration
         public TerraLoomWorld World;
         public TerraLoomPaths Paths;
         public TerraLoomRivers Rivers;
+        [Tooltip("Choose the authoritative inputs. Automatic refuses competing saved and scene recipes.")]
+        public CompositionInputSource InputSource;
         public CompositionRecipe RecipeAsset;
         public RegionDecoration RecipeDecoration;
         public bool GenerateOnStart;
@@ -104,7 +108,7 @@ namespace TerraLoom.Integration
             if(Paths)Paths.GenerateOnStart=false;
             if(Rivers)Rivers.GenerateOnStart=false;
         }
-        private void Start() { if(Application.isPlaying && GenerateOnStart && !(RecipeAsset?GenerateRecipe(RecipeAsset,RecipeDecoration):Generate())) Debug.LogError(diagnostics,this); }
+        private void Start() { if(Application.isPlaying && GenerateOnStart && !RebuildConfiguredWorld()) Debug.LogError(diagnostics,this); }
         private void OnDestroy()
         {
             // The host owns the publication's lifetime. Disabling it is temporary and must
@@ -113,6 +117,58 @@ namespace TerraLoom.Integration
             try{Clear();}
             catch(Exception ex){Debug.LogException(ex,this);}
         }
+        /// <summary>Read-only source resolution shared by Runtime and the Workbench.
+        /// Ambiguous authoring never silently overrides another recipe.</summary>
+        public CompositionInputSource ResolveConfiguredSource()
+        {
+            if(!Enum.IsDefined(typeof(CompositionInputSource),InputSource))
+                throw new InvalidOperationException("Unknown composition input source.");
+            if(InputSource==CompositionInputSource.ComponentSettings)return InputSource;
+            if(InputSource==CompositionInputSource.SavedRecipe)
+            {
+                if(!RecipeAsset)throw new InvalidOperationException("Saved Recipe is selected; assign its Composition Recipe asset.");
+                return InputSource;
+            }
+            var scenes=GetComponents<MonoBehaviour>().OfType<ICompositionWorldRecipe>().ToArray();
+            if(scenes.Length>1)throw new InvalidOperationException("Several scene recipes are attached. Keep one scene recipe or explicitly select Saved Recipe or Component Settings.");
+            if(InputSource==CompositionInputSource.SceneRecipe)
+            {
+                if(scenes.Length!=1)throw new InvalidOperationException("Scene Recipe is selected; attach one ICompositionWorldRecipe to this host.");
+                return InputSource;
+            }
+            if(RecipeAsset&&scenes.Length>0)
+                throw new InvalidOperationException("Saved Recipe and Scene Recipe are both present. Select the authoritative Input Source before generating.");
+            return RecipeAsset?CompositionInputSource.SavedRecipe:scenes.Length>0?CompositionInputSource.SceneRecipe:CompositionInputSource.ComponentSettings;
+        }
+
+        public ICompositionWorldRecipe ConfiguredSceneRecipe =>
+            ResolveConfiguredSource()==CompositionInputSource.SceneRecipe
+                ?GetComponents<MonoBehaviour>().OfType<ICompositionWorldRecipe>().Single():null;
+
+        /// <summary>The configured primary build action. Explicit Generate/GenerateRecipe APIs
+        /// remain available to callers that already chose their input source.</summary>
+        public bool RebuildConfiguredWorld(CancellationToken cancellation=default)
+        {
+            try
+            {
+                cancellation.ThrowIfCancellationRequested();
+                switch(ResolveConfiguredSource())
+                {
+                    case CompositionInputSource.SavedRecipe: return GenerateRecipe(RecipeAsset,RecipeDecoration,cancellation);
+                    case CompositionInputSource.SceneRecipe:
+                        var scene=ConfiguredSceneRecipe;
+                        if(scene.RebuildWorld())return true;
+                        throw new InvalidOperationException(scene.WorldDiagnostics);
+                    default: return World&&World.OwnsTerrain?GenerateOwnedSource(cancellation):Generate(cancellation);
+                }
+            }
+            catch(Exception ex)
+            {
+                generationState=ex is OperationCanceledException?GenerationRunState.Cancelled:GenerationRunState.Failed;
+                activeStep="configuration";diagnostics=ex.Message;return false;
+            }
+        }
+
         public bool Generate(CancellationToken cancellation = default) => GenerateCore(null,cancellation);
 
         /// <summary>Reconstructs source inputs from a versioned asset using the shared prepared publication.

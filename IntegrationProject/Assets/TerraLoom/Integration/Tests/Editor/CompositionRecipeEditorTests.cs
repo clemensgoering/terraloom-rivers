@@ -12,6 +12,51 @@ namespace TerraLoom.Tests
 {
     public sealed class CompositionRecipeEditorTests
     {
+        [Test] public void ConfiguredBuildRejectsCompetingRecipesBeforeMutation()
+        {
+            var setup=EditorSceneManager.GetSceneManagerSetup();
+            CompositionRecipe saved=null;
+            try
+            {
+                EditorSceneManager.OpenScene("Assets/TerraLoom/Integration/Generated/TerraLoomDynamic.unity");
+                var demo=Object.FindFirstObjectByType<SeededWorldDemo>();
+                Assert.That(demo.Rebuild(),Is.True,demo.Diagnostics);
+                var c=demo.Composition;
+                saved=ScriptableObject.CreateInstance<CompositionRecipe>();saved.CaptureFrom(c,demo.Decoration);
+                c.RecipeAsset=saved;c.RecipeDecoration=demo.Decoration;
+                var data=c.World.Terrain.terrainData;var river=c.Rivers.GeneratedRoot;var path=c.Paths.GeneratedRoot;
+                var query=c.Rivers.WaterSurfaceQuery;
+                c.InputSource=CompositionInputSource.Automatic;
+                Assert.That(c.RebuildConfiguredWorld(),Is.False);
+                StringAssert.Contains("both present",c.Diagnostics);
+                Assert.That(c.World.Terrain.terrainData,Is.SameAs(data));
+                Assert.That(c.Rivers.GeneratedRoot,Is.SameAs(river));Assert.That(c.Paths.GeneratedRoot,Is.SameAs(path));
+                Assert.That(c.Rivers.WaterSurfaceQuery,Is.SameAs(query));
+                Assert.That(c.ValidateCurrent(out var reason),Is.True,reason);
+                var workbench=new CompositionWorldEditorExtension();
+                Assert.Throws<InvalidOperationException>(()=>workbench.PreparesTerrain(c));
+                c.InputSource=CompositionInputSource.SavedRecipe;
+                Assert.That(workbench.PreparesTerrain(c),Is.True);
+                float width=saved.Settings.Modules.Paths.Width;c.Paths.Width=9;
+                workbench.Generate(c);
+                Assert.That(c.Paths.Width,Is.EqualTo(width));
+                Assert.That(c.ValidateCurrent(out reason),Is.True,reason);
+                c.InputSource=CompositionInputSource.SceneRecipe;
+                Assert.That(c.ConfiguredSceneRecipe,Is.SameAs(demo));
+                c.RecipeAsset=null;c.InputSource=CompositionInputSource.SavedRecipe;
+                data=c.World.Terrain.terrainData;
+                Assert.That(c.RebuildConfiguredWorld(),Is.False);
+                StringAssert.Contains("assign",c.Diagnostics);
+                Assert.That(c.World.Terrain.terrainData,Is.SameAs(data));
+            }
+            finally
+            {
+                if(saved)Object.DestroyImmediate(saved);
+                if(setup.Any(s=>s.isLoaded&&s.isActive&&!string.IsNullOrEmpty(s.path)))EditorSceneManager.RestoreSceneManagerSetup(setup);
+                else EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
+            }
+        }
+
         [Test] public void PackageInspectorCapturesNewAssetAndGeneratesFromSavedSettings()
         {
             const string folder="Assets/TerraLoomRecipeEditorConsumerTest";

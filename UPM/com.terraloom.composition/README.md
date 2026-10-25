@@ -37,6 +37,22 @@ Bake outputs before saving the scene. Optional single-module composition,
 recipe/scene override UI, Player deferred-destruction checks and broader
 fingerprints remain separate product gates.
 
+## Authoritative inputs
+
+The Workbench and Runtime startup use `RebuildConfiguredWorld`. Choose
+`InputSource`: Automatic, SavedRecipe, SceneRecipe or ComponentSettings.
+Automatic chooses only an unambiguous source. If a saved asset and a scene
+recipe are both attached, generation fails before mutation and asks you to
+choose. Missing explicitly selected sources also fail rather than falling back.
+Direct `GenerateRecipe` and `Generate` remain explicit low-level entry points.
+
+The shared Workbench section shows the effective input source, saved-recipe
+navigation and last attempt diagnostics; technical bindings are collapsed.
+A last successful attempt is not a freshness certificate after editing inputs.
+Scene values are not implicit overrides of a saved recipe. Full override
+editing, dependency explanations and guided source/style/target authoring
+remain in progress.
+
 ## Install the historically tested package set
 
 Add these four entries to `Packages/manifest.json`. These exact Git revisions

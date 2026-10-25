@@ -19,12 +19,18 @@ namespace TerraLoom.Integration.Editor
         public override int Order => 10;
         public override Color Color => new Color(.7f, .6f, 1f);
         public override bool CoordinatesGeometry => true;
-        private static ICompositionWorldRecipe SceneRecipe(TerraLoomIntegration composition) =>
-            composition.GetComponents<MonoBehaviour>().OfType<ICompositionWorldRecipe>().FirstOrDefault();
-        public override bool IncludesDecoration(Component component) => component is TerraLoomIntegration c &&
-            (SceneRecipe(c)?.IncludesDecoration == true || c.RecipeAsset);
-        public override bool PreparesTerrain(Component component) => component is TerraLoomIntegration c &&
-            (SceneRecipe(c)?.PreparesTerrain == true || c.RecipeAsset);
+        public override bool IncludesDecoration(Component component)
+        {
+            var c=(TerraLoomIntegration)component;
+            return c.ResolveConfiguredSource()==CompositionInputSource.SavedRecipe
+                || c.ConfiguredSceneRecipe?.IncludesDecoration==true;
+        }
+        public override bool PreparesTerrain(Component component)
+        {
+            var c=(TerraLoomIntegration)component;
+            return c.ResolveConfiguredSource()==CompositionInputSource.SavedRecipe
+                || c.ConfiguredSceneRecipe?.PreparesTerrain==true;
+        }
 
         public override Component[] Find(TerraLoomWorld world) =>
             Object.FindObjectsByType<TerraLoomIntegration>(FindObjectsSortMode.None)
@@ -58,23 +64,27 @@ namespace TerraLoom.Integration.Editor
             if(!composition.World||!composition.Paths||!composition.Rivers||
                composition.Paths.World!=composition.World||composition.Rivers.World!=composition.World)
                 throw new InvalidOperationException("Shared generation needs Core, Rivers and Paths bound to this world.");
-            var sceneRecipe=SceneRecipe(composition);
-            if(sceneRecipe!=null)
-            {
-                if(!sceneRecipe.RebuildWorld())throw new InvalidOperationException(sceneRecipe.WorldDiagnostics);
-            }
-            else if (composition.RecipeAsset)
-                IntegrationEditor.GenerateSavedRecipe(composition);
-            else if (composition.World && composition.World.OwnsTerrain)
-            {
-                if (!composition.GenerateOwnedSource()) throw new InvalidOperationException(composition.Diagnostics);
-            }
-            else
-                IntegrationEditor.GenerateOnSuppliedTerrain(composition);
+            if(!composition.RebuildConfiguredWorld())throw new InvalidOperationException(composition.Diagnostics);
             EditorUtility.SetDirty(composition);
         }
 
-        public override void DrawInspector(Component component) => WorldWorkbenchGUI.DrawComponentInspector(component);
+        public override void DrawInspector(Component component)
+        {
+            var c=(TerraLoomIntegration)component;
+            EditorGUILayout.LabelField("Effective world inputs",EditorStyles.boldLabel);
+            var chosen=(CompositionInputSource)EditorGUILayout.EnumPopup("Input source",c.InputSource);
+            if(chosen!=c.InputSource){Undo.RecordObject(c,"Choose world input source");c.InputSource=chosen;EditorUtility.SetDirty(c);}
+            try{EditorGUILayout.HelpBox("Build uses: "+c.ResolveConfiguredSource()+". Saved recipes apply their own settings; component edits are not recipe overrides.",MessageType.Info);}
+            catch(Exception ex){EditorGUILayout.HelpBox(ex.Message,MessageType.Error);}
+            if(c.RecipeAsset&&GUILayout.Button("Open saved recipe"))Selection.activeObject=c.RecipeAsset;
+            EditorGUILayout.LabelField("Last build attempt",c.GenerationState+" (not an output freshness check)");
+            if(!string.IsNullOrEmpty(c.Diagnostics))EditorGUILayout.HelpBox(c.Diagnostics,
+                c.GenerationState==TerraLoom.Core.GenerationRunState.Failed?MessageType.Warning:MessageType.None);
+            bool details=SessionState.GetBool("TerraLoom.Composition.Advanced."+c.GetInstanceID(),false);
+            details=EditorGUILayout.Foldout(details,"Bindings and advanced settings",true);
+            SessionState.SetBool("TerraLoom.Composition.Advanced."+c.GetInstanceID(),details);
+            if(details)WorldWorkbenchGUI.DrawComponentInspector(component);
+        }
 
         public override bool CanDetach(Component component, out string reason)
         {
