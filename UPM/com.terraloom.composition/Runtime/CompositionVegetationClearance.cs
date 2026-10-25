@@ -57,7 +57,10 @@ namespace TerraLoom.Integration
                 if(tree.prototypeIndex<0||tree.prototypeIndex>=footprints.Length)
                     throw new InvalidOperationException("Terrain tree prototype index is invalid.");
                 var point=new Vector2(origin.x+tree.position.x*target.size.x,origin.z+tree.position.z*target.size.z);
-                float extent=footprints[tree.prototypeIndex]*tree.widthScale;
+                var descriptor=prototypes[tree.prototypeIndex].prefab.GetComponent<TerraLoom.Core.Unity.LandscapeAssetShape>();
+                float extent=descriptor&&descriptor.UseExplicitBody
+                    ?descriptor.TerrainTreeClearanceRadius(tree.widthScale,tree.heightScale)
+                    :footprints[tree.prototypeIndex]*tree.widthScale;
                 if(!Intersects(point,extent,corridors))kept.Add(tree);
             }
             if(kept.Count!=oldTrees.Length)target.SetTreeInstances(kept.ToArray(),false);
@@ -101,6 +104,8 @@ namespace TerraLoom.Integration
         private static float Footprint(GameObject prefab)
         {
             if(!prefab)throw new InvalidOperationException("Terrain tree prototype has no prefab; its footprint cannot be measured.");
+            var descriptor=prefab.GetComponent<TerraLoom.Core.Unity.LandscapeAssetShape>();
+            if(descriptor&&descriptor.UseExplicitBody)return descriptor.TerrainTreeClearanceRadius(1,1);
             float radius=0;bool found=false;
             foreach(var filter in prefab.GetComponentsInChildren<MeshFilter>(true))
             {

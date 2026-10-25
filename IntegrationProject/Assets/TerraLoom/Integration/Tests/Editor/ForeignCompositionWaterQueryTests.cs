@@ -70,9 +70,17 @@ namespace TerraLoom.Tests
                 var detail=new int[32,32];for(int z=0;z<32;z++)for(int x=0;x<32;x++)detail[z,x]=3;
                 source.SetDetailLayer(0,0,0,detail);
                 var treeObject=GameObject.CreatePrimitive(PrimitiveType.Cube);
+                treeObject.transform.localScale=new Vector3(.5f,4,.5f);
+                var canopy=GameObject.CreatePrimitive(PrimitiveType.Cube);
+                Object.DestroyImmediate(canopy.GetComponent<Collider>());
+                canopy.transform.SetParent(treeObject.transform,false);canopy.transform.localPosition=new Vector3(0,1,0);
+                canopy.transform.localScale=new Vector3(40,1,40);
+                var body=treeObject.AddComponent<LandscapeAssetShape>();body.UseExplicitBody=true;body.Role=LandscapeAssetRole.Root;
+                body.PhysicalBody=new Bounds(Vector3.zero,Vector3.one);
+                body.VisualEnvelope=new Bounds(new Vector3(0,.75f,0),new Vector3(40,2.5f,40));
                 var treePrefab=PrefabUtility.SaveAsPrefabAsset(treeObject,run+"/Tree.prefab");Object.DestroyImmediate(treeObject);
                 source.treePrototypes=new[]{new TreePrototype{prefab=treePrefab}};
-                source.treeInstances=new[]{new TreeInstance{prototypeIndex=0,position=new Vector3(.5f,.2f,.5f),widthScale=1,heightScale=1,color=Color.white,lightmapColor=Color.white}};
+                source.treeInstances=new[]{new TreeInstance{prototypeIndex=0,position=new Vector3(.6f,.2f,.5f),widthScale=1,heightScale=1,color=Color.white,lightmapColor=Color.white}};
                 var trees=source.treeInstances;
                 var original=source.GetHeights(0,0,129,129);
                 var terrain=Terrain.CreateTerrainGameObject(source).GetComponent<Terrain>();
@@ -113,7 +121,13 @@ namespace TerraLoom.Tests
                     Assert.That(recipe.SchemaVersion,Is.EqualTo(3));
                     Assert.That(recipe.Settings.TerrainSource,Is.EqualTo(CompositionTerrainSource.Supplied));
                     Assert.That(recipe.Settings.DecorationCount,Is.Zero);
+                    var reviewedBody=treePrefab.GetComponent<LandscapeAssetShape>();
+                    reviewedBody.UseExplicitBody=false;
                     Assert.That(composition.GenerateRecipe(recipe,null),Is.True,composition.Diagnostics);
+                    Assert.That(rivers.CarvedTerrainData.treeInstanceCount,Is.Zero,"The legacy crown envelope must reproduce the over-clearance.");
+                    reviewedBody.UseExplicitBody=true;EditorUtility.SetDirty(reviewedBody);
+                    Assert.That(composition.GenerateRecipe(recipe,null),Is.True,composition.Diagnostics);
+                    Assert.That(rivers.CarvedTerrainData.treeInstanceCount,Is.EqualTo(1),"A clear physical trunk must survive its overhanging crown.");
                     foreach(var boundary in new[]{"river-prepared","before-commit","river-bound","all-bound"})
                     {
                         var oldData=terrain.terrainData;var oldQuery=rivers.WaterSurfaceQuery;

@@ -1,4 +1,4 @@
-# TerraLoom Composition 0.6.0
+# TerraLoom Composition 0.7.0
 
 Composition is an optional UPM host for projects that use TerraLoom Core, Paths
 and Rivers together. The packages retain their independent dependencies;
@@ -40,6 +40,20 @@ Bake outputs before saving the scene. Optional single-module composition,
 recipe/scene override UI, Player deferred-destruction checks and broader
 fingerprints remain separate product gates.
 
+## Reviewed asset bodies (development)
+
+Core 0.4.0 provides `LandscapeAssetShape` with distinct physical body, ground
+contact and visual envelopes, plus a neutral immutable `AssetShapeSnapshot`.
+Bounds use prefab-root coordinates; capture projects the complete final
+transform to conservative world XZ envelopes. Contact feather is in world
+metres. These data do not create colliders or certify vertical support.
+
+Terrain-tree clearance uses an explicitly reviewed root descriptor instead of
+the visual crown. Invalid reviewed data rejects generation; unreviewed assets
+retain the conservative legacy mesh measurement. This first body adapter does
+not yet change detail-layer clearing or apply a shared soil/vegetation contact
+mask. Existing art does not become reviewed just by installing the component.
+
 ## Authoritative inputs
 
 The Workbench and Runtime startup use `RebuildConfiguredWorld`. Choose
@@ -80,8 +94,9 @@ floating branches or unrelated package revisions.
 }
 ```
 
-Composition 0.6.0 targets Unity 6000.3 and depends on Core, Paths and Rivers
-0.3.0. The Git pins above are the tested installation set, not a claim that
+The development checkout Composition 0.7.0 targets Unity 6000.3 and depends on
+Core 0.4.0, Paths 0.3.0 and Rivers 0.4.0. The dated installation pins above
+predate these versions; they do not distribute the new Core asset-shape contract. The Git pins above are the tested installation set, not a claim that
 other Unity versions or render pipelines have been qualified.
 The isolated consumer recipe test confirmed that Unity selects the package
 Inspector, missing Bridge Material prevents asset creation, and a saved recipe
