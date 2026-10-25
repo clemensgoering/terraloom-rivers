@@ -48,7 +48,14 @@ namespace TerraLoom.Integration
 
             var prototypes=target.treePrototypes;
             var footprints=new float[prototypes.Length];
-            for(int i=0;i<prototypes.Length;i++)footprints[i]=Footprint(prototypes[i].prefab);
+            var reviewedBodies=new bool[prototypes.Length];
+            for(int i=0;i<prototypes.Length;i++)
+            {
+                var prefab=prototypes[i].prefab;
+                var descriptor=prefab?prefab.GetComponent<TerraLoom.Core.Unity.LandscapeAssetShape>():null;
+                reviewedBodies[i]=descriptor&&descriptor.UseExplicitBody;
+                footprints[i]=Footprint(prefab);
+            }
             var oldTrees=target.treeInstances;
             var kept=new List<TreeInstance>(oldTrees.Length);
             foreach(var tree in oldTrees)
@@ -57,10 +64,11 @@ namespace TerraLoom.Integration
                 if(tree.prototypeIndex<0||tree.prototypeIndex>=footprints.Length)
                     throw new InvalidOperationException("Terrain tree prototype index is invalid.");
                 var point=new Vector2(origin.x+tree.position.x*target.size.x,origin.z+tree.position.z*target.size.z);
-                var descriptor=prototypes[tree.prototypeIndex].prefab.GetComponent<TerraLoom.Core.Unity.LandscapeAssetShape>();
-                float extent=descriptor&&descriptor.UseExplicitBody
-                    ?descriptor.TerrainTreeClearanceRadius(tree.widthScale,tree.heightScale)
-                    :footprints[tree.prototypeIndex]*tree.widthScale;
+                bool reviewed=reviewedBodies[tree.prototypeIndex];
+                if(reviewed&&(float.IsNaN(tree.widthScale)||float.IsInfinity(tree.widthScale)||tree.widthScale<=0
+                    ||float.IsNaN(tree.heightScale)||float.IsInfinity(tree.heightScale)||tree.heightScale<=0))
+                    throw new InvalidOperationException("Tree scales must be finite and positive.");
+                float extent=footprints[tree.prototypeIndex]*(reviewed?Mathf.Max(tree.widthScale,tree.heightScale):tree.widthScale);
                 if(!Intersects(point,extent,corridors))kept.Add(tree);
             }
             if(kept.Count!=oldTrees.Length)target.SetTreeInstances(kept.ToArray(),false);

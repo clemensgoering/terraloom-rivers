@@ -53,6 +53,19 @@ namespace TerraLoom.Tests
                 Assert.That(c.GenerateRecipe(recipe,decoration),Is.True,c.Diagnostics);
                 Assert.That(c.World.Seed,Is.EqualTo(recipe.Settings.Seed));
                 Assert.That(c.ValidateCurrent(out var current),Is.True,current);
+                var previousNature=decoration.GeneratedRoot;
+                recipe.Settings.DecorationCount=0;
+                recipe.Settings.DecorationProfiles=Array.Empty<TerraLoom.Core.Unity.RegionalStyleProfile>();
+                c.PublicationBoundary=stage=>{if(stage=="before-commit")throw new InvalidOperationException("Empty decoration rollback");};
+                Assert.That(c.GenerateRecipe(recipe,decoration),Is.False);
+                StringAssert.Contains("Empty decoration rollback",c.Diagnostics);
+                c.PublicationBoundary=null;
+                Assert.That(decoration.GeneratedRoot,Is.SameAs(previousNature));
+                Assert.That(decoration.PlacedCount,Is.GreaterThan(0));
+                Assert.That(c.GenerateRecipe(recipe,decoration),Is.True,c.Diagnostics);
+                Assert.That(decoration.PlacedCount,Is.Zero);Assert.That(decoration.Count,Is.Zero);
+                Assert.That(previousNature==null,Is.True,"Old decoration retires only after the complete empty publication commits.");
+                Assert.That(c.ValidateCurrent(out current),Is.True,current);
             }
             finally
             {
