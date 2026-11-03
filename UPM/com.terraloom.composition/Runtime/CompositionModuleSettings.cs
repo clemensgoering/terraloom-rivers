@@ -62,6 +62,8 @@ namespace TerraLoom.Integration
     public sealed class PathRecipeParameters
     {
         public float Width=2;
+        // Additive fields: recipes saved before them deserialize to 0/null, the legacy hard-edged path.
+        public float ShoulderWidth=0;
         public float MinimumBendRadius=0;
         public float CellSize=2;
         public float MaximumSlope=.5f;
@@ -77,10 +79,12 @@ namespace TerraLoom.Integration
         public List<PathReservationSettings> Reservations=new List<PathReservationSettings>();
         public Material GroundMaterial=null;
         public Material BridgeMaterial=null;
+        public Material VergeMaterial=null;
         public bool TimberBeamBridge=false;
         public bool TimberTrussBridge=false;
         internal static PathRecipeParameters Capture(TerraLoomPaths component) => new PathRecipeParameters {
             Width=component.Width,
+            ShoulderWidth=component.ShoulderWidth,
             MinimumBendRadius=component.MinimumBendRadius,
             CellSize=component.CellSize,
             MaximumSlope=component.MaximumSlope,
@@ -96,12 +100,14 @@ namespace TerraLoom.Integration
             Reservations=component.Reservations,
             GroundMaterial=component.GroundMaterial,
             BridgeMaterial=component.BridgeMaterial,
+            VergeMaterial=component.VergeMaterial,
             TimberBeamBridge=component.TimberBeamBridge,
             TimberTrussBridge=component.TimberTrussBridge
         };
         internal void Apply(TerraLoomPaths component)
         {
             component.Width=Width;
+            component.ShoulderWidth=ShoulderWidth;
             component.MinimumBendRadius=MinimumBendRadius;
             component.CellSize=CellSize;
             component.MaximumSlope=MaximumSlope;
@@ -117,6 +123,7 @@ namespace TerraLoom.Integration
             component.Reservations=Reservations;
             component.GroundMaterial=GroundMaterial;
             component.BridgeMaterial=BridgeMaterial;
+            component.VergeMaterial=VergeMaterial;
             component.TimberBeamBridge=TimberBeamBridge;
             component.TimberTrussBridge=TimberTrussBridge;
         }
